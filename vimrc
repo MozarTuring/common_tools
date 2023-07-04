@@ -164,7 +164,7 @@ echo cur_name
 if &filetype == 'sh'
 	exec "!bash % ". abs_dir
 elseif &filetype == 'python'
-    let shell_path = "/home/maojingwei/run.sh"
+    let shell_path = "/home/maojingwei/project/common_tools_for_centos/run.sh"
     "echo "start"
     "echo "!bash "+shell_path+" %" 字符串没有加法运算
 "    let inp_dir = input("input python file dir:\n")
