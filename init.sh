@@ -1,13 +1,18 @@
 set -e
 
-#useradd maojingwei
-#passwd maojingwei
 
-#su
-#yum -y install zlib zlib-devel bzip2 bzip2-devel ncurses ncurses-devel readline readline-devel openssl openssl-devel openssl-static xz lzma xz-devel sqlite sqlite-devel  gdbm gdbm-devel tk tk-devel libffi libffi-devel gcc make
-#yum install sudo -y
-#echo "\nmaojingwei ALL=(ALL)    ALL" >> /etc/sudoers
-#exit
+cd /home/maojingwei/software
+wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.32.0.tar.xz
+tar -xvf git-2.32.0.tar.xz
+cd git-2.32.0
+make prefix=/home/maojingwei/installed/git all
+make prefix=/home/maojingwei/installed/git install
+echo "export PATH=/home/maojingwei/installed/git/bin:$PATH" >> /home/maojingwei/.bashrc
+
+ls /home/maojingwei/.ssh
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+#echo "set completion-ignore-case on">>/home/maojingwei/.inputrc # source does not work, need to restart teminal
 
 #scp maojingwei@10.20.14.42:/home/maojingwei/software/Python-3.8.16.tar.xz /home/maojingwei/software/
 #cd /home/maojingwei/software/
@@ -17,6 +22,7 @@ set -e
 #make && make install
 #echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/home/maojingwei/installed/python3.8.16/lib" >> /home/maojingwei/.bashrc
 #source /home/maojingwei/.bashrc  # need to execute outside
+
 
 #scp -r maojingwei@10.20.14.42:/home/maojingwei/software/vim_bak /home/maojingwei/software/
 #cd /home/maojingwei/software/
