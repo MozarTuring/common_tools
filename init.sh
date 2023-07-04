@@ -9,8 +9,11 @@ make prefix=/home/maojingwei/installed/git all
 make prefix=/home/maojingwei/installed/git install
 echo "export PATH=/home/maojingwei/installed/git/bin:$PATH" >> /home/maojingwei/.bashrc
 
-ls /home/maojingwei/.ssh
+cd /home/maojingwei/.ssh
+ls
 ssh-keygen -t ed25519 -C "your_email@example.com"
+cat id_ed25519.pub
+
 
 #echo "set completion-ignore-case on">>/home/maojingwei/.inputrc # source does not work, need to restart teminal
 
