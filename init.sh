@@ -54,3 +54,7 @@ set -e
 
 #cd /home/maojingwei/software
 #tar -zxvf TensorRT-8.2.5.1.Linux.x86_64-gnu.cuda-11.4.cudnn8.2.tar.gz
+#echo "export TENSORRT_HOME=\"/home/maojingwei/software/TensorRT-8.2.5.1\"
+#export PATH=\"\$TENSORRT_HOME/bin:\$PATH\"
+#export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:\$TENSORRT_HOME/lib\"
+#export LD_INCLUDE_PATH=\"\$TENSORRT_HOME/include:\$LD_INCLUDE_PATH\"" >> /home/maojingwei/.bashrc
