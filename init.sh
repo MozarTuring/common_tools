@@ -17,6 +17,12 @@ set -e
 #echo "set completion-ignore-case on">>/home/maojingwei/.inputrc # source does not work, need to restart teminal
 
 #cd /home/maojingwei/software/
+#if [ -d "Python-3.8.16" ]; then
+#    echo "clear last install"
+#    rm -rf Python-3.8.16
+#else
+#    echo "no python dir"
+#fi
 #tar -xvf Python-3.8.16.tar.xz
 #cd /home/maojingwei/software/Python-3.8.16
 #./configure --prefix=/home/maojingwei/installed/python3.8.16 --enable-shared
@@ -30,7 +36,7 @@ set -e
 #/home/maojingwei/installed/python3.8.16/bin/python3 -m pip install virtualenv
 
 
-#cd /home/maojingwei/software
+cd /home/maojingwei/software
 #if [ -d "vim" ]; then
 #    echo "clear last install"
 #    cd vim/src
@@ -41,14 +47,14 @@ set -e
 #else
 #    echo "no vim dir"
 #fi
-#
 #tar zxvf vim.tar.gz
 #cd /home/maojingwei/software/vim
 #./configure --with-features=huge --prefix=/home/maojingwei/installed/vim --enable-python3interp=dynamic --with-python3-config-dir=$(/home/maojingwei/installed/python3.8.16/bin/python3-config --configdir) --with-python3-command=/home/maojingwei/installed/python3.8.16/bin/python3
 #make && make install
-##echo "export PATH=/home/maojingwei/installed/vim/bin/:$PATH" >> /home/maojingwei/.bashrc # by this way, $PATH will be replaced by its value. so use the line below
+####echo "export PATH=/home/maojingwei/installed/vim/bin/:$PATH" >> /home/maojingwei/.bashrc # by this way, $PATH will be replaced by its value. so use the line below
 #echo "export PATH=\"/home/maojingwei/installed/vim/bin/:\$PATH\"" >> /home/maojingwei/.bashrc # can not use ' after =
 #echo "export VIMINIT='source /home/maojingwei/project/common_tools_for_centos/vimrc'" >> /home/maojingwei/.bashrc
+
 
 #scp -r maojingwei@10.20.14.42:/home/maojingwei/.vim /home/maojingwei/
 

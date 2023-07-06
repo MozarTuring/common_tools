@@ -200,7 +200,7 @@ nmap fd :call CompileRunGcc('d')<CR>
 nmap fn :call CompileRunGcc('n')<CR>
 
 func! GetPid()
-    exec "silent !bash /home/maojingwei/get_pid.sh"
+    exec "silent !bash /home/maojingwei/project/common_tools_for_centos/get_pid.sh"
     exec "tabnew /home/maojingwei/tmp.pid"
     redraw
     call KillPid()
@@ -236,7 +236,7 @@ nmap ,f :NERDTreeFind<CR>
 nmap ;e :e<cr>
 nmap ;q :q<cr>
 nmap ;w :w<cr>
-nmap ;s :source ~/.vimrc<cr>
+nmap ;s :source /home/maojingwei/project/common_tools_for_centos/vimrc<cr>
 "noremap ;s <c-w>w hard to remap, just need to practice your fingure get used to this key combination
 nmap gj :call jedi#goto()<CR>
 let g:jedi#use_tabs_not_buffers = 1
