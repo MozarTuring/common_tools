@@ -149,7 +149,7 @@ redraw
 endfunc
 
 
-func! CompileRunGcc(inp_mode)
+func! CompileRunGcc()
 exec "w"
 " 上面这相当于 :w<CR> 也就是保存文件的意思 
 let abs_path = GetAbsPath()
@@ -162,38 +162,19 @@ echo abs_dir
 echo cur_name
 "return 0
 if &filetype == 'sh'
-    if index(cur_name, "_run") >= 0
-        let inp_args = input("input args:\n")
-        exec "!bash % " . inp_args
-    else
-        exec "!bash %" 
-    endif
+    exec "!bash %" 
 elseif &filetype == 'python'
-    let shell_path = "/home/maojingwei/project/common_tools_for_centos/run.sh"
-    "echo "start"
-    "echo "!bash "+shell_path+" %" 字符串没有加法运算
-"    let inp_dir = input("input python file dir:\n")
-"    if len(inp_dir) !=0
-"        exec "!ls ". inp_dir
-"        let inp_name = input("input python filename:\n")
-"        let abs_path = inp_dir. "/". inp_name
-"    endif
-
-    if a:inp_mode == "d"
-"        exec "normal oimport ipdb;ipdb.set_trace()"
-"        exec "w"
-        let tmp_command = join(["term bash",shell_path,abs_path,"debug"], " ")
-        exec tmp_command 
-    elseif a:inp_mode == "r"
-        let tmp_command = join(["term bash",shell_path,abs_path,"run"], " ")
-        exec tmp_command 
-    else
-        let cur_time = localtime()
-        let tmp_command = join(["silent !bash",shell_path,abs_path,"nohup",cur_time], " ")
-        exec tmp_command 
-        exec "tabnew " . abs_dir . "/jwlogs/" . cur_name . "_". cur_time .".log"
-        redraw
-    endif
+    let shell_start_line = search('"""shell_start_mjw', 'b')
+    let shell_end_line = search('shell_end_mjw"""')
+    let content_ls = []
+    while shell_start_line < shell_end_line-1
+        let shell_start_line += 1
+        let cur_content = getline(shell_start_line)
+        let content_ls += [cur_content]
+    endwhile
+    let tmp_path = abs_dir . "/zmjwtmp_" . cur_name . ".sh"
+    call writefile(content_ls, tmp_path)
+    exec "!bash ". tmp_path
 elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
     " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
@@ -201,9 +182,7 @@ elseif &filetype == 'vim'
 	echo "done sourcing"
 endif
 endfunc
-nmap fr :call CompileRunGcc("r")<CR>
-nmap fd :call CompileRunGcc('d')<CR>
-nmap fn :call CompileRunGcc('n')<CR>
+nmap fr :call CompileRunGcc()<CR>
 
 func! GetPid()
     exec "silent !bash /home/maojingwei/project/common_tools_for_centos/get_pid.sh"
