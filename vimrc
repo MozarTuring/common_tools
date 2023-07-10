@@ -162,7 +162,12 @@ echo abs_dir
 echo cur_name
 "return 0
 if &filetype == 'sh'
-	exec "!bash % ". abs_dir
+    if index(cur_name, "_run") >= 0
+        let inp_args = input("input args:\n")
+        exec "!bash % " . inp_args
+    else
+        exec "!bash %" 
+    endif
 elseif &filetype == 'python'
     let shell_path = "/home/maojingwei/project/common_tools_for_centos/run.sh"
     "echo "start"
@@ -183,9 +188,10 @@ elseif &filetype == 'python'
         let tmp_command = join(["term bash",shell_path,abs_path,"run"], " ")
         exec tmp_command 
     else
-        let tmp_command = join(["silent !bash",shell_path,abs_path,"nohup"], " ")
+        let cur_time = localtime()
+        let tmp_command = join(["silent !bash",shell_path,abs_path,"nohup",cur_time], " ")
         exec tmp_command 
-        exec "tabnew " . abs_dir . "/jwlogs/" . cur_name . ".log"
+        exec "tabnew " . abs_dir . "/jwlogs/" . cur_name . "_". cur_time .".log"
         redraw
     endif
 elseif &filetype == 'vim'

@@ -27,7 +27,7 @@ if [ "$2" = "nohup" ]; then
       mkdir "jwlogs"
       echo "jwlogs dir created"
     fi
-    nohup python $1 >jwlogs/$cur_name_pre.log 2>&1 &
+    nohup python $1 >jwlogs/${cur_name_pre}_$3.log 2>&1 &
 elif [ "$2" = "run" ]; then
     python $1
 elif [ "$2" = "debug" ]; then
