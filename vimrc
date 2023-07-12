@@ -59,15 +59,19 @@ let NERDTreeShowHidden=1
 " Below is my design
 
 
-function! NERDTreeYankCurrentNode()
-    let n = g:NERDTreeFileNode.GetSelected()
-    if n != {}
-        let tmp_path = n.path.str()
-        echo tmp_path
-        call setreg('"', tmp_path)
+function! Yankpath()
+    if g:NERDTree.IsOpen()
+        let n = g:NERDTreeFileNode.GetSelected()
+        if n != {}
+            let tmp_path = n.path.str()
+            echo tmp_path
+            call setreg('"', tmp_path)
+        endif
+    else
+        call GetAbsPath()
     endif
 endfunction
-nmap yp :call NERDTreeYankCurrentNode()<cr>
+nmap yp :call Yankpath()<cr>
 
 
 func! Comment() range
@@ -131,13 +135,13 @@ if cur_file_path[0]=="/"
 else
     let abs_path = join([cur_dir,cur_file_path],"/")
 endif
-echo cur_dir
-echo cur_file_path
-echo abs_path
-call setreg('a', abs_path)
+"echo cur_dir
+"echo cur_file_path
+"echo abs_path
+call setreg('"', abs_path)
 return abs_path
 endfunc
-nmap <c-y> :call GetAbsPath()<cr>
+"nmap <c-y> :call GetAbsPath()<cr>
 
 
 func! KillPid()
@@ -206,11 +210,11 @@ endfunc
 nmap ;p :call PasteToNewLine()<cr>
 
 
-func! MyRefresh()
-    exec "w"
-    exec "e!"
-endfunc
-au InsertEnter * :call MyRefresh()
+"func! MyRefresh()
+"    exec "w"
+"    exec "e!"
+"endfunc
+"au InsertEnter * :call MyRefresh()
 
 
 nmap gr :!grep -n 
