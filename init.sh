@@ -16,27 +16,29 @@ set -e
 
 #echo "set completion-ignore-case on">>/home/maojingwei/.inputrc # source does not work, need to restart teminal
 
+
 #cd /home/maojingwei/software/
-#if [ -d "Python-3.8.16" ]; then
+#version=3.8.10
+#if [ -d "Python-$version" ]; then
 #    echo "clear last install"
-#    rm -rf Python-3.8.16
+#    rm -rf Python-$version
 #else
-#    echo "no python dir"
+#    echo "no python-$version dir"
 #fi
-#tar -xvf Python-3.8.16.tar.xz
-#cd /home/maojingwei/software/Python-3.8.16
-#./configure --prefix=/home/maojingwei/installed/python3.8.16 --enable-shared
+#tar -xvf Python-$version.tar.xz
+#cd /home/maojingwei/software/Python-$version
+#./configure --prefix=/home/maojingwei/installed/python$version --enable-shared
 #make && make install
-#echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/home/maojingwei/installed/python3.8.16/lib" >> /home/maojingwei/.bashrc
-#source /home/maojingwei/.bashrc  # need to execute outside
+#echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/home/maojingwei/installed/python$version/lib" >> /home/maojingwei/.bashrc
+###source /home/maojingwei/.bashrc  # need to execute outside
 #mkdir -p /home/maojingwei/.config/pip
 #echo "[global]
 #index-url = https://pypi.mirrors.ustc.edu.cn/simple
 #trusted-host=pypi.mirrors.ustc.edu.cn" > /home/maojingwei/.config/pip/pip.conf
-#/home/maojingwei/installed/python3.8.16/bin/python3 -m pip install virtualenv
+#/home/maojingwei/installed/python$version/bin/python3 -m pip install virtualenv
 
 
-cd /home/maojingwei/software
+#cd /home/maojingwei/software
 #if [ -d "vim" ]; then
 #    echo "clear last install"
 #    cd vim/src

@@ -98,7 +98,7 @@ func! Comment() range
         endif
     endfor
 "    echo &filetype
-    let filetype_ls1 = ["python","sh", "dockerfile"]
+    let filetype_ls1 = ["python","sh", "dockerfile", "yaml"]
     if index(filetype_ls1, &filetype)>=0 && first_char=="#"
         exec join([prefix,"s/#//"])
         exec "noh"

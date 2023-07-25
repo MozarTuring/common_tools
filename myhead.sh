@@ -1,19 +1,24 @@
 cd $2
 pwd
 
+version=3.8.16
 
-if [ $1 == "pyenv" ]; then
+if [ $# -eq 3 ];then
+    verion=$3
+fi
+
+if [ "$1" == "pyenv" ]; then
     if [ ! -d "pyenv" ]; then
         echo "create pyenv"
-        /home/maojingwei/installed/python3.8.16/bin/python3 -m virtualenv pyenv
+        /home/maojingwei/installed/python$version/bin/python3 -m virtualenv pyenv
     fi
     source pyenv/bin/activate
-elif [ $1 == "condaenv" ]; then
+elif [ "$1" == "condaenv" ]; then
     if [ ! -d "condaenv" ]; then
         echo "create condaenv"
-        conda create -p condaenv python=3.8.16
+        /home/maojingwei/installed/anaconda3/bin/conda env create -p condaenv -f $3
     fi
-    source /cm/shared/apps/anaconda3/bin/activate $cur_dir/condaenv
+    source /home/maojingwei/installed/anaconda3/bin/activate $2/condaenv
 fi
 
 which python
