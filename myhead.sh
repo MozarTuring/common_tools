@@ -16,7 +16,7 @@ if [ "$1" == "pyenv" ]; then
 elif [ "$1" == "condaenv" ]; then
     if [ ! -d "condaenv" ]; then
         echo "create condaenv"
-        /home/maojingwei/installed/anaconda3/bin/conda env create -p condaenv -f $3
+        /home/maojingwei/installed/anaconda3/bin/conda create -p condaenv python=$version
     fi
     source /home/maojingwei/installed/anaconda3/bin/activate $2/condaenv
 fi
