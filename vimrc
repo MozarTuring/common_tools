@@ -168,17 +168,17 @@ echo cur_name
 if &filetype == 'sh'
     exec "!bash %" 
 elseif &filetype == 'python'
-    let shell_start_line = search('"""shell_start_mjw', 'b')
-    let shell_end_line = search('shell_end_mjw"""')
+    let shell_start_line = search('"""shell_run_mjw', 'b')
+    let shell_end_line = search('shell_run_mjw"""')
     let content_ls = []
     while shell_start_line < shell_end_line-1
         let shell_start_line += 1
         let cur_content = getline(shell_start_line)
         let content_ls += [cur_content]
     endwhile
-    let tmp_path = abs_dir . "/zmjwtmp_" . cur_name . ".sh"
+    let tmp_path = abs_dir . "/ztmpmjwrun_" . cur_name . ".sh"
     call writefile(content_ls, tmp_path)
-    exec "!bash ". tmp_path
+    exec "!bash ". tmp_path . " " . abs_path
 elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
     " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
@@ -187,6 +187,26 @@ elseif &filetype == 'vim'
 endif
 endfunc
 nmap fr :call CompileRunGcc()<CR>
+
+
+func! CompileStop()
+exec "w"
+" 上面这相当于 :w<CR> 也就是保存文件的意思 
+let abs_path = GetAbsPath()
+let abs_path_split = split(abs_path,"/")
+let abs_dir = "/" . join(abs_path_split[:-2],"/")
+let cur_name = split(abs_path_split[-1],'\.')[0]
+" notice that the above sep must be in single quote
+"echo abs_path_split[-1]
+echo abs_dir
+echo cur_name
+"return 0
+if &filetype == 'python'
+    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path
+endif
+endfunc
+nmap fk :call CompileStop()<CR>
+
 
 func! GetPid()
     exec "silent !bash /home/maojingwei/project/common_tools_for_centos/get_pid.sh"
