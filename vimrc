@@ -68,7 +68,7 @@ function! Yankpath()
             call setreg('"', tmp_path)
         endif
     else
-        call GetAbsPath()
+        call GetAbsPath("b")
     endif
 endfunction
 nmap yp :call Yankpath()<cr>
@@ -127,21 +127,52 @@ nmap <silent> # :call Comment()<CR>
 vnoremap <C-s> "hy:%s/<C-r>h//gc<left><left><left>
 " <left> means cursor moves towards left; <C-r>h means use content in h register
 
-func! GetAbsPath()
-let cur_dir = getcwd()
-let cur_file_path=getreg('%')
-if cur_file_path[0]=="/"
-    let abs_path = cur_file_path
-else
-    let abs_path = join([cur_dir,cur_file_path],"/")
-endif
-"echo cur_dir
-"echo cur_file_path
-"echo abs_path
-call setreg('"', abs_path)
-return abs_path
+func! GenerateCode() range
+    let v = @"
+    let tmp_list = split(v, ",")
+    let all_str = "for k, v in kwargs.items():"
+    for tmp_ele in tmp_list
+        let ele_list = split(tmp_ele, "\"")
+        echo ele_list
+        let ele = ele_list[1]
+        let tmp_str = ele. " = kwargs.get(\"" . ele. "\", None)"
+        let all_str = all_str . "\n". tmp_str
+    endfor
+    let @"=all_str
 endfunc
-"nmap <c-y> :call GetAbsPath()<cr>
+nmap fg :call GenerateCode()<CR>
+
+
+func! GetAbsPath(inp_mode)
+    let cur_dir = getcwd()
+    let cur_file_path=getreg('%')
+    if cur_file_path[0]=="/"
+        let abs_path = cur_file_path
+    else
+        let abs_path = join([cur_dir,cur_file_path],"/")
+    endif
+    echo abs_path
+    let abs_path_split = split(abs_path,"/")
+    let abs_dir = "/" . join(abs_path_split[:-2],"/")
+    let cur_name = split(abs_path_split[-1],'\.')[0]
+    " notice that the above sep must be in single quote
+    if a:inp_mode=="a"
+        return [l:abs_path,l:abs_dir,l:cur_name]
+    else
+        echo "here"
+        call setreg('"', abs_path)
+        return abs_path
+    endif
+endfunc
+
+func! OpenLog()
+    let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
+    exec "tabnew ". abs_dir . "/jwlogs/".cur_name.".log"
+endfunc
+nmap fl :call OpenLog()<CR>
+
+
+
 
 
 func! KillPid()
@@ -153,18 +184,10 @@ redraw
 endfunc
 
 
-func! CompileRunGcc()
+func! CompileRunGcc(inp_mode)
 exec "w"
 " 上面这相当于 :w<CR> 也就是保存文件的意思 
-let abs_path = GetAbsPath()
-let abs_path_split = split(abs_path,"/")
-let abs_dir = "/" . join(abs_path_split[:-2],"/")
-let cur_name = split(abs_path_split[-1],'\.')[0]
-" notice that the above sep must be in single quote
-"echo abs_path_split[-1]
-echo abs_dir
-echo cur_name
-"return 0
+let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
 if &filetype == 'sh'
     exec "!bash %" 
 elseif &filetype == 'python'
@@ -176,9 +199,17 @@ elseif &filetype == 'python'
         let cur_content = getline(shell_start_line)
         let content_ls += [cur_content]
     endwhile
-    let tmp_path = abs_dir . "/ztmpmjwrun_" . cur_name . ".sh"
-    call writefile(content_ls, tmp_path)
-    exec "!bash ". tmp_path . " " . abs_path
+    if len(content_ls) == 0
+        if a:inp_mode == "r"
+            exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " run"
+        elseif a:inp_mode == "n"
+            exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " nohup"
+        endif
+    else
+        let tmp_path = abs_dir . "/ztmpmjwrun_" . cur_name . ".sh"
+        call writefile(content_ls, tmp_path)
+        exec "!bash ". tmp_path . " " . abs_path
+    endif
 elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
     " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
@@ -186,21 +217,12 @@ elseif &filetype == 'vim'
 	echo "done sourcing"
 endif
 endfunc
-nmap fr :call CompileRunGcc()<CR>
+nmap fr :call CompileRunGcc("r")<CR>
+nmap fn :call CompileRunGcc("n")<CR>
 
 
 func! CompileStop()
-exec "w"
-" 上面这相当于 :w<CR> 也就是保存文件的意思 
-let abs_path = GetAbsPath()
-let abs_path_split = split(abs_path,"/")
-let abs_dir = "/" . join(abs_path_split[:-2],"/")
-let cur_name = split(abs_path_split[-1],'\.')[0]
-" notice that the above sep must be in single quote
-"echo abs_path_split[-1]
-echo abs_dir
-echo cur_name
-"return 0
+let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
 if &filetype == 'python'
     exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path
 endif

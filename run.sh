@@ -13,21 +13,13 @@ echo $cur_name_pre
 
 
 
-if [ -d "pyenv" ]; then
-    source pyenv/bin/activate
-elif [[ $cur_dir == *sribd_attendance/* ]]; then
-    source /home/maojingwei/project/sribd_attendance/pyenv/bin/activate
-else
-    source /home/maojingwei/python3.8.16env/base/bin/activate
-fi
-which python
-
+source $cur_dir/myRequirements.sh
 if [ "$2" = "nohup" ]; then
     if [ ! -d "jwlogs" ]; then
       mkdir "jwlogs"
       echo "jwlogs dir created"
     fi
-    nohup python $1 >jwlogs/${cur_name_pre}_$3.log 2>&1 &
+    nohup python $1 >jwlogs/${cur_name_pre}.log 2>&1 &
 elif [ "$2" = "run" ]; then
     python $1
 elif [ "$2" = "debug" ]; then
