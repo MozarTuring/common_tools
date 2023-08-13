@@ -37,16 +37,18 @@ class myDecorator(mjwBase):
             @wraps(func)
             def wrapped_function(*args, **kwargs):
                 try:
-                    func(*args, **kwargs)
+                    ret = func(*args, **kwargs)
                 except:
                     self.logger.info(traceback.format_exc())
+                return ret
 
         if self.mode == "timer":
             @wraps(func)
             def wrapped_function(*args, **kwargs):
                 start = time.time()
-                func(*args, **kwargs)
+                ret = func(*args, **kwargs)
                 self.logger.info(f"{func.__name__} cost {time.time()-start}")
+                return ret
 
         if self.mode == "thread":
             @wraps(func)
@@ -107,6 +109,7 @@ class Database(mjwBase):
 
     # 初始化，连接数据库并获得操作对象
     def __init__(self, **kwargs):
+#host='localhost', user='root', passwd='9213@fCOW', db="sribd_attendance", charset="utf8"
         super().__init__()
         for k, v in kwargs.items():
             setattr(self, k, v)
