@@ -1,10 +1,13 @@
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
-set runtimepath+=/home/maojingwei/.vim
+set packpath+=~/.mjw_vim_pack
 
-"packadd flake8
-execute pathogen#infect()
+"execute pathogen#infect()
+packadd emmet-vim
+packadd fugitive
+packadd jedi-vim
+packadd nerdtree
 
 "call plug#begin()
 "Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
