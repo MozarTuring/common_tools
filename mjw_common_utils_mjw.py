@@ -100,13 +100,6 @@ def start_mp(targets, args_ls):
 
 
 class Database(mjwBase):
-    '''
-        Description:
-            database demo to store image in MySQL RDBMS
-        Attributes:
-            None
-    '''
-
     # 初始化，连接数据库并获得操作对象
     def __init__(self, **kwargs):
 #host='localhost', user='root', passwd='9213@fCOW', db="sribd_attendance", charset="utf8"
@@ -121,14 +114,6 @@ class Database(mjwBase):
 #        self.insert_(sql, [-1])
 #        print("heeeeeeeeeeeeeeee")
 
-        '''
-            Description:
-                create table to store imagestest
-            Args:
-                None
-            Return:
-                None
-        '''
 
     # 判断数据库表imags2是否存在，不存在则新建
     def _conn(self, ):

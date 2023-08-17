@@ -1,13 +1,14 @@
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
+set runtimepath+=~/.mjw_vim_pack " this is for autoload
 set packpath+=~/.mjw_vim_pack
 
-"execute pathogen#infect()
-packadd emmet-vim
-packadd fugitive
-packadd jedi-vim
-packadd nerdtree
+execute pathogen#infect()
+"packadd emmet-vim
+"packadd fugitive
+"packadd jedi-vim
+"packadd nerdtree
 
 "call plug#begin()
 "Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
@@ -227,6 +228,7 @@ nmap fn :call CompileRunGcc("n")<CR>
 func! CompileStop()
 let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
 if &filetype == 'python'
+    echo abs_path
     exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path
 endif
 endfunc
@@ -292,3 +294,5 @@ set wrap
 let g:jedi#popup_on_dot = 0
 "au FocusGained * :e<cr>
 "must restart vim to make the above setting work
+
+let g:vimtex_view_general_viewer = 'SumatraPDF'
