@@ -34,9 +34,19 @@ set -e
 #mysql_secure_installation
 
 #yum install -y nginx
-firewall-cmd --permanent --zone=public --add-service=http
-firewall-cmd --permanent --zone=public --add-service=https
-firewall-cmd --reload
+#rpm -qa firewalld # expected output: firewalld-0.6.3-2.el7_7.2.noarch
+#systemctl status firewalld
+#systemctl start firewalld
+#firewall-cmd --permanent --zone=public --add-service=http
+#firewall-cmd --permanent --zone=public --add-service=https
+#firewall-cmd --reload
+#ln -s /etc/nginx/nginx.conf /home/maojingwei/project/common_tools_for_centos/nginx.conf
+#setenforce 0 # if 403 forbidden, try this. this will close SELinux temporarily
 
 
-
+#echo "
+#RSAAuthentication yes
+#
+#PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+#systemctl restart sshd
+#systemctl status sshd

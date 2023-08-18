@@ -66,3 +66,16 @@ set -e
 #export PATH=\"\$TENSORRT_HOME/bin:\$PATH\"
 #export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:\$TENSORRT_HOME/lib\"
 #export LD_INCLUDE_PATH=\"\$TENSORRT_HOME/include:\$LD_INCLUDE_PATH\"" >> /home/maojingwei/.bashrc
+
+#in windows side generate ssh key by ssh-keygen
+#in windows side copy the following content to the .ssh/config
+#Host 10.20.14.43
+#  HostName 10.20.14.43
+#  User maojingwei
+#  PreferredAuthentications publickey
+#  IdentityFile path\to\private_key
+#
+#copy the content in pub key and append to /home/maojingwei/.ssh/authorized_keys
+#chmod 600 /home/maojingwei/.ssh/authorized_keys
+#chmod 700 /home/maojingwei/.ssh
+#then go to root operation
