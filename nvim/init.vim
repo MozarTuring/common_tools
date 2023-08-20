@@ -1,19 +1,15 @@
 if has("win64")
     set runtimepath^=~/.mjw_vim_pack runtimepath+=~/.mjw_vim_pack/after
     let &packpath = &runtimepath
-    source ~/project/common_tools_for_centos/vimrc
 else
-    set runtimepath^=/home/maojingwei/.mjw_vim_pack runtimepath+=/home/maojingwei/.mjw_vim_pack/after
+    set runtimepath^=$MJWHOME/.mjw_vim_pack runtimepath+=$MJWHOME/.mjw_vim_pack/after
     let &packpath = &runtimepath
-    source /home/maojingwei/project/common_tools_for_centos/vimrc
 endif
 
 
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
-set runtimepath+=~/.mjw_vim_pack " this is for autoload
-set packpath+=~/.mjw_vim_pack
 
 execute pathogen#infect()
 "packadd emmet-vim

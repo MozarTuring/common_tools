@@ -34,8 +34,7 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-
-
+conda activate
 
 
 
