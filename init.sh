@@ -79,3 +79,9 @@ set -e
 #chmod 600 /home/maojingwei/.ssh/authorized_keys
 #chmod 700 /home/maojingwei/.ssh
 #then go to root operation
+#
+#
+#cd /home/maojingwei/software
+#tar -xzvf nvim-linux64.tar.gz
+python -m pip install pynvim
+python -m pip install jedi
