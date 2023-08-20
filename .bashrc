@@ -10,7 +10,7 @@ fi
 
 # User specific aliases and functions
 
-export PATH="/usr/local/cuda-11.4/bin:/usr/local/MATLAB/R2022b/bin:$MJWHOME/software/TensorRT-8.2.5.1/bin:$MJWHOME/installed/vim/bin:$MJWHOME/installed/git/bin:$MJWHOME/installed/python3.8.16/lib:$MJWHOME/software/nvim-linux64/bin/:$PATH"
+export PATH="/usr/local/cuda-11.4/bin:/usr/local/MATLAB/R2022b/bin:$MJWHOME/software/TensorRT-8.2.5.1/bin:$MJWHOME/installed/vim/bin:$MJWHOME/installed/git/bin:$MJWHOME/installed/python3.8.16/lib:$MJWHOME/software/nvim/bin/:$PATH"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda-11.4/lib64:$MJWHOME/software/TensorRT-8.2.5.1/lib:$MJWHOME/installed/python3.8.16/lib"
 export LD_INCLUDE_PATH="$MJWHOME/software/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
 
