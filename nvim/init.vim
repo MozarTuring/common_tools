@@ -110,28 +110,35 @@ func! Comment() range
     endfor
 "    echo &filetype
     let filetype_ls1 = ["python","sh", "dockerfile", "yaml"]
-    if index(filetype_ls1, &filetype)>=0 && first_char=="#"
-        exec join([prefix,"s/#//"])
-        exec "noh"
-    elseif index(filetype_ls1, &filetype)>=0 && first_char!="#"
-        exec join([prefix,"s/^/#/"])
-        exec "noh"
-    elseif &filetype == "html" && first_line_char[:1] != "<!"
-        echo "here"
-        exec a:firstline."s/^/<!--/"
-        exec a:lastline."s/$/-->/"
-    elseif &filetype == "html" && first_line_char[:1] == "<!"
-        exec a:firstline."s/<!--//"
-        exec a:lastline."s/-->//"
-    elseif &filetype=="vim" && first_char=='"'
-"        echo "3"
-        exec join([prefix,'s/^"//'])
-        exec "noh"
-    elseif &filetype=="vim" && first_char!='"'
-"        echo "4"
-        exec join([prefix,'s/^/"/g'])
-"        exec "noh"
+    if index(filetype_ls1, &filetype)>=0
+        if first_char=="#"
+            let tmp_command_ls = [join([prefix,"s/#//"])]
+        else
+            let tmp_command_ls = [join([prefix,"s/^/#/"])]
+        endif
+    elseif &filetype == "html"
+        if first_line_char[:1] == "<!"
+            let tmp_command_ls = [a:firstline."s/<!--//", a:lastline."s/-->//"]
+        else
+            let tmp_command_ls = [a:firstline."s/^/<!--/", a:lastline."s/$/-->/"]
+        endif
+    elseif &filetype == "css"
+        if first_line_char[:1] == "/*"
+            let tmp_command_ls = [a:firstline."s/\\/\\*//", a:lastline."s/\\*\\///"]
+        else
+            let tmp_command_ls = [a:firstline."s/^/\\/\\*/", a:lastline."s/$/\\*\\//"]
+        endif
+    elseif &filetype=="vim"
+        if first_char=='"'
+            let tmp_command_ls = [join([prefix,'s/^"//'])]
+        else
+            let tmp_command_ls = [join([prefix,'s/^/"/g'])]
+        endif
     endif
+    for ele in tmp_command_ls
+        exec ele
+    endfor
+    exec "noh"
 endfunc
 vnoremap <silent> # :call Comment()<CR>
 nmap <silent> # :call Comment()<CR>
@@ -176,18 +183,26 @@ func! GetAbsPath(inp_mode)
     endif
 endfunc
 
-func! OpenLog()
-    let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
-    let inp_id = input("Please input id:\n")
-    echo inp_id
-    let tmp_list = split(inp_id, " ")
-    echo tmp_list
-    for ele in tmp_list
-        exec "tabnew ". abs_dir . "/jwlogs/".cur_name.ele.".log"
-    endfor
+func! OpenLog(abs_dir, cur_name)
+    if a:abs_dir == 0
+        let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
+    else
+        let abs_dir = a:abs_dir
+        let cur_name = a:cur_name
+    endif
+    let ele = 0
+    while ele < 8
+        let tmp_path = abs_dir . "/jwlogs/".cur_name.ele.".log"
+        if filereadable(tmp_path)
+            exec "tabnew " . tmp_path
+            let ele += 1
+        else
+            break
+        endif
+    endwhile
     redraw
 endfunc
-nmap fl :call OpenLog()<CR>
+nmap fl :call OpenLog(0, 0)<CR>
 
 
 
@@ -226,8 +241,11 @@ elseif &filetype == 'python'
     else
         let tmp_path = abs_dir . "/ztmpmjwrun_" . cur_name . ".sh"
         call writefile(content_ls, tmp_path)
+"        exec "terminal bash ". tmp_path . " " . abs_path
         exec "!bash ". tmp_path . " " . abs_path
     endif
+    call OpenLog(abs_dir, cur_name)
+    redraw
 elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
     " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
@@ -253,7 +271,7 @@ func! GetPid()
     exec "silent !bash /home/maojingwei/project/common_tools_for_centos/get_pid.sh"
     exec "tabnew /home/maojingwei/tmp.pid"
     redraw
-    call KillPid()
+"    call KillPid()
 endfunc
 nmap <silent> gp :call GetPid()<cr>
 

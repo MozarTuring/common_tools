@@ -1,19 +1,19 @@
-cd $2
-pwd
 
 
 if [ "$1" == "pyenv" ]; then
-    if [ ! -d "pyenv" ]; then
-        echo "create pyenv"
-        /home/maojingwei/installed/python$version/bin/python3 -m virtualenv pyenv
+    cd /home/maojingwei/jw_pyenv
+    if [ ! -d "$2" ]; then
+        echo "create pyenv $2"
+        /home/maojingwei/installed/python$3/bin/python3 -m virtualenv $2
     fi
-    source pyenv/bin/activate
+    source $2/bin/activate
 elif [ "$1" == "condaenv" ]; then
-    if [ ! -d "condaenv" ]; then
-        echo "create condaenv"
-        /home/maojingwei/installed/anaconda3/bin/conda create -p condaenv python=$3
+    cd /home/maojingwei/jw_condaenv
+    if [ ! -d "$2" ]; then
+        echo "create condaenv $2"
+        /home/maojingwei/installed/anaconda3/bin/conda create -p $2 python=$3
     fi
-    source /home/maojingwei/installed/anaconda3/bin/activate $2/condaenv
+    source /home/maojingwei/installed/anaconda3/bin/activate ./$2
 fi
 
 which python

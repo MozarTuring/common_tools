@@ -6,14 +6,12 @@ echo $1
 cur_dir=${var1%/*}
 cur_name=${var1##*/}
 cur_name_pre=${cur_name%.*}
-cd $cur_dir
-echo $cur_dir
-echo $cur_name
-echo $cur_name_pre
-
-
-
 source $cur_dir/myRequirements.sh
+
+cd $cur_dir
+
+pwd
+
 if [ "$2" = "nohup" ]; then
     if [ ! -d "jwlogs" ]; then
       mkdir "jwlogs"
