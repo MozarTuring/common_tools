@@ -108,21 +108,23 @@ func! Comment() range
             break
         endif
     endfor
-"    echo &filetype
+    echo &filetype
     let filetype_ls1 = ["python","sh", "dockerfile", "yaml"]
+    let filetype_ls2 = ["html", "vue"]
+    let filetype_ls3 = ["javascript", "css"]
     if index(filetype_ls1, &filetype)>=0
         if first_char=="#"
             let tmp_command_ls = [join([prefix,"s/#//"])]
         else
             let tmp_command_ls = [join([prefix,"s/^/#/"])]
         endif
-    elseif &filetype == "html"
+    elseif index(filetype_ls2, &filetype)>=0
         if first_line_char[:1] == "<!"
             let tmp_command_ls = [a:firstline."s/<!--//", a:lastline."s/-->//"]
         else
             let tmp_command_ls = [a:firstline."s/^/<!--/", a:lastline."s/$/-->/"]
         endif
-    elseif &filetype == "css"
+    elseif index(filetype_ls3, &filetype)>=0
         if first_line_char[:1] == "/*"
             let tmp_command_ls = [a:firstline."s/\\/\\*//", a:lastline."s/\\*\\///"]
         else
@@ -218,34 +220,72 @@ endfunc
 
 
 func! CompileRunGcc(inp_mode)
-exec "w"
+exec "e"
 " 上面这相当于 :w<CR> 也就是保存文件的意思 
 let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
 if &filetype == 'sh'
     exe "!bash %" 
 elseif &filetype == 'python'
     let shell_start_line = search('"""shell_run_mjw', 'b')
+    echo shell_start_line
     let shell_end_line = search('shell_run_mjw"""')
     let content_ls = []
-    while shell_start_line < shell_end_line-1
-        let shell_start_line += 1
-        let cur_content = getline(shell_start_line)
-        let content_ls += [cur_content]
-    endwhile
-    if len(content_ls) == 0
-        if a:inp_mode == "r"
-            exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " run"
-        elseif a:inp_mode == "n"
-            exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " nohup"
-        endif
-    else
-        let tmp_path = abs_dir . "/ztmpmjwrun_" . cur_name . ".sh"
-        call writefile(content_ls, tmp_path)
-"        exec "terminal bash ". tmp_path . " " . abs_path
-        exec "!bash ". tmp_path . " " . abs_path
+    if shell_start_line != 0
+        while shell_start_line < shell_end_line-1
+            let shell_start_line += 1
+            let cur_content = getline(shell_start_line)
+            let content_ls += [cur_content]
+        endwhile
     endif
-    call OpenLog(abs_dir, cur_name)
-    redraw
+    let ind = 0
+    let command_ls = []
+    let source_path = ""
+    while ind < len(content_ls)
+        let ele = content_ls[ind]
+        if "source " == ele[:6]
+            let source_path = ele[7:]
+        endif
+        if "$#pre," == ele[:5]
+            let ele_split = split(ele,",")
+            let end_pos = ind+ele_split[1]
+            let pre_command_ls = content_ls[ind+1:end_pos]
+            let pre_command_path = abs_dir . "/ztmpPreCommand_" . cur_name . ".sh"
+            call writefile(pre_command_ls, pre_command_path)
+            exec "!bash ".pre_command_path. ">".abs_dir."/jwlogs/".cur_name."0.log 2>&1"
+            let ind = end_pos
+        elseif "$#line," == ele[:6]
+            let ele_split = split(ele,",")
+            let command_ls = content_ls[ind+1:ind+ele_split[1]]
+            break
+        endif
+        let ind += 1
+    endwhile
+    if len(command_ls) == 0
+        let command_ls = [""]
+    endif
+
+    let command_path = abs_dir . "/ztmpRunCommand_" . cur_name . ".txt"
+    let new_command_ls = []
+    let count = 0
+    for ele in command_ls
+        if a:inp_mode == "r"
+            let new_command_ls += ["python ". abs_path. " ". ele]
+        elseif a:inp_mode == "n"
+            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >".abs_dir."/jwlogs/".cur_name.count.".log"." 2>&1 &"]
+        endif
+        let count += 1
+    endfor
+    if a:inp_mode == "n"
+        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path
+    endif
+    call writefile(new_command_ls, command_path)
+    let stop_path = abs_dir . "/ztmpStopCommand_" . cur_name . ".txt"
+    call writefile([abs_path], stop_path)
+    exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". source_path 
+    if a:inp_mode == "n"
+        call OpenLog(abs_dir, cur_name)
+        redraw
+    endif
 elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
     " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
@@ -258,9 +298,9 @@ nmap fn :call CompileRunGcc("n")<CR>
 
 
 func! CompileStop()
+    exec "e"
 let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
 if &filetype == 'python'
-    echo abs_path
     exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path
 endif
 endfunc
@@ -330,3 +370,24 @@ let g:jedi#popup_on_dot = 0
 let g:vimtex_view_general_viewer = 'SumatraPDF'
 tnoremap <esc> <c-\><c-n>
 "switch from terminal mode to normal mode
+let g:clipboard = {
+          \   'name': 'myClipboard',
+          \   'copy': {
+          \      '+': ['tmux', 'load-buffer', '-'],
+          \      '*': ['tmux', 'load-buffer', '-'],
+          \    },
+          \   'paste': {
+          \      '+': ['tmux', 'save-buffer', '-'],
+          \      '*': ['tmux', 'save-buffer', '-'],
+          \   },
+          \   'cache_enabled': 1,
+          \ }
+
+
+if has("unnamedplus")
+    set clipboard=unnamedplus
+else
+    set clipboard=unnamed
+endif
+
+set mouse=

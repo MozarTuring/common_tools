@@ -33,6 +33,7 @@ set -e
 #grep "A temporary password" /var/log/mysqld.log
 #mysql_secure_installation
 
+
 #yum install -y nginx
 #rpm -qa firewalld # expected output: firewalld-0.6.3-2.el7_7.2.noarch
 #systemctl status firewalld
@@ -40,8 +41,8 @@ set -e
 #firewall-cmd --permanent --zone=public --add-service=http
 #firewall-cmd --permanent --zone=public --add-service=https
 #firewall-cmd --reload
-#ln -s /etc/nginx/nginx.conf /home/maojingwei/project/common_tools_for_centos/nginx.conf
 #setenforce 0 # if 403 forbidden, try this. this will close SELinux temporarily
+##cp /home/maojingwei/project/common_tools_for_centos/nginx.conf /etc/nginx/nginx.conf
 
 
 #echo "
@@ -50,3 +51,7 @@ set -e
 #PubkeyAuthentication yes" >> /etc/ssh/sshd_config
 #systemctl restart sshd
 #systemctl status sshd
+
+
+#yum install nodejs  npm -y
+#npm install -g vue-cli

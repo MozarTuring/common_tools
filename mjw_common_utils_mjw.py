@@ -108,7 +108,6 @@ class Database(mjwBase):
             setattr(self, k, v)
         self._conn()
         self.cursor = self.connection.cursor()
-        self.logger = common_logger
         # 存储的表名
 #        sql=f'insert into {self.table} (camera_id) values(%s)'
 #        self.insert_(sql, [-1])
@@ -119,6 +118,7 @@ class Database(mjwBase):
     def _conn(self, ):
 #        ret = pymysql.connect(host='10.20.14.27', user='root', passwd='root', db='test', charset="utf8")
         self.connection = pymysql.connect(host=self.host, user=self.user, passwd=self.passwd, db=self.db, charset=self.charset)
+        self.logger.info("done connection")
 
 #    @myDecorator("thread") will cause error
     @myDecorator("exception")
@@ -133,99 +133,26 @@ class Database(mjwBase):
                 self.logger.info("reconnect sql")
             time.sleep(every_seconds)
 
-    def create_image_table(self):
-        sql = 'create table if not exists {} (name varchar(50),img_date date,img_data longblob);'.format(self.table)
-        # 建表命令 create talbe imags (
-        #           id int not null primaty key auto_increment,
-        #           name varchar(50),
-        #           img_date date,
-        #           img_data longblob);
-        try:
-            self.cursor.execute(sql)
 
+#    def get_label_data(self,):
+#        sql = 'select name,img_date,result_mark from {} where result_mark <> ""'.format(self.table)
+#        self.cursor.execute(sql)
+#        result = self.cursor.fetchall()
+#        return result
+
+    def run_sql(self, sql, verbose=False):
+        if verbose:
+            self.logger.info(sql)
+        self.cursor.execute(sql)
+        sql_split = sql.split(" ")
+        if sql_split[0].lower() == "select":
+            result = self.cursor.fetchall()
+            return result
+        elif sql_split[0].lower() in ["create","update","insert"]:
             self.connection.commit()
 
-        except pymysql.Error:
-            print(pymysql.Error)
 
-        '''
-            Description:
-                insert image into table
-            Args:
-                image:
-                    image to store
-            Returns:
-                None
-        '''
-
-    # 往imags2表中插入图片
-    # def insert_image(self, image):
-    #     sql = "insert into {}(name,img_date,img_data) values(%s,%s,%s)".format(self.table)
-    #     self.cursor.execute(sql, image)
-    #     self.connection.commit()
-
-        '''
-            Description:
-                get image from database
-            Args:
-                path:
-                    path to save image
-            Returns:
-                None
-        '''
-
-    # 从数据库中获取图片，并往path中写入图片
-    def get_image(self,):
-        sql = 'select * from {}'.format(self.table)
-        try:
-            print('开始获取数据库数据')
-            self.cursor.execute(sql)
-            print('成功获取数据库数据')
-            image = self.cursor.fetchone()[2]
-            return image
-        except pymysql.Error:
-            print(pymysql.Error)
-            print('获取照片失败')
-    # def get_image(self, path):
-    #     sql = 'select * from imags2'
-    #     try:
-    #         print('开始获取数据库数据')
-    #         self.cursor.execute(sql)
-    #         print('成功获取数据库数据')
-    #         image = self.cursor.fetchone()[3]
-    #         print(image)
-    #         with open(path, "wb") as file:
-    #             file.write(image)
-    #     except pymysql.Error:
-    #         print(pymysql.Error)
-    #         print('获取照片失败')
-    #     except IOError:
-    #         print(IOError)
-
-        '''
-            Description:
-                destruction method
-            Args:
-                None
-            Returns:
-                None
-        '''
-
-    def __del__(self):
-        self.connection.close()
-        self.cursor.close()
-        
-
-    def get_label_data(self,):
-        sql = 'select name,img_date,result_mark from {} where result_mark <> ""'.format(self.table)
-        self.cursor.execute(sql)
-        result = self.cursor.fetchall()
-        return result
-
-
-    def get_data(self, inp_keys, inp_condition):
-        sql = 'select {} from {} {}'.format(",".join(inp_keys), self.table, inp_condition)
-        print(sql)
+    def get_data(self, sql):
         self.cursor.execute(sql)
         result = self.cursor.fetchall()
         return result

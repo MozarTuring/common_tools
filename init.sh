@@ -67,6 +67,7 @@ set -e
 #export LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:\$TENSORRT_HOME/lib\"
 #export LD_INCLUDE_PATH=\"\$TENSORRT_HOME/include:\$LD_INCLUDE_PATH\"" >> /home/maojingwei/.bashrc
 
+
 #in windows side generate ssh key by ssh-keygen
 #in windows side copy the following content to the .ssh/config
 #Host 10.20.14.43
@@ -83,5 +84,5 @@ set -e
 #
 #cd /home/maojingwei/software
 #tar -xzvf nvim-linux64.tar.gz
-python -m pip install pynvim
-python -m pip install jedi
+#python -m pip install pynvim
+#python -m pip install jedi
