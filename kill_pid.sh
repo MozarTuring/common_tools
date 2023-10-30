@@ -1,13 +1,6 @@
 set -e # 出错则停止
 
-var1=$1
-echo $1
 
-cur_dir=${var1%/*}
-cur_name=${var1##*/}
-cur_name_pre=${cur_name%.*}
-
-cd $cur_dir
 
 while read line
 do
@@ -20,5 +13,5 @@ do
             echo "${arr[1]} ${arr[0]} is killed"
         fi
     done
-done < ztmpStopCommand_$cur_name_pre.txt
+done < $1
 

@@ -21,8 +21,10 @@ execute pathogen#infect()
 "Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
 "call plug#end()
 
-set nocompatible
 syntax on
+"colorscheme monokai
+"colorscheme tokyonight-day
+colorscheme vscode.nvim
 filetype plugin indent on
 set ic
 set hlsearch
@@ -171,13 +173,12 @@ func! GetAbsPath(inp_mode)
     else
         let abs_path = join([cur_dir,cur_file_path],"/")
     endif
-    echo abs_path
     let abs_path_split = split(abs_path,"/")
     let abs_dir = "/" . join(abs_path_split[:-2],"/")
     let cur_name = split(abs_path_split[-1],'\.')[0]
     " notice that the above sep must be in single quote
     if a:inp_mode=="a"
-        return [l:abs_path,l:abs_dir,l:cur_name]
+        return [l:abs_path,l:abs_dir,l:cur_name,l:abs_path_split]
     else
         echo "here"
         call setreg('"', abs_path)
@@ -187,14 +188,15 @@ endfunc
 
 func! OpenLog(abs_dir, cur_name)
     if a:abs_dir == 0
-        let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
+        let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+        let tmp_logs_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_logs"],"/") . "/" . join(abs_path_split[3:-2], "_") . "_"
     else
         let abs_dir = a:abs_dir
         let cur_name = a:cur_name
     endif
     let ele = 0
     while ele < 8
-        let tmp_path = abs_dir . "/jwlogs/".cur_name.ele.".log"
+        let tmp_path = tmp_logs_prefix. cur_name. ele. ".log"
         if filereadable(tmp_path)
             exec "tabnew " . tmp_path
             let ele += 1
@@ -222,10 +224,12 @@ endfunc
 func! CompileRunGcc(inp_mode)
 exec "e"
 " 上面这相当于 :w<CR> 也就是保存文件的意思 
-let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
+let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
 if &filetype == 'sh'
     exe "!bash %" 
 elseif &filetype == 'python'
+    let tmp_commands_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_commands"], "/") . "/" . join(abs_path_split[3:-2], "_") . "_"
+    let tmp_logs_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_logs"],"/") . "/" . join(abs_path_split[3:-2], "_") . "_"
     let shell_start_line = search('"""shell_run_mjw', 'b')
     echo shell_start_line
     let shell_end_line = search('shell_run_mjw"""')
@@ -249,9 +253,9 @@ elseif &filetype == 'python'
             let ele_split = split(ele,",")
             let end_pos = ind+ele_split[1]
             let pre_command_ls = content_ls[ind+1:end_pos]
-            let pre_command_path = abs_dir . "/ztmpPreCommand_" . cur_name . ".sh"
+            let pre_command_path = tmp_commands_prefix. cur_name. "_Pre". ".sh"
             call writefile(pre_command_ls, pre_command_path)
-            exec "!bash ".pre_command_path. ">".abs_dir."/jwlogs/".cur_name."0.log 2>&1"
+            exec "!bash ".pre_command_path. ">" .tmp_logs_prefix. cur_name. "0.log 2>&1"
             let ind = end_pos
         elseif "$#line," == ele[:6]
             let ele_split = split(ele,",")
@@ -264,26 +268,28 @@ elseif &filetype == 'python'
         let command_ls = [""]
     endif
 
-    let command_path = abs_dir . "/ztmpRunCommand_" . cur_name . ".txt"
+    let command_path = tmp_commands_prefix. cur_name. "_Run". ".txt"
     let new_command_ls = []
     let count = 0
     for ele in command_ls
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
         elseif a:inp_mode == "n"
-            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >".abs_dir."/jwlogs/".cur_name.count.".log"." 2>&1 &"]
+            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix .cur_name.count.".log"." 2>&1 &"]
         endif
         let count += 1
     endfor
-    if a:inp_mode == "n"
-        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path
-    endif
     call writefile(new_command_ls, command_path)
-    let stop_path = abs_dir . "/ztmpStopCommand_" . cur_name . ".txt"
-    call writefile([abs_path], stop_path)
-    exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". source_path 
+
+    let stop_path = tmp_commands_prefix . cur_name . "_Stop.txt"
     if a:inp_mode == "n"
-        call OpenLog(abs_dir, cur_name)
+        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+    endif
+    call writefile([abs_path], stop_path)
+
+    exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". command_path. " ". source_path 
+    if a:inp_mode == "n"
+        call OpenLog(tmp_logs_prefix, cur_name)
         redraw
     endif
 elseif &filetype == 'vim'
@@ -298,10 +304,11 @@ nmap fn :call CompileRunGcc("n")<CR>
 
 
 func! CompileStop()
-    exec "e"
-let [abs_path, abs_dir, cur_name] = GetAbsPath("a")
+let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+let tmp_commands_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_commands"], "/") . "/" . join(abs_path_split[3:-2], "_") . "_"
+let stop_path = tmp_commands_prefix . cur_name . "_Stop.txt"
 if &filetype == 'python'
-    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path
+    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
 endif
 endfunc
 nmap fk :call CompileStop()<CR>
@@ -370,18 +377,18 @@ let g:jedi#popup_on_dot = 0
 let g:vimtex_view_general_viewer = 'SumatraPDF'
 tnoremap <esc> <c-\><c-n>
 "switch from terminal mode to normal mode
-let g:clipboard = {
-          \   'name': 'myClipboard',
-          \   'copy': {
-          \      '+': ['tmux', 'load-buffer', '-'],
-          \      '*': ['tmux', 'load-buffer', '-'],
-          \    },
-          \   'paste': {
-          \      '+': ['tmux', 'save-buffer', '-'],
-          \      '*': ['tmux', 'save-buffer', '-'],
-          \   },
-          \   'cache_enabled': 1,
-          \ }
+"let g:clipboard = {
+"          \   'name': 'myClipboard',
+"          \   'copy': {
+"          \      '+': ['tmux', 'load-buffer', '-'],
+"          \      '*': ['tmux', 'load-buffer', '-'],
+"          \    },
+"          \   'paste': {
+"          \      '+': ['tmux', 'save-buffer', '-'],
+"          \      '*': ['tmux', 'save-buffer', '-'],
+"          \   },
+"          \   'cache_enabled': 1,
+"          \ }
 
 
 if has("unnamedplus")

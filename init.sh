@@ -4,6 +4,7 @@ set -e
 #cd /home/maojingwei/software
 #tar -xvf git-2.32.0.tar.xz
 #cd git-2.32.0
+#yum install make
 #make prefix=/home/maojingwei/installed/git all
 #make prefix=/home/maojingwei/installed/git install
 #echo "export PATH=\"/home/maojingwei/installed/git/bin:\$PATH\"" >> /home/maojingwei/.bashrc
@@ -84,5 +85,6 @@ set -e
 #
 #cd /home/maojingwei/software
 #tar -xzvf nvim-linux64.tar.gz
+#mv nvim-linux64 nvim
 #python -m pip install pynvim
 #python -m pip install jedi

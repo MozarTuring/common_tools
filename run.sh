@@ -1,32 +1,33 @@
 set -e # 出错则停止
 
 var1=$1
-echo $1
 
 cur_dir=${var1%/*}
 cur_name=${var1##*/}
 cur_name_pre=${cur_name%.*}
 
-if [ $# -eq 2 ];
-then
-    source $2
-else
-    source $cur_dir/myRequirements.sh
-fi
+#if [ $# -eq 3 ];
+#then
+#    source $3
+#else
+source $cur_dir/jwmaoR.sh
+#fi
 
 cd $cur_dir
 
-pwd
+# pwd
 
 #if [ "$2" = "nohup" ]; then
-if [ ! -d "jwlogs" ]; then
-  mkdir "jwlogs"
-  echo "jwlogs dir created"
-fi
+# if [ ! -d "jwlogs" ]; then
+#   mkdir "jwlogs"
+#   echo "jwlogs dir created"
+# fi
+
 while read line
 do
     eval $line
-done < ztmpRunCommand_$cur_name_pre.txt
+done < $2
+
 #    nohup python $1 >jwlogs/${cur_name_pre}.log 2>&1 &
 #elif [ "$2" = "run" ]; then
 #    python $1
