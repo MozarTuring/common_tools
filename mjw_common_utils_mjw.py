@@ -117,7 +117,7 @@ class Database(mjwBase):
     # 判断数据库表imags2是否存在，不存在则新建
     def _conn(self, ):
 #        ret = pymysql.connect(host='10.20.14.27', user='root', passwd='root', db='test', charset="utf8")
-        self.connection = pymysql.connect(host=self.host, user=self.user, passwd=self.passwd, db=self.db, charset=self.charset)
+        self.connection = pymysql.connect(host=self.host, port=self.port, user=self.user, passwd=self.passwd, db=self.db, charset=self.charset)
         self.logger.info("done connection")
 
 #    @myDecorator("thread") will cause error

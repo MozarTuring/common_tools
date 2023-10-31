@@ -12,4 +12,4 @@ default-character-set=utf8
 default-character-set=utf8" > /home/maojingwei/mysql/config/my.conf
 
 
-docker run -d -p 7000:3306 --restart always --privileged=true -e MYSQL_ROOT_PASSWORD=9213@fCOW -v /home/maojingwei/mysql/config/my.conf:/etc/my.cof -v=/home/maojingwei/mysql/data:/var/lib/mysql mysql
+docker run -d -p 31003:3306 --restart always --privileged=true -e MYSQL_ROOT_PASSWORD=9213@fCOW -v /home/maojingwei/mysql/config/my.conf:/etc/my.cof -v=/home/maojingwei/mysql/data:/var/lib/mysql mysql

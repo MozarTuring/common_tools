@@ -18,7 +18,13 @@ alias rm='DIR=/home/maojingwei/mjwtrash/`date +%F%T`;mkdir $DIR;mv -t $DIR'
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 #source $MJWHOME/python3.8.16env/base/bin/activate
 #export VIMINIT='source $MJWHOME/project/common_tools_for_centos/vimrc'
-export XDG_CONFIG_HOME=$MJWHOME/project/common_tools_for_centos/
+# export XDG_CONFIG_HOME=$MJWHOME/project/common_tools_for_centos/
+mkdir -p $MJWHOME/.config/nvim/
+if [ ! -L $MJWHOME/.config/nvim/init.vim ]
+then
+    echo "create $MJWHOME/.config/nvim/init.vim"
+    ln -s $MJWHOME/project/common_tools_for_centos/nvim/init.vim $MJWHOME/.config/nvim/init.vim
+fi
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
