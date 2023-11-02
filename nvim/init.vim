@@ -167,14 +167,19 @@ nmap fg :call GenerateCode()<CR>
 
 func! GetAbsPath(inp_mode)
     let cur_dir = getcwd()
-    let cur_file_path=getreg('%')
+    let cur_file_path = getreg('%')
     if cur_file_path[0]=="/"
-        let abs_path = cur_file_path
+        let tmp_abs_path = cur_file_path
     else
-        let abs_path = join([cur_dir,cur_file_path],"/")
+        let tmp_abs_path = join([cur_dir,cur_file_path],"/")
     endif
+    let tmp_abs_path_split = split(tmp_abs_path,"/")
+    let tmp_abs_dir = "/" . join(tmp_abs_path_split[:-2],"/")
+    let ttmp_abs_dir = system("cd ".tmp_abs_dir."; pwd")
+    let abs_dir = strpart(ttmp_abs_dir,0,strlen(ttmp_abs_dir)-1)
+    let abs_path = abs_dir."/".tmp_abs_path_split[-1]
+
     let abs_path_split = split(abs_path,"/")
-    let abs_dir = "/" . join(abs_path_split[:-2],"/")
     let cur_name = split(abs_path_split[-1],'\.')[0]
     " notice that the above sep must be in single quote
     if a:inp_mode=="a"
