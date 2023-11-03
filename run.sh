@@ -15,6 +15,11 @@ source $cur_dir/jwmaoR.sh
 
 cd $cur_dir
 
+# if [ ! -d "zzzzjwmaotmp" ]; then
+#     mkdir -p zzzzjwmaotmp/commands
+#     mkdir -p zzzzjwmaotmp/logs
+# fi
+
 # pwd
 
 #if [ "$2" = "nohup" ]; then

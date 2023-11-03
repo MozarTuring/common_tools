@@ -194,14 +194,15 @@ endfunc
 func! OpenLog(abs_dir, cur_name)
     if a:abs_dir == 0
         let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-        let tmp_logs_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_logs"],"/") . "/" . join(abs_path_split[3:-2], "_") . "_"
+        let tmp_logs_prefix = abs_dir. "/zzzzjwmaotmp/log_".cur_name
     else
         let abs_dir = a:abs_dir
         let cur_name = a:cur_name
     endif
     let ele = 0
     while ele < 8
-        let tmp_path = tmp_logs_prefix. cur_name. ele. ".log"
+        let tmp_path = tmp_logs_prefix. ele. ".log"
+        echo tmp_path
         if filereadable(tmp_path)
             exec "tabnew " . tmp_path
             let ele += 1
@@ -226,6 +227,16 @@ redraw
 endfunc
 
 
+
+func! CreateDir(inp_dir)
+let result = system("test -d ".a:inp_dir)
+if result == 0
+    let tmp_command = "mkdir -p ". a:inp_dir
+    let tmp_ret = system(tmp_command)
+endif
+endfunc
+
+
 func! CompileRunGcc(inp_mode)
 exec "e"
 " 上面这相当于 :w<CR> 也就是保存文件的意思 
@@ -233,8 +244,9 @@ let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
 if &filetype == 'sh'
     exe "!bash %" 
 elseif &filetype == 'python'
-    let tmp_commands_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_commands"], "/") . "/" . join(abs_path_split[3:-2], "_") . "_"
-    let tmp_logs_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_logs"],"/") . "/" . join(abs_path_split[3:-2], "_") . "_"
+    call CreateDir(abs_dir. "/zzzzjwmaotmp")
+    let tmp_commands_prefix = abs_dir. "/zzzzjwmaotmp/command_".cur_name
+    let tmp_logs_prefix = abs_dir. "/zzzzjwmaotmp/log_".cur_name
     let shell_start_line = search('"""shell_run_mjw', 'b')
     echo shell_start_line
     let shell_end_line = search('shell_run_mjw"""')
@@ -258,9 +270,9 @@ elseif &filetype == 'python'
             let ele_split = split(ele,",")
             let end_pos = ind+ele_split[1]
             let pre_command_ls = content_ls[ind+1:end_pos]
-            let pre_command_path = tmp_commands_prefix. cur_name. "_Pre". ".sh"
+            let pre_command_path = tmp_commands_prefix. "_Pre". ".sh"
             call writefile(pre_command_ls, pre_command_path)
-            exec "!bash ".pre_command_path. ">" .tmp_logs_prefix. cur_name. "0.log 2>&1"
+            exec "!bash ".pre_command_path. ">" .tmp_logs_prefix. "0.log 2>&1"
             let ind = end_pos
         elseif "$#line," == ele[:6]
             let ele_split = split(ele,",")
@@ -273,20 +285,20 @@ elseif &filetype == 'python'
         let command_ls = [""]
     endif
 
-    let command_path = tmp_commands_prefix. cur_name. "_Run". ".txt"
+    let command_path = tmp_commands_prefix. "_Run". ".txt"
     let new_command_ls = []
     let count = 0
     for ele in command_ls
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
         elseif a:inp_mode == "n"
-            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix .cur_name.count.".log"." 2>&1 &"]
+            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix.count.".log 2>&1 &"]
         endif
         let count += 1
     endfor
     call writefile(new_command_ls, command_path)
 
-    let stop_path = tmp_commands_prefix . cur_name . "_Stop.txt"
+    let stop_path = tmp_commands_prefix . "_Stop.txt"
     if a:inp_mode == "n"
         exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
     endif
@@ -310,8 +322,8 @@ nmap fn :call CompileRunGcc("n")<CR>
 
 func! CompileStop()
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-let tmp_commands_prefix = "/" . join(abs_path_split[:2]+["zzzzjwmao_commands"], "/") . "/" . join(abs_path_split[3:-2], "_") . "_"
-let stop_path = tmp_commands_prefix . cur_name . "_Stop.txt"
+let tmp_commands_prefix = abs_dir. "/zzzzjwmaotmp/command_".cur_name
+let stop_path = tmp_commands_prefix . "_Stop.txt"
 if &filetype == 'python'
     exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
 endif

@@ -14,8 +14,14 @@ elif [ "$1" == "condaenv" ]; then
     fi
     cd /home/maojingwei/jw_condaenv
     if [ ! -d "$2" ]; then
-        echo "create condaenv $2"
-        /home/maojingwei/installed/anaconda3/bin/conda create -p $2 python=$3
+        if [ ! -f "$2.tar.gz" ]; then
+            echo "create condaenv $2"
+            /home/maojingwei/installed/anaconda3/bin/conda create -p $2 python=$3
+        else
+            mkdir $2
+            echo "create condaenv $2 from pack"
+            tar -xzvf $2.tar.gz -C $2
+        fi
     fi
     source /home/maojingwei/installed/anaconda3/bin/activate ./$2
 #    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
