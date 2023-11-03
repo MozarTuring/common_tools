@@ -5,6 +5,10 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
+if [ -f ~/.fzf.bash ]; then
+    source ~/.fzf.bash
+fi
+
 # Uncomment the following line if you don't like systemctl's auto-paging feature:
 # export SYSTEMD_PAGER=
 
@@ -14,8 +18,9 @@ export PATH="/usr/local/cuda-11.4/bin:/usr/local/MATLAB/R2022b/bin:$MJWHOME/soft
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda-11.4/lib64:$MJWHOME/software/TensorRT-8.2.5.1/lib:$MJWHOME/installed/python3.8.16/lib"
 export LD_INCLUDE_PATH="$MJWHOME/software/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
 
-alias rm='DIR=/home/maojingwei/mjwtrash/`date +%F%T`;mkdir $DIR;mv -t $DIR'
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+alias rm='DIR=/home/maojingwei/mjw_tmp_jwm/trash/`date +%F%T`;mkdir -p $DIR;mv -t $DIR' 
+# mv src dst, move src to dst; mv -t dst src, mv src to dst
+
 #source $MJWHOME/python3.8.16env/base/bin/activate
 #export VIMINIT='source $MJWHOME/project/common_tools_for_centos/vimrc'
 # export XDG_CONFIG_HOME=$MJWHOME/project/common_tools_for_centos/
