@@ -14,7 +14,7 @@ fi
 
 # User specific aliases and functions
 
-export PATH="/usr/local/cuda-11.4/bin:/usr/local/MATLAB/R2022b/bin:$MJWHOME/software/TensorRT-8.2.5.1/bin:$MJWHOME/installed/git/bin:$MJWHOME/installed/python3.8.16/lib:$MJWHOME/software/nvim/bin/:$PATH"
+export PATH="/usr/local/cuda-11.4/bin:/usr/local/MATLAB/R2022b/bin:$MJWHOME/software/TensorRT-8.2.5.1/bin:$MJWHOME/installed/git/bin:$MJWHOME/installed/python3.8.16/lib:$MJWHOME/mjw_tmp_jwm/nvim/bin/:$PATH"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda-11.4/lib64:$MJWHOME/software/TensorRT-8.2.5.1/lib:$MJWHOME/installed/python3.8.16/lib"
 export LD_INCLUDE_PATH="$MJWHOME/software/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
 
@@ -25,10 +25,10 @@ alias rm='DIR=/home/maojingwei/mjw_tmp_jwm/trash/`date +%F%T`;mkdir -p $DIR;mv -
 #export VIMINIT='source $MJWHOME/project/common_tools_for_centos/vimrc'
 # export XDG_CONFIG_HOME=$MJWHOME/project/common_tools_for_centos/
 mkdir -p $MJWHOME/.config/nvim/
-if [ ! -L $MJWHOME/.config/nvim/init.vim ]
+if [ ! -L $MJWHOME/.config/nvim/init.lua ]
 then
-    echo "create $MJWHOME/.config/nvim/init.vim"
-    ln -s $MJWHOME/project/common_tools_for_centos/nvim/init.vim $MJWHOME/.config/nvim/init.vim
+    echo "create $MJWHOME/.config/nvim/init.lua"
+    ln -s $MJWHOME/project/common_tools_for_centos/init_nvim.lua $MJWHOME/.config/nvim/init.lua
 fi
 
 # >>> conda initialize >>>

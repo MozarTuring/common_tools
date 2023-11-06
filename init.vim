@@ -2,7 +2,7 @@ if has("win64")
     set runtimepath^=~/.mjw_vim_pack runtimepath+=~/.mjw_vim_pack/after
     let &packpath = &runtimepath
 else
-    set runtimepath^=$MJWHOME/.mjw_vim_pack runtimepath+=$MJWHOME/.mjw_vim_pack/after
+    set runtimepath^=$MJWHOME/mjw_tmp_jwm/vim_pack runtimepath+=$MJWHOME/mjw_tmp_jwm/vim_pack/after
     let &packpath = &runtimepath
 endif
 
@@ -24,7 +24,6 @@ execute pathogen#infect()
 syntax on
 "colorscheme monokai
 "colorscheme tokyonight-day
-colorscheme vscode.nvim
 filetype plugin indent on
 set ic
 set hlsearch
@@ -415,3 +414,13 @@ else
 endif
 
 set mouse=
+
+
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
+let g:telescope_root_path = '/home/maojingwei/project'
+
+let NERDTreeQuitOnOpen=1
