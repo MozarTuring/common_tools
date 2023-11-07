@@ -1,4 +1,4 @@
-condaenv_dir=/home/maojingwei/mjw_tmp_jwm/condaenv
+condaenv_dir=/home/maojingwei/needpack_jwm/condaenv
 condabin=/home/maojingwei/mjw_tmp_jwm/installed/anaconda3/bin/
 
 

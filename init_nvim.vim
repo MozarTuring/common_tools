@@ -2,7 +2,7 @@ if has("win64")
     set runtimepath^=~/.mjw_vim_pack runtimepath+=~/.mjw_vim_pack/after
     let &packpath = &runtimepath
 else
-    set runtimepath^=$MJWHOME/mjw_tmp_jwm/vim_pack runtimepath+=$MJWHOME/mjw_tmp_jwm/vim_pack/after
+    set runtimepath^=$MJWHOME/needpack_jwm/vim_pack runtimepath+=$MJWHOME/needpack_jwm/vim_pack/after
     let &packpath = &runtimepath
 endif
 
@@ -424,3 +424,24 @@ nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 let g:telescope_root_path = '/home/maojingwei/project'
 
 let NERDTreeQuitOnOpen=1
+
+
+nnoremap <M-1> 1gt
+
+nnoremap <M-2> 2gt
+
+nnoremap <M-3> 3gt
+
+nnoremap <M-4> 4gt
+
+nnoremap <M-5> 5gt
+
+nnoremap <M-6> 6gt
+
+nnoremap <M-7> 7gt
+
+nnoremap <M-8> 8gt
+
+nnoremap <M-9> 9gt
+
+nnoremap <M-0> :tablast<CR>

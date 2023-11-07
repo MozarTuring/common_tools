@@ -1,4 +1,4 @@
-vim.cmd('source /home/maojingwei/project/common_tools_for_centos/init.vim')
+vim.cmd('source /home/maojingwei/project/common_tools_for_centos/init_nvim.vim')
 
 
 vim.api.nvim_set_keymap(
