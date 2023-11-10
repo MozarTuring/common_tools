@@ -2,7 +2,7 @@ if has("win64")
     set runtimepath^=~/.mjw_vim_pack runtimepath+=~/.mjw_vim_pack/after
     let &packpath = &runtimepath
 else
-    set runtimepath^=$MJWHOME/needpack_jwm/vim_pack runtimepath+=$MJWHOME/needpack_jwm/vim_pack/after
+    set runtimepath^=$MJWHOME/mjw_tmp_jwm/vim_pack runtimepath+=$MJWHOME/mjw_tmp_jwm/vim_pack/after
     let &packpath = &runtimepath
 endif
 
