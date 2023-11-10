@@ -15,6 +15,8 @@ file_dir = os.path.abspath(__file__).rsplit(os.sep, 1)[0]
 
 logging.config.fileConfig(os.path.join(file_dir, 'logging_config.ini'))
 common_logger = logging.getLogger()
+common_logger.info(f"using python env: ")
+os.system("which python")
 
 week_day_ch = ["一", "二", "三", "四", "五", "六", "日"]
 
