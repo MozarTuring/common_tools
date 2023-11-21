@@ -27,7 +27,7 @@ elif [ "$1" == "condaenv" ]; then
     fi
     source $condabin/activate ./$2
 #    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-#    pip config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple 
+    pip config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple 
 fi
 
 echo "using python env:"
