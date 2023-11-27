@@ -191,14 +191,10 @@ func! GetAbsPath(inp_mode)
     endif
 endfunc
 
-func! OpenLog(abs_dir, cur_name)
-    if a:abs_dir == 0
-        let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-        let tmp_logs_prefix = abs_dir. "/zzzzjwmaotmp/log_".cur_name
-    else
-        let abs_dir = a:abs_dir
-        let cur_name = a:cur_name
-    endif
+func! OpenLog()
+    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+    let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/log_".cur_name
+
     let ele = 0
     while ele < 8
         let tmp_path = tmp_logs_prefix. ele. ".log"
@@ -212,7 +208,7 @@ func! OpenLog(abs_dir, cur_name)
     endwhile
     redraw
 endfunc
-nmap fl :call OpenLog(0, 0)<CR>
+nmap fl :call OpenLog()<CR>
 
 
 
@@ -239,16 +235,19 @@ endfunc
 
 func! CompileRunGcc(inp_mode)
 exec "e"
-" 上面这相当于 :w<CR> 也就是保存文件的意思 
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+call CreateDir(abs_dir. "/mjw_tmp_jwm")
+let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/command_".cur_name
+let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/log_".cur_name
+
 if &filetype == 'sh'
-    exe "!bash %" 
+    if a:inp_mode == "r"
+        exec "!bash ". abs_path
+    elseif a:inp_mode == "n"
+        exec "!nohup bash ". abs_path. " >" .tmp_logs_prefix. "0.log 2>&1 &"
+    endif
 elseif &filetype == 'python'
-    call CreateDir(abs_dir. "/zzzzjwmaotmp")
-    let tmp_commands_prefix = abs_dir. "/zzzzjwmaotmp/command_".cur_name
-    let tmp_logs_prefix = abs_dir. "/zzzzjwmaotmp/log_".cur_name
     let shell_start_line = search('"""shell_run_mjw', 'b')
-    echo shell_start_line
     let shell_end_line = search('shell_run_mjw"""')
     let content_ls = []
     if shell_start_line != 0
@@ -305,16 +304,19 @@ elseif &filetype == 'python'
     call writefile([abs_path], stop_path)
 
     exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". command_path. " ". source_path 
-    if a:inp_mode == "n"
-        call OpenLog(tmp_logs_prefix, cur_name)
-        redraw
-    endif
+    
 elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
     " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
 	exec "source %"
 	echo "done sourcing"
 endif
+
+if a:inp_mode == "n"
+    call OpenLog()
+    redraw
+endif
+
 endfunc
 nmap fr :call CompileRunGcc("r")<CR>
 nmap fn :call CompileRunGcc("n")<CR>
@@ -322,7 +324,7 @@ nmap fn :call CompileRunGcc("n")<CR>
 
 func! CompileStop()
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-let tmp_commands_prefix = abs_dir. "/zzzzjwmaotmp/command_".cur_name
+let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/command_".cur_name
 let stop_path = tmp_commands_prefix . "_Stop.txt"
 if &filetype == 'python'
     exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
