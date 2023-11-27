@@ -30,7 +30,10 @@ cd $cur_dir
 
 while read line
 do
+    echo $line
+    echo ""
     eval $line
+    
 done < $2
 
 #    nohup python $1 >jwlogs/${cur_name_pre}.log 2>&1 &
