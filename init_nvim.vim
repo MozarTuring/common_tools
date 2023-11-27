@@ -113,13 +113,8 @@ func! Comment() range
     let filetype_ls1 = ["python","sh", "dockerfile", "yaml"]
     let filetype_ls2 = ["html", "vue"]
     let filetype_ls3 = ["javascript", "css"]
-    if index(filetype_ls1, &filetype)>=0
-        if first_char=="#"
-            let tmp_command_ls = [join([prefix,"s/#//"])]
-        else
-            let tmp_command_ls = [join([prefix,"s/^/#/"])]
-        endif
-    elseif index(filetype_ls2, &filetype)>=0
+    
+    if index(filetype_ls2, &filetype)>=0
         if first_line_char[:1] == "<!"
             let tmp_command_ls = [a:firstline."s/<!--//", a:lastline."s/-->//"]
         else
@@ -136,6 +131,12 @@ func! Comment() range
             let tmp_command_ls = [join([prefix,'s/^"//'])]
         else
             let tmp_command_ls = [join([prefix,'s/^/"/g'])]
+        endif
+    else
+        if first_char=="#"
+            let tmp_command_ls = [join([prefix,"s/#//"])]
+        else
+            let tmp_command_ls = [join([prefix,"s/^/#/"])]
         endif
     endif
     for ele in tmp_command_ls
