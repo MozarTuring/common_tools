@@ -233,6 +233,51 @@ endif
 endfunc
 
 
+
+func! GetCommand(strStart, strEnd)
+let shell_start_line = search(a:strStart, 'b')
+let shell_end_line = search(a:strEnd, 'b')
+let content_ls = []
+if shell_start_line != 0
+    while shell_start_line < shell_end_line-1
+        let shell_start_line += 1
+        let cur_content = getline(shell_start_line)
+        let content_ls += [cur_content]
+    endwhile
+endif
+let ind = 0
+let command_ls = []
+let source_path = ""
+while ind < len(content_ls)
+    let ele = content_ls[ind]
+    if "stop," == ele[:4]
+        let stop_command = ele[5:]
+    endif
+    if "source " == ele[:6]
+        let source_path = ele[7:]
+    endif
+"    if '$#pre,' == ele[:5]
+"        let ele_split = split(ele,",")
+"        let end_pos = ind+ele_split[1]
+"        let pre_command_ls = content_ls[ind+1:end_pos]
+"        let pre_command_path = tmp_commands_prefix. '_Pre'. '.sh'
+"        call writefile(pre_command_ls, pre_command_path)
+"        exec '!bash '.pre_command_path. '>' .tmp_logs_prefix. '0.log 2>&1'
+"        let ind = end_pos
+    if "line," == ele[:4]
+        let ele_split = split(ele,",")
+        let command_ls = content_ls[ind+1:ind+ele_split[1]]
+        break
+    endif
+    let ind += 1
+endwhile
+if len(command_ls) == 0
+    let command_ls = [""]
+endif
+return [l:source_path, l:command_ls, l:stop_command]
+endfunc
+
+
 func! CompileRunGcc(inp_mode)
 exec "e"
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
@@ -240,56 +285,23 @@ call CreateDir(abs_dir. "/mjw_tmp_jwm")
 let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/command_".cur_name
 let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/log_".cur_name
 let stop_path = tmp_commands_prefix . "_Stop.txt"
+let command_path = tmp_commands_prefix. "_Run". ".txt"
 
 if &filetype == 'sh'
-    if a:inp_mode == "r"
-        exec "!bash ". abs_path
-    elseif a:inp_mode == "n"
-        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
-        call writefile([abs_path], stop_path)
-        exec "!nohup bash ". abs_path. " >" .tmp_logs_prefix. "0.log 2>&1 &"
-    endif
+    let [source_path, command_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
+    call writefile([stop_command], stop_path)
+    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+    for ele in command_ls
+        if a:inp_mode == "r"
+            exec "!bash ". abs_path. " ". ele
+        elseif a:inp_mode == "n"
+            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_logs_prefix. "0.log 2>&1 &"
+        endif
+    endfor
 elseif &filetype == 'python'
-    let shell_start_line = search('"""shell_run_mjw', 'b')
-    let shell_end_line = search('shell_run_mjw"""')
-    let content_ls = []
-    if shell_start_line != 0
-        while shell_start_line < shell_end_line-1
-            let shell_start_line += 1
-            let cur_content = getline(shell_start_line)
-            let content_ls += [cur_content]
-        endwhile
-    endif
-    let ind = 0
-    let command_ls = []
-    let source_path = ""
-    while ind < len(content_ls)
-        let ele = content_ls[ind]
-        if "source " == ele[:6]
-            let source_path = ele[7:]
-        endif
-        if "$#pre," == ele[:5]
-            let ele_split = split(ele,",")
-            let end_pos = ind+ele_split[1]
-            let pre_command_ls = content_ls[ind+1:end_pos]
-            let pre_command_path = tmp_commands_prefix. "_Pre". ".sh"
-            call writefile(pre_command_ls, pre_command_path)
-            exec "!bash ".pre_command_path. ">" .tmp_logs_prefix. "0.log 2>&1"
-            let ind = end_pos
-        elseif "$#line," == ele[:6]
-            let ele_split = split(ele,",")
-            let command_ls = content_ls[ind+1:ind+ele_split[1]]
-            break
-        endif
-        let ind += 1
-    endwhile
-    if len(command_ls) == 0
-        let command_ls = [""]
-    endif
-
-    let command_path = tmp_commands_prefix. "_Run". ".txt"
     let new_command_ls = []
     let count = 0
+    let [source_path, command_ls] = GetCommand('"""shell_run_mjw', 'shell_run_mjw"""')
     for ele in command_ls
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
