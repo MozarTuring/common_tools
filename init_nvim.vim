@@ -197,7 +197,7 @@ func! OpenLog()
 
     let ele = 0
     while ele < 8
-        let tmp_path = tmp_logs_prefix. ele. "_log.txt"
+        let tmp_path = tmp_logs_prefix. "_log".ele .".txt"
         echo tmp_path
         if filereadable(tmp_path)
             exec "tabnew " . tmp_path
@@ -296,7 +296,7 @@ if &filetype == 'sh'
         if a:inp_mode == "r"
             exec "!bash ". abs_path. " ". ele
         elseif a:inp_mode == "n"
-            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_logs_prefix.count. "_log.txt 2>&1 &"
+            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_logs_prefix. "_log".count. ".txt 2>&1 &"
             let count += 1
         endif
     endfor
@@ -307,7 +307,7 @@ elseif &filetype == 'python'
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
         elseif a:inp_mode == "n"
-            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix.count."_log.txt 2>&1 &"]
+            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix."_log".count. ".txt 2>&1 &"]
         endif
         let count += 1
     endfor
