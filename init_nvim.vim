@@ -239,11 +239,14 @@ let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
 call CreateDir(abs_dir. "/mjw_tmp_jwm")
 let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/command_".cur_name
 let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/log_".cur_name
+let stop_path = tmp_commands_prefix . "_Stop.txt"
 
 if &filetype == 'sh'
     if a:inp_mode == "r"
         exec "!bash ". abs_path
     elseif a:inp_mode == "n"
+        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+        call writefile([abs_path], stop_path)
         exec "!nohup bash ". abs_path. " >" .tmp_logs_prefix. "0.log 2>&1 &"
     endif
 elseif &filetype == 'python'
@@ -297,7 +300,6 @@ elseif &filetype == 'python'
     endfor
     call writefile(new_command_ls, command_path)
 
-    let stop_path = tmp_commands_prefix . "_Stop.txt"
     if a:inp_mode == "n"
         exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
     endif
@@ -326,9 +328,7 @@ func! CompileStop()
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
 let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/command_".cur_name
 let stop_path = tmp_commands_prefix . "_Stop.txt"
-if &filetype == 'python'
-    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
-endif
+exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
 endfunc
 nmap fk :call CompileStop()<CR>
 
