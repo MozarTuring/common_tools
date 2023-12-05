@@ -248,6 +248,7 @@ endif
 let ind = 0
 let command_ls = []
 let source_path = ""
+let stop_command = ""
 while ind < len(content_ls)
     let ele = content_ls[ind]
     if "stop," == ele[:4]
@@ -302,7 +303,7 @@ if &filetype == 'sh'
     endfor
 elseif &filetype == 'python'
     let new_command_ls = []
-    let [source_path, command_ls] = GetCommand('"""shell_run_mjw', 'shell_run_mjw"""')
+    let [source_path, command_ls, stop_command] = GetCommand('"""shell_run_mjw', 'shell_run_mjw"""')
     for ele in command_ls
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
