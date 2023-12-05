@@ -193,11 +193,11 @@ endfunc
 
 func! OpenLog()
     let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-    let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/log_".cur_name
+    let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
 
     let ele = 0
     while ele < 8
-        let tmp_path = tmp_logs_prefix. ele. ".log"
+        let tmp_path = tmp_logs_prefix. ele. "_log.txt"
         echo tmp_path
         if filereadable(tmp_path)
             exec "tabnew " . tmp_path
@@ -282,10 +282,11 @@ func! CompileRunGcc(inp_mode)
 exec "e"
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
 call CreateDir(abs_dir. "/mjw_tmp_jwm")
-let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/command_".cur_name
-let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/log_".cur_name
+let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
+let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
 let stop_path = tmp_commands_prefix . "_Stop.txt"
 let command_path = tmp_commands_prefix. "_Run". ".txt"
+let count = 0
 
 if &filetype == 'sh'
     let [source_path, command_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
@@ -295,18 +296,18 @@ if &filetype == 'sh'
         if a:inp_mode == "r"
             exec "!bash ". abs_path. " ". ele
         elseif a:inp_mode == "n"
-            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_logs_prefix. "0.log 2>&1 &"
+            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_logs_prefix.count. "_log.txt 2>&1 &"
+            let count += 1
         endif
     endfor
 elseif &filetype == 'python'
     let new_command_ls = []
-    let count = 0
     let [source_path, command_ls] = GetCommand('"""shell_run_mjw', 'shell_run_mjw"""')
     for ele in command_ls
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
         elseif a:inp_mode == "n"
-            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix.count.".log 2>&1 &"]
+            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix.count."_log.txt 2>&1 &"]
         endif
         let count += 1
     endfor
@@ -338,7 +339,7 @@ nmap fn :call CompileRunGcc("n")<CR>
 
 func! CompileStop()
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/command_".cur_name
+let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
 let stop_path = tmp_commands_prefix . "_Stop.txt"
 exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
 endfunc
