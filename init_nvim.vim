@@ -309,6 +309,8 @@ elseif &filetype == 'python'
     for ele in command_ls
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
+        elseif a:inp_mode == "d"
+            let new_command_ls += ["python -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele]
         elseif a:inp_mode == "n"
             let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix."_log".count. ".txt 2>&1 &"]
         endif
@@ -338,6 +340,7 @@ endif
 endfunc
 nmap fr :call CompileRunGcc("r")<CR>
 nmap fn :call CompileRunGcc("n")<CR>
+nmap fd :call CompileRunGcc("d")<CR>
 
 
 func! CompileStop()
