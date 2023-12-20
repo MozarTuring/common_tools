@@ -14,13 +14,13 @@ fi
 while read line
 do
     echo $line
-    if [ ${line:0:1} = "/"  ]; then
-        ps -ef|grep $line|awk '{print $2,$8}'|while read pid_command
+    if [ ${line:0:4} == "lsof"  ]; then
+        $line|awk '{print $2,$8}'|while read pid_command
         do
             func $pid_command
         done
     else
-        $line|awk '{print $2,$8}'|while read pid_command
+        ps -ef|grep "$line"|awk '{print $2,$8}'|while read pid_command
         do
             func $pid_command
         done
