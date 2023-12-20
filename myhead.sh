@@ -1,5 +1,12 @@
-condaenv_dir=/home/maojingwei/mjw_tmp_jwm/condaenv
 condabin=/home/maojingwei/mjw_tmp_jwm/installed/anaconda3/bin/
+
+cd $2
+
+if [ ! -d mjw_tmp_jwm ];then
+mkdir mjw_tmp_jwm
+fi
+
+cd mjw_tmp_jwm
 
 
 if [ "$1" == "pyenv" ]; then
@@ -10,22 +17,16 @@ if [ "$1" == "pyenv" ]; then
     fi
     source $2/bin/activate
 elif [ "$1" == "condaenv" ]; then
-    if [ ! -d $condaenv_dir ]; then
-        mkdir -p $condaenv_dir 
-        echo "$condaenv_dir created" 
-    fi
-    cd $condaenv_dir
-    if [ ! -d "$2" ]; then
-        if [ ! -f "$2.tar.gz" ]; then
-            echo "create condaenv $2"
-            $condabin/conda create -p $2 python=$3
+    if [ ! -d condaenv ]; then
+        if [ ! -f "condaenv.tar.gz" ]; then
+            echo "create condaenv"
+            $condabin/conda create -p condaenv python=$3
         else
-            mkdir $2
-            echo "create condaenv $2 from pack"
-            tar -xzvf $2.tar.gz -C $2
+            echo "create condaenv from pack"
+            tar -xzvf condaenv.tar.gz -C condaenv
         fi
     fi
-    source $condabin/activate ./$2
+    source $condabin/activate ./condaenv
 #    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
     pip config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple 
 fi

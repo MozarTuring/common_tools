@@ -292,8 +292,10 @@ let count = 0
 
 if &filetype == 'sh'
     let [source_path, command_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
-    call writefile([stop_command], stop_path)
-    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+    if strlen(stop_command) != 0
+        call writefile([stop_command], stop_path)
+        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+    endif
     for ele in command_ls
         if a:inp_mode == "r"
             exec "!bash ". abs_path. " ". ele
@@ -304,10 +306,12 @@ if &filetype == 'sh'
     endfor
 elseif &filetype == 'python'
     let new_command_ls = []
-    let [source_path, command_ls, stop_command] = GetCommand('"""shell_run_mjw', 'shell_run_mjw"""')
+    let [source_path, command_ls, stop_command] = GetCommand('"""run_mjw', 'run_jwm"""')
     for ele in command_ls
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
+        elseif a:inp_mode == "d"
+            let new_command_ls += ["python -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele]
         elseif a:inp_mode == "n"
             let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
         endif
@@ -337,6 +341,7 @@ endif
 endfunc
 nmap fr :call CompileRunGcc("r")<CR>
 nmap fn :call CompileRunGcc("n")<CR>
+nmap fd :call CompileRunGcc("d")<CR>
 
 
 func! CompileStop()
