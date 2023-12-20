@@ -193,11 +193,12 @@ endfunc
 
 func! OpenLog()
     let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-    let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
+    let cur_file = abs_path_split[-1]
+    let tmp_prefix = abs_dir. "/mjw_tmp_jwm/".cur_file
 
     let ele = 0
     while ele < 8
-        let tmp_path = tmp_logs_prefix. "_log".ele .".txt"
+        let tmp_path = tmp_prefix. "_log".ele
         echo tmp_path
         if filereadable(tmp_path)
             exec "tabnew " . tmp_path
@@ -261,9 +262,9 @@ while ind < len(content_ls)
 "        let ele_split = split(ele,",")
 "        let end_pos = ind+ele_split[1]
 "        let pre_command_ls = content_ls[ind+1:end_pos]
-"        let pre_command_path = tmp_commands_prefix. '_Pre'. '.sh'
-"        call writefile(pre_command_ls, pre_command_path)
-"        exec '!bash '.pre_command_path. '>' .tmp_logs_prefix. '0.log 2>&1'
+"        let pre_run_path = tmp_commands_prefix. '_Pre'. '.sh'
+"        call writefile(pre_command_ls, pre_run_path)
+"        exec '!bash '.pre_run_path. '>' .tmp_logs_prefix. '0.log 2>&1'
 "        let ind = end_pos
     if "line," == ele[:4]
         let ele_split = split(ele,",")
@@ -283,10 +284,10 @@ func! CompileRunGcc(inp_mode)
 exec "e"
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
 call CreateDir(abs_dir. "/mjw_tmp_jwm")
-let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
-let tmp_logs_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
-let stop_path = tmp_commands_prefix . "_Stop.txt"
-let command_path = tmp_commands_prefix. "_Run". ".txt"
+let cur_file = abs_path_split[-1]
+let tmp_prefix = abs_dir. "/mjw_tmp_jwm/". cur_file
+let stop_path = tmp_prefix. "_Stop"
+let run_path = tmp_prefix. "_Run"
 let count = 0
 
 if &filetype == 'sh'
@@ -297,7 +298,7 @@ if &filetype == 'sh'
         if a:inp_mode == "r"
             exec "!bash ". abs_path. " ". ele
         elseif a:inp_mode == "n"
-            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_logs_prefix. "_log".count. ".txt 2>&1 &"
+            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_prefix. "_log".count. " 2>&1 &"
             let count += 1
         endif
     endfor
@@ -308,18 +309,18 @@ elseif &filetype == 'python'
         if a:inp_mode == "r"
             let new_command_ls += ["python ". abs_path. " ". ele]
         elseif a:inp_mode == "n"
-            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_logs_prefix."_log".count. ".txt 2>&1 &"]
+            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
         endif
         let count += 1
     endfor
-    call writefile(new_command_ls, command_path)
+    call writefile(new_command_ls, run_path)
 
     if a:inp_mode == "n"
         exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
     endif
     call writefile([abs_path], stop_path)
 
-    exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". command_path. " ". source_path 
+    exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". run_path. " ". source_path 
     
 elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
@@ -340,8 +341,9 @@ nmap fn :call CompileRunGcc("n")<CR>
 
 func! CompileStop()
 let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-let tmp_commands_prefix = abs_dir. "/mjw_tmp_jwm/".cur_name
-let stop_path = tmp_commands_prefix . "_Stop.txt"
+let cur_file = abs_path_split[-1]
+let tmp_prefix = abs_dir. "/mjw_tmp_jwm/". cur_file
+let stop_path = tmp_prefix . "_Stop"
 exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
 endfunc
 nmap fk :call CompileStop()<CR>

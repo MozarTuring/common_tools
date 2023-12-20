@@ -2,16 +2,28 @@ set -e # 出错则停止
 
 
 
+func(){
+#kill -9 $tmp_pid
+if [ "$2" == "python" ] || [ "$2" == "ffmpeg" ] || [ "$2" == "bash" ] || [ "$2" == "TCP" ]; then
+    kill -9 $1
+    echo "$2 $1 is killed"
+fi
+}
+
+
 while read line
 do
-    ps -ef|grep "$line"|awk '{print $2,$8}'|while read pid_command
-    do
-        arr=($pid_command)
-        #kill -9 $tmp_pid
-        if [ "${arr[1]}" == "python" ] || [ "${arr[1]}" == "ffmpeg" ] || [ "${arr[1]}" == "bash" ]; then
-            kill -9 ${arr[0]}
-            echo "${arr[1]} ${arr[0]} is killed"
-        fi
-    done
+    echo $line
+    if [ ${line:0:1} = "/"  ]; then
+        ps -ef|grep $line|awk '{print $2,$8}'|while read pid_command
+        do
+            func $pid_command
+        done
+    else
+        $line|awk '{print $2,$8}'|while read pid_command
+        do
+            func $pid_command
+        done
+    fi
 done < $1
 
