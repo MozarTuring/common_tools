@@ -1,5 +1,4 @@
 import time
-import logging.config
 import os
 import json
 import pymysql
@@ -9,11 +8,8 @@ from functools import wraps
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 
-
-file_dir = os.path.abspath(__file__).rsplit(os.sep, 1)[0]
-
-
-logging.config.fileConfig(os.path.join(file_dir, 'logging_config.ini'))
+import logging.config
+logging.config.fileConfig("/home/maojingwei/project/common_tools_for_centos/logging_config.ini")
 common_logger = logging.getLogger()
 
 week_day_ch = ["一", "二", "三", "四", "五", "六", "日"]

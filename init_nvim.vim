@@ -308,10 +308,8 @@ elseif &filetype == 'python'
     let new_command_ls = []
     let [source_path, command_ls, stop_command] = GetCommand('"""run_mjw', 'run_jwm"""')
     for ele in command_ls
-        if a:inp_mode == "r"
-            let new_command_ls += ["python ". abs_path. " ". ele]
-        elseif a:inp_mode == "d"
-            let new_command_ls += ["python -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele]
+        if a:inp_mode == "d"
+            let new_command_ls += ["nohup python -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
         elseif a:inp_mode == "n"
             let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
         endif
@@ -319,21 +317,16 @@ elseif &filetype == 'python'
     endfor
     call writefile(new_command_ls, run_path)
 
-    if a:inp_mode == "n"
-        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
-    endif
+    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
     call writefile([abs_path], stop_path)
 
     exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". run_path. " ". source_path 
     
-elseif &filetype == 'vim'
+"elseif &filetype == 'vim'
 	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
     " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
-	exec "source %"
-	echo "done sourcing"
-endif
-
-if a:inp_mode == "n"
+"	exec "source %"
+"	echo "done sourcing"
     call OpenLog()
     redraw
 endif
