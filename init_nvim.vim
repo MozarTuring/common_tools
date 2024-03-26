@@ -70,6 +70,11 @@ let NERDTreeShowHidden=1
 
 " Below is my design
 
+function! Clearnvim()
+    execute "!rm /home/maojingwei/.local/state/nvim/swap/*"
+endfunction
+nmap ff :call Clearnvim()<cr>
+
 
 function! Yankpath()
     if g:NERDTree.IsOpen()
@@ -374,6 +379,13 @@ nmap ;p :call PasteToNewLine()<cr>
 "    exec "e!"
 "endfunc
 "au InsertEnter * :call MyRefresh()
+
+func! MyWriteFile()
+let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+echo abs_dir
+if abs_dir == "/home/maojingwei/project/common_tools_for_centos"
+endif
+endfunc
 
 
 nmap gr :!grep -n 
