@@ -6,10 +6,8 @@ else
     let &packpath = &runtimepath
 endif
 
-
 set nocompatible              " be iMproved, required
 filetype off                  " required
-
 
 execute pathogen#infect()
 "packadd emmet-vim
@@ -196,25 +194,21 @@ func! GetAbsPath(inp_mode)
     endif
 endfunc
 
-func! OpenLog()
+func! OpenLog(inp)
     let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
     let cur_file = abs_path_split[-1]
     let tmp_prefix = abs_dir. "/mjw_tmp_jwm/".cur_file
 
-    let ele = 0
-    while ele < 8
-        let tmp_path = tmp_prefix. "_log".ele
-        echo tmp_path
-        if filereadable(tmp_path)
-            exec "tabnew " . tmp_path
-            let ele += 1
-        else
-            break
-        endif
-    endwhile
+    let tmp_path = tmp_prefix. "_log".a:inp
+    echo tmp_path
+    if filereadable(tmp_path)
+        exec "tabnew " . tmp_path
+    endif
     redraw
 endfunc
-nmap fl :call OpenLog()<CR>
+nmap fl0 :call OpenLog(0)<CR>
+nmap fl1 :call OpenLog(1)<CR>
+nmap fl2 :call OpenLog(2)<CR>
 
 
 
@@ -286,59 +280,54 @@ endfunc
 
 
 func! CompileRunGcc(inp_mode)
-exec "e"
-let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-call CreateDir(abs_dir. "/mjw_tmp_jwm")
-let cur_file = abs_path_split[-1]
-let tmp_prefix = abs_dir. "/mjw_tmp_jwm/". cur_file
-let stop_path = tmp_prefix. "_Stop"
-let run_path = tmp_prefix. "_Run"
-let count = 0
+    exec "e"
+    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+    call CreateDir(abs_dir. "/mjw_tmp_jwm")
+    let cur_file = abs_path_split[-1]
+    let tmp_prefix = abs_dir. "/mjw_tmp_jwm/". cur_file
+    let stop_path = tmp_prefix. "_Stop"
+    let run_path = tmp_prefix. "_Run"
+    let count = 0
 
-if &filetype == 'sh'
-    let [source_path, command_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
-    if strlen(stop_command) != 0
-        call writefile([stop_command], stop_path)
-        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
-    endif
-    for ele in command_ls
-        if a:inp_mode == "r"
-            exec "!bash ". abs_path. " ". ele
-        elseif a:inp_mode == "n"
+    if &filetype == 'sh'
+        let [source_path, command_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
+        if strlen(stop_command) != 0
+            call writefile([stop_command], stop_path)
+            exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+        endif
+        for ele in command_ls
             exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_prefix. "_log".count. " 2>&1 &"
             let count += 1
-        endif
-    endfor
-elseif &filetype == 'python'
-    let new_command_ls = []
-    let [source_path, command_ls, stop_command] = GetCommand('"""run_mjw', 'run_jwm"""')
-    for ele in command_ls
-        if a:inp_mode == "d"
-            let new_command_ls += ["nohup python -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
-        elseif a:inp_mode == "n"
-            let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
-        endif
-        let count += 1
-    endfor
-    call writefile(new_command_ls, run_path)
+        endfor
+    elseif &filetype == 'python'
+        let new_command_ls = []
+        let [source_path, command_ls, stop_command] = GetCommand('"""run_mjw', 'run_jwm"""')
+        for ele in command_ls
+            if a:inp_mode == "d"
+                let new_command_ls += ["nohup python -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
+            elseif a:inp_mode == "r"
+                let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
+            endif
+            let count += 1
+        endfor
+        call writefile(new_command_ls, run_path)
 
-    exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
-    call writefile([abs_path], stop_path)
+        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+        call writefile([abs_path], stop_path)
 
-    exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". run_path. " ". source_path 
-    
-"elseif &filetype == 'vim'
-	" 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
-    " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
-"	exec "source %"
-"	echo "done sourcing"
-    call OpenLog()
-    redraw
-endif
-
+        exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". run_path. " ". source_path 
+        
+    "elseif &filetype == 'vim'
+        " 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
+        " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
+    "	exec "source %"
+    "	echo "done sourcing"
+        call OpenLog(0)
+        redraw
+    endif
 endfunc
+
 nmap fr :call CompileRunGcc("r")<CR>
-nmap fn :call CompileRunGcc("n")<CR>
 nmap fd :call CompileRunGcc("d")<CR>
 
 
@@ -381,10 +370,13 @@ nmap ;p :call PasteToNewLine()<cr>
 "au InsertEnter * :call MyRefresh()
 
 func! MyWriteFile()
-let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-echo abs_dir
-if abs_dir == "/home/maojingwei/project/common_tools_for_centos"
-endif
+    exec "w"
+    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+    echo abs_dir
+    if abs_dir == "/home/maojingwei/project/common_tools_for_centos"
+        exec "!sshpass -p 9213fCOW scp ". abs_path " maojingwei@10.20.14.43:". abs_path
+        exec "!sshpass -p 9213 scp ". abs_path " maojingwei@120.79.52.236:". abs_path
+    endif
 endfunc
 
 
@@ -395,7 +387,7 @@ nmap ,f :NERDTreeFind<CR>
 
 nmap ;e :e<cr>
 nmap ;q :q<cr>
-nmap ;w :w<cr>
+nmap ;w :call MyWriteFile()<cr>
 nmap ;s :source /home/maojingwei/project/common_tools_for_centos/vimrc<cr>
 "noremap ;s <c-w>w hard to remap, just need to practice your fingure get used to this key combination
 nmap gj :call jedi#goto()<CR>
@@ -474,3 +466,4 @@ nnoremap <M-8> 8gt
 nnoremap <M-9> 9gt
 
 nnoremap <M-0> :tablast<CR>
+
