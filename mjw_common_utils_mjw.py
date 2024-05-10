@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging.config
 logging.config.fileConfig("/home/maojingwei/project/common_tools_for_centos/logging_config.ini")
 common_logger = logging.getLogger()
+jwprint = common_logger.info
 
 week_day_ch = ["一", "二", "三", "四", "五", "六", "日"]
 

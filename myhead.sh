@@ -1,13 +1,14 @@
 condabin=/home/maojingwei/mjw_tmp_jwm/installed/anaconda3/bin/
 
-cd $2
 
-if [ ! -d mjw_tmp_jwm ];then
-mkdir mjw_tmp_jwm
+cur_dir=$2
+env_path=${cur_dir/project/mjw_tmp_jwm\/project}
+
+if [ ! -d $env_path ]; then
+    mkdir -p $env_path
 fi
 
-cd mjw_tmp_jwm
-
+cd $env_path
 
 if [ "$1" == "pyenv" ]; then
     cd /home/maojingwei/jw_pyenv

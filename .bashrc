@@ -24,10 +24,10 @@ alias rm='DIR=/home/maojingwei/mjw_tmp_jwm/trash/`date +%F%T`;mkdir -p $DIR;mv -
 #source $MJWHOME/python3.8.16env/base/bin/activate
 #export VIMINIT='source $MJWHOME/project/common_tools_for_centos/vimrc'
 # export XDG_CONFIG_HOME=$MJWHOME/project/common_tools_for_centos/
-mkdir -p $MJWHOME/.config/nvim/
 if [ ! -L $MJWHOME/.config/nvim/init.lua ]
 then
     echo "create $MJWHOME/.config/nvim/init.lua"
+    mkdir -p $MJWHOME/.config/nvim/
     ln -s $MJWHOME/project/common_tools_for_centos/init_nvim.lua $MJWHOME/.config/nvim/init.lua
 fi
 

@@ -9,15 +9,29 @@ endif
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
-execute pathogen#infect()
+"execute pathogen#infect()
 "packadd emmet-vim
 "packadd fugitive
 "packadd jedi-vim
 "packadd nerdtree
 
-"call plug#begin()
-"Plug 'python-mode/python-mode', { 'for': 'python', 'branch': 'develop' }
-"call plug#end()
+"curl -fLo /home/maojingwei/mjw_tmp_jwm/vim_pack/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+call plug#begin('/home/maojingwei/mjw_tmp_jwm/vim_pack/bundle')
+Plug 'https://github.com/vim-airline/vim-airline.git', { 'on':[]}
+"d9f42cb46710e31962a9609939ddfeb0685dd779
+Plug 'https://github.com/pocco81/auto-save.nvim.git'
+"979b6c82f60cfa80f4cf437d77446d0ded0addf0
+Plug 'https://github.com/mattn/emmet-vim.git'
+"def5d57a1ae5afb1b96ebe83c4652d1c03640f4d
+Plug 'https://github.com/tpope/vim-fugitive.git'
+"dac8e5c2d85926df92672bf2afb4fc48656d96c7
+Plug 'https://github.com/Yggdroot/indentLine.git'
+"b96a75985736da969ac38b72a7716a8c57bdde98
+Plug 'https://github.com/davidhalter/jedi-vim.git'
+"9bd79ee41ac59a33f5890fa50b6d6a446fcc38c7
+Plug 'https://github.com/preservim/nerdtree.git'
+"f3a4d8eaa8ac10305e3d53851c976756ea9dc8e8
+call plug#end()
 
 syntax on
 "colorscheme monokai
@@ -45,6 +59,7 @@ au Filetype python set expandtab
 au Filetype python set fileformat=unix
 autocmd Filetype python set foldmethod=indent
 autocmd Filetype python set foldlevel=99
+
 
 syntax enable
 set background=light
@@ -129,6 +144,12 @@ func! Comment() range
         else
             let tmp_command_ls = [a:firstline."s/^/\\/\\*/", a:lastline."s/$/\\*\\//"]
         endif
+    elseif &filetype=="lua"
+        if first_char == "-"
+            let tmp_command_ls = [join([prefix,'s/^--//'])]
+        else
+            let tmp_command_ls = [join([prefix,'s/^/--/g'])]
+        endif
     elseif &filetype=="vim"
         if first_char=='"'
             let tmp_command_ls = [join([prefix,'s/^"//'])]
@@ -194,15 +215,36 @@ func! GetAbsPath(inp_mode)
     endif
 endfunc
 
+function! GoToTabByName(tabname)
+    let tab_count = tabpagenr('$')
+    for i in range(1, tab_count)
+        let bufname = bufname(tabpagebuflist(i)[0])
+        echo i
+        echo "tabname ". bufname
+        if bufname == a:tabname
+            execute "tabn " . i
+            return "success"
+        endif
+    endfor
+    return "fail"
+endfunction
+
+
 func! OpenLog(inp)
     let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
     let cur_file = abs_path_split[-1]
-    let tmp_prefix = abs_dir. "/mjw_tmp_jwm/".cur_file
+    let log_prefix = abs_dir. "/".cur_file. "_log"
 
-    let tmp_path = tmp_prefix. "_log".a:inp
+    let tmp_path = log_prefix .a:inp
     echo tmp_path
+"    let window_count = winnr('$') - 1    
     if filereadable(tmp_path)
-        exec "tabnew " . tmp_path
+"        if GoToTabByName(tmp_path) == "fail"
+        let cur_tab_nr = tabpagenr()
+        let tab_window_count = tabpagewinnr(cur_tab_nr, "$")    
+        if tab_window_count == 1
+            execute "botright vsplit " . tmp_path
+        endif
     endif
     redraw
 endfunc
@@ -247,24 +289,12 @@ if shell_start_line != 0
 endif
 let ind = 0
 let command_ls = []
-let source_path = ""
 let stop_command = ""
 while ind < len(content_ls)
     let ele = content_ls[ind]
     if "stop," == ele[:4]
         let stop_command = ele[5:]
     endif
-    if "source " == ele[:6]
-        let source_path = ele[7:]
-    endif
-"    if '$#pre,' == ele[:5]
-"        let ele_split = split(ele,",")
-"        let end_pos = ind+ele_split[1]
-"        let pre_command_ls = content_ls[ind+1:end_pos]
-"        let pre_run_path = tmp_commands_prefix. '_Pre'. '.sh'
-"        call writefile(pre_command_ls, pre_run_path)
-"        exec '!bash '.pre_run_path. '>' .tmp_logs_prefix. '0.log 2>&1'
-"        let ind = end_pos
     if "line," == ele[:4]
         let ele_split = split(ele,",")
         let command_ls = content_ls[ind+1:ind+ele_split[1]]
@@ -275,56 +305,47 @@ endwhile
 if len(command_ls) == 0
     let command_ls = [""]
 endif
-return [l:source_path, l:command_ls, l:stop_command]
+return [l:command_ls, l:stop_command]
 endfunc
 
 
 func! CompileRunGcc(inp_mode)
     exec "e"
-    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-    call CreateDir(abs_dir. "/mjw_tmp_jwm")
+    let [abs_path, abs_dir, cur_name, abs_path_split] = CompileStop()
     let cur_file = abs_path_split[-1]
-    let tmp_prefix = abs_dir. "/mjw_tmp_jwm/". cur_file
-    let stop_path = tmp_prefix. "_Stop"
-    let run_path = tmp_prefix. "_Run"
+    let log_prefix = abs_dir. "/". cur_file. "_log"
+
     let count = 0
 
     if &filetype == 'sh'
-        let [source_path, command_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
-        if strlen(stop_command) != 0
-            call writefile([stop_command], stop_path)
-            exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
-        endif
-        for ele in command_ls
-            exec "!nohup bash ". abs_path. " ". ele. " >" .tmp_prefix. "_log".count. " 2>&1 &"
+        let [args_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
+        for ele in args_ls
+            exec "!nohup bash ". abs_path. " ". ele. " >" .log_prefix .count. " 2>&1 &"
             let count += 1
         endfor
     elseif &filetype == 'python'
-        let new_command_ls = []
-        let [source_path, command_ls, stop_command] = GetCommand('"""run_mjw', 'run_jwm"""')
-        for ele in command_ls
+        let line1 = getline(1)
+        if line1[:2] == "#!/"
+            let cur_python = line1[2:]
+        else
+            let cur_python = substitute(abs_dir, 'project', 'mjw_tmp_jwm/project', 'g')
+            let cur_python = cur_python. "/condaenv/bin/python"
+        endif
+        let [args_ls, stop_command] = GetCommand('"""run_mjw', 'run_jwm"""')
+        for ele in args_ls
             if a:inp_mode == "d"
-                let new_command_ls += ["nohup python -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
+                let tmp_command = "!nohup ". cur_python. " -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele. " >" .log_prefix .count. " 2>&1 &"
             elseif a:inp_mode == "r"
-                let new_command_ls += ["nohup python ". abs_path. " ". ele. " >" .tmp_prefix."_log".count. " 2>&1 &"]
+                let tmp_command = "!nohup ". cur_python. " ". abs_path. " ". ele. " >" .log_prefix .count. " 2>&1 &"
             endif
             let count += 1
+            exec tmp_command
         endfor
-        call writefile(new_command_ls, run_path)
-
-        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
-        call writefile([abs_path], stop_path)
-
-        exec "!bash /home/maojingwei/project/common_tools_for_centos/run.sh ". abs_path . " ". run_path. " ". source_path 
-        
-    "elseif &filetype == 'vim'
-        " 注意首次写source不了最新的，因为要source之后才能get到最新的内容，而你的新内容
-        " 因为source 的时候，vimrc文件还没保存，所以source的还是旧版本的
-    "	exec "source %"
-    "	echo "done sourcing"
-        call OpenLog(0)
-        redraw
+    else
+        echo "compile does not support this filetype"
     endif
+    call getchar()
+    call OpenLog(0)
 endfunc
 
 nmap fr :call CompileRunGcc("r")<CR>
@@ -332,11 +353,16 @@ nmap fd :call CompileRunGcc("d")<CR>
 
 
 func! CompileStop()
-let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-let cur_file = abs_path_split[-1]
-let tmp_prefix = abs_dir. "/mjw_tmp_jwm/". cur_file
-let stop_path = tmp_prefix . "_Stop"
-exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_path
+    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+    if &filetype == 'sh'
+        let [args_ls, stop_command] = GetCommand(':<<EOF', 'EOF')
+        if strlen(stop_command) != 0
+            exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". stop_command
+        endif
+    elseif &filetype == 'python'
+        exec "!bash /home/maojingwei/project/common_tools_for_centos/kill_pid.sh ". abs_path 
+    endif
+    return [abs_path, abs_dir, cur_name, abs_path_split]
 endfunc
 nmap fk :call CompileStop()<CR>
 
@@ -363,45 +389,81 @@ endfunc
 nmap ;p :call PasteToNewLine()<cr>
 
 
-"func! MyRefresh()
-"    exec "w"
-"    exec "e!"
-"endfunc
-"au InsertEnter * :call MyRefresh()
 
 func! MyWriteFile()
     exec "w"
     let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-    echo abs_dir
     if abs_dir == "/home/maojingwei/project/common_tools_for_centos"
         exec "!sshpass -p 9213fCOW scp ". abs_path " maojingwei@10.20.14.43:". abs_path
+        exec "!sshpass -p 9213 scp ". abs_path " maojingwei@120.79.52.236:". abs_path
+    elseif abs_dir == "/home/maojingwei/project/attendance_backend"
         exec "!sshpass -p 9213 scp ". abs_path " maojingwei@120.79.52.236:". abs_path
     endif
 endfunc
 
 
+func! MyRefreshFile()
+    exec "e"
+    exec "normal G"
+endfunc
+
+
+
+function! ClearFile()
+    execute "%delete _"
+endfunction
+
+
+function! MyTabLine()
+    let s = ''
+    let tnum = tabpagenr() " 当前tab编号
+    let n = tabpagenr('$') " 所有tab数量
+    echo "n ".n
+    for i in range(1, n)
+        let tmp_winnr = tabpagewinnr(i)
+        echo "tmp_winnr ".tmp_winnr
+"        let filename = bufname(winbufnr(tabpagewinnr(i)))
+"        echo "tabline ".filename
+"        if i == tnum
+"            let s .= '%#TabLineSel#'.i.' '.filename. ' %#TabLineSel#'
+"        else
+"            let s .= '%#TabLine#'.i.' '.filename. ' %#TabLine#'
+"        endif
+    endfor
+    return s
+endfunction
+
+"set tabline=%!MyTabLine()
+
+func! CheckMyProcess()
+    exec "!ps -ef|grep mjw_tmp_jwm"
+endfunc
+nmap ck :call CheckMyProcess()<cr>
+
+
+
 nmap gr :!grep -n 
-nmap tn :tabnew 
-nmap gh :!bash /home/maojingwei/run.sh 
 nmap ,f :NERDTreeFind<CR>
 
-nmap ;e :e<cr>
+nmap ;d :call ClearFile()<cr>
 nmap ;q :q<cr>
+nmap ;a :qall<cr> 
+" 这会导致;q 的响应变慢，需要等待一会儿以确定确实是;q而不是;qall
 nmap ;w :call MyWriteFile()<cr>
+nmap <space> :call MyRefreshFile()<cr>
+nmap <2-LeftMouse> :call CompileRunGcc('r')<cr>
 nmap ;s :source /home/maojingwei/project/common_tools_for_centos/vimrc<cr>
 "noremap ;s <c-w>w hard to remap, just need to practice your fingure get used to this key combination
 nmap gj :call jedi#goto()<CR>
 let g:jedi#use_tabs_not_buffers = 1
-nmap gl :!ls 
-" the second key should be press fast after the first key in order to make the
-" key combination take effect
+" the second key should be press fast after the first key in order to make the key combination take effect
 
 noremap gt gT
 noremap gy gt
 
 set autoread " can autoread after execute some outside command like !bash
 set laststatus=2
-set statusline=%f\ [POS=%04l,%04v]
+set statusline=%f\ [POS=l,v]
 set backspace=indent,eol,start
 set expandtab
 set tabstop=4
@@ -412,7 +474,6 @@ let g:jedi#popup_on_dot = 0
 "must restart vim to make the above setting work
 
 let g:vimtex_view_general_viewer = 'SumatraPDF'
-tnoremap <esc> <c-\><c-n>
 "switch from terminal mode to normal mode
 "let g:clipboard = {
 "          \   'name': 'myClipboard',
@@ -428,13 +489,15 @@ tnoremap <esc> <c-\><c-n>
 "          \ }
 
 
+
 if has("unnamedplus")
     set clipboard=unnamedplus
 else
     set clipboard=unnamed
 endif
 
-set mouse=
+"set mouse=
+set mouse=a
 
 
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
