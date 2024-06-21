@@ -1,61 +1,92 @@
-set -e # 出错则停止
+echo "
+
+"
 
 var1=$1
 
 cur_dir=${var1%/*}
 cur_name=${var1##*/}
 cur_name_pre=${cur_name%.*}
+file_typ=${cur_name##*.}
 
-#if [ $# -eq 3 ];
-#then
-#    source $3
-#else
-source $cur_dir/jwmaoR.sh
-#fi
+# env_path=`echo "$cur_dir" | sed 's/project/project\/zzzMjw_TMP/g'`
 
 cd $cur_dir
 
-# if [ ! -d "zzzzjwmaotmp" ]; then
-#     mkdir -p zzzzjwmaotmp/commands
-#     mkdir -p zzzzjwmaotmp/logs
-# fi
+if [ $file_typ = "sh" ]; then
+   exeProgrm=bash
+   startFlag="^:<<EOF"
+   endFlag="^EOF"
+elif [ $file_typ = "py" ]; then
+   line1=$(head -n 1 $1)
 
-# pwd
+   if [ ${line1:0:2} == "#!" ]; then
+      exeProgrm=${line1:2}
+   else
+      exeProgrm=$cur_dir/aaaMjw_TMP/condaenv/bin/python
+   fi
+   echo $exeProgrm
+   startFlag='"""run_mjw'
+   endFlag='run_jwm"""'
+fi
 
-#if [ "$2" = "nohup" ]; then
-# if [ ! -d "jwlogs" ]; then
-#   mkdir "jwlogs"
-#   echo "jwlogs dir created"
-# fi
+line_start=$(grep -n $startFlag $1)
+# echo $line_start
+line_start=$(echo $line_start | grep -o '^[0-9]*')
+line_end=$(grep -n $endFlag $1)
+# echo $line_end
+line_end=$(echo $line_end | grep -o '^[0-9]*')
 
-while read line
-do
-    echo $line
-    echo ""
-    eval $line
-    
-done < $2
+newCommand=("")
+stopArg=$1
+if [ ! -z $line_start ]; then
 
-#    nohup python $1 >jwlogs/${cur_name_pre}.log 2>&1 &
-#elif [ "$2" = "run" ]; then
-#    python $1
-#elif [ "$2" = "debug" ]; then
-#    if [ ! -d "debug_jwlogs" ]; then
-#      mkdir "debug_jwlogs"
-#      echo "debug_jwlogs dir created"
-#    fi
-##    nohup python $1 --debug >debug_jwlogs/$cur_name_pre.log 2>&1 &
-#    python $1 --debug
-#else
-#    echo "unknown argument "$2
-#fi
-#else
-#    echo "debug or not?"
-#    read -r deb_flag
-#    echo $deb_flag
-#    if [ deb_flag = "y" ]; then
-#        python $1 --debug
-#    else
-#        python $1
-#    fi
-#fi
+   ((line_start++))
+   tmp_text=$(sed -n ${line_start}p $1)
+   ccc=$(echo "$tmp_text" | cut -d',' -f1 --output-delimiter='')
+   # echo $ccc
+   if [[ $ccc == "stop" ]]; then
+      ccc=$(echo "$tmp_text" | cut -d',' -f2 --output-delimiter='')
+      # echo $ccc
+      stopArg=$ccc
+      ((line_start++))
+   fi
+   while [ $line_start -le $line_end ]; do
+      tmp_text=$(sed -n ${line_start}p $1)
+      ccc=$(echo "$tmp_text" | cut -d',' -f1 --output-delimiter='')
+      if [[ $ccc == "line" ]]; then
+         ccc=$(echo "$tmp_text" | cut -d',' -f2 --output-delimiter='')
+         ele=1
+
+         while [ $ele -le $ccc ]; do
+            ((line_start++))
+            tmp_text=$(sed -n ${line_start}p $1)
+
+            if [[ ${newCommand[0]} == "" ]]; then
+               newCommand=("$tmp_text")
+            else
+               newCommand+=("$tmp_text")
+            fi
+
+            ((ele++))
+         done
+      else
+         ((line_start++))
+      fi
+   done
+
+fi
+
+count=1
+echo "
+
+"
+
+/home/maojingwei/project/common_tools_for_centos/kill_pid.sh $stopArg
+
+for element in "${newCommand[@]}"; do
+   set -x
+   nohup $exeProgrm $1 $element >${cur_name}_log"$count" 2>&1 &
+   set +x
+   ((count++))
+done

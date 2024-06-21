@@ -1,8 +1,11 @@
 condabin=/home/maojingwei/mjw_tmp_jwm/installed/anaconda3/bin/
 
 
-cur_dir=$2
-env_path=${cur_dir/project/mjw_tmp_jwm\/project}
+
+env_path=$2/aaaMjw_TMP
+
+
+
 
 if [ ! -d $env_path ]; then
     mkdir -p $env_path

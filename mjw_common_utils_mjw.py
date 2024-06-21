@@ -22,6 +22,15 @@ class mjwBase(object):
         self.logger = common_logger
         self.print = common_logger.info
 
+from functools import wraps
+def timer_wrapper(inp_func):
+    @wraps(inp_func)
+    def decorated(*args, **kwargs):
+        tmp = time.time()
+        inp_func(*args, **kwargs)
+        jwprint(time.time() - tmp)
+    return decorated
+
 
 
 class myDecorator(mjwBase):

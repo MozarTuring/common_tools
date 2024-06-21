@@ -243,7 +243,7 @@ func! OpenLog(inp)
         let cur_tab_nr = tabpagenr()
         let tab_window_count = tabpagewinnr(cur_tab_nr, "$")    
         if tab_window_count == 1
-            execute "botright vsplit " . tmp_path
+            execute "botright split " . tmp_path
         endif
     endif
     redraw
@@ -328,7 +328,7 @@ func! CompileRunGcc(inp_mode)
         if line1[:2] == "#!/"
             let cur_python = line1[2:]
         else
-            let cur_python = substitute(abs_dir, 'project', 'mjw_tmp_jwm/project', 'g')
+            let cur_python = abs_dir. "/aaaMjw_TMP"
             let cur_python = cur_python. "/condaenv/bin/python"
         endif
         let [args_ls, stop_command] = GetCommand('"""run_mjw', 'run_jwm"""')
@@ -336,7 +336,7 @@ func! CompileRunGcc(inp_mode)
             if a:inp_mode == "d"
                 let tmp_command = "!nohup ". cur_python. " -m debugpy --listen localhost:35678 --wait-for-client ". abs_path. " ". ele. " >" .log_prefix .count. " 2>&1 &"
             elseif a:inp_mode == "r"
-                let tmp_command = "!nohup ". cur_python. " ". abs_path. " ". ele. " >" .log_prefix .count. " 2>&1 &"
+                let tmp_command = "!cd ". abs_dir. " && ". "nohup ". cur_python. " ". abs_path. " ". ele. " >" .log_prefix .count. " 2>&1 &"
             endif
             let count += 1
             exec tmp_command
