@@ -1,107 +1,7 @@
 import time
-import os
-import json
 import pymysql
-import multiprocessing
-import datetime
-from functools import wraps
 import traceback
-from concurrent.futures import ThreadPoolExecutor
-
-import logging.config
-logging.config.fileConfig("/home/maojingwei/project/common_tools_for_centos/logging_config.ini")
-common_logger = logging.getLogger()
-jwprint = common_logger.info
-
-week_day_ch = ["一", "二", "三", "四", "五", "六", "日"]
-
-
-
-class mjwBase(object):
-    def __init__(self,):
-        self.logger = common_logger
-        self.print = common_logger.info
-
-from functools import wraps
-def timer_wrapper(inp_func):
-    @wraps(inp_func)
-    def decorated(*args, **kwargs):
-        tmp = time.time()
-        inp_func(*args, **kwargs)
-        jwprint(time.time() - tmp)
-    return decorated
-
-
-
-class myDecorator(mjwBase):
-    def __init__(self, mode):
-        super().__init__()
-        self.mode = mode
-
-    def __call__(self, func):
-        if self.mode == "exception":
-            @wraps(func)
-            def wrapped_function(*args, **kwargs):
-                try:
-                    ret = func(*args, **kwargs)
-                except:
-                    self.logger.info(traceback.format_exc())
-                return ret
-
-        if self.mode == "timer":
-            @wraps(func)
-            def wrapped_function(*args, **kwargs):
-                start = time.time()
-                ret = func(*args, **kwargs)
-                self.logger.info(f"{func.__name__} cost {time.time()-start}")
-                return ret
-
-        if self.mode == "thread":
-            @wraps(func)
-            def wrapped_function(*args, **kwargs):
-                pool = ThreadPoolExecutor(max_workers=1)
-                if len(args) > 0 and len(kwargs) > 0:
-                    pool.submit(lambda p:func(*p[0],**p[1]), (args, kwargs))
-                elif len(kwargs) > 0:
-                    pool.submit(lambda p:func(**p), kwargs)
-
-
-        return wrapped_function
-
-
-
-def getDay(shift):
-    cur_day=datetime.date.today()
-    oneday=datetime.timedelta(days=1)
-    return cur_day+shift*oneday
-
-
-def date2str(inp_date, inp_format="%H%M%S"):
-    # length could be different
-    return inp_date.strftime(inp_format)
-
-def str2date(inp_str="2010/08/09", inp_format="%Y/%m/%d"):
-    # must be same length
-    return datetime.strptime(inp_str, inp_format)
-
-
-def getTime(inp_format, shift):
-    return time.strftime(inp_format, time.localtime(time.time())+shift)
-
-def quick2json(inp_path, inp_data):
-    with open(inp_path, "w", encoding="utf8") as wf:
-        wf.write(json.dumps(inp_data, ensure_ascii=False, indent=2))
-
-
-
-def start_mp(targets, args_ls):
-    p_list = list()
-    for tar, ar in zip(targets, args_ls):
-        p_list.append(multiprocessing.Process(target=tar, args=ar))
-        p_list[-1].start()
-
-    for ele in p_list:
-        ele.join() ## 不加这个 按 ctrl c 杀不死
+from MJWcommon import *
 
 
 
@@ -127,7 +27,7 @@ class Database(mjwBase):
         self.logger.info("done connection")
 
 #    @myDecorator("thread") will cause error
-    @myDecorator("exception")
+    @except_wrapper
     def keep_conn(self, every_seconds=300):
         self.logger.info("start")
         while True:

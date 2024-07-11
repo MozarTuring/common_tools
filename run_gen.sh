@@ -1,18 +1,19 @@
-aaa=$(grep "/home/maojingwei/project/common_tools_for_centos/run.sh $1" $1)
+set -e
 
-if [ -z "$aaa" ]; then
-    echo "not exists"
-    if [[ $1 == *".py" ]]; then
-        echo "
-'''
-/home/maojingwei/project/common_tools_for_centos/run.sh $1
-'''" >>$1
-    elif [[ $1 == *".sh" ]]; then
-        echo "
-# /home/maojingwei/project/common_tools_for_centos/run.sh $1
-" >>$1
-    fi
-else
-    echo "exists"
+scriptPath=$1
+cur_dir=${scriptPath%/*}
 
+if [  -f ${cur_dir}"/jwrunjw.sh" ]; then
+echo "already exists"
+exit
 fi
+
+
+cp /home/maojingwei/project/common_tools/run.sh $cur_dir/jwrunjw.sh
+
+bash /home/maojingwei/project/common_tools/rclone.sh $cur_dir/jwrunjw.sh
+
+
+
+
+

@@ -18,17 +18,20 @@ if [ ${line:0:4} == "lsof" ]; then
     done
 elif [[ $line == *".py" ]]; then
     # echo "2"
-    ps -ef | grep "$line" | grep "python" | awk '{print $2,$8}' | while read pid_command; do
+    ps -ww -eo pid,cmd | grep "$line" | grep "python" | awk '{print $1,$2}' | while read pid_command; do
         func $pid_command
     done
 elif [[ $line == *".sh" ]]; then
     # echo "3"
-    ps -ef | grep "$line" | grep "bash" | grep -v "kill_pid.sh" | awk '{print $2,$8}' | while read pid_command; do
+    ps -ww -eo pid,cmd | grep "$line" | grep "bash" | grep -v "kill_pid.sh" | awk '{print $1,$2}' | while read pid_command; do
         func $pid_command
     done
 else
     # echo "4"
-    ps -ef | grep "$line" | grep -v "kill_pid.sh" | awk '{print $2,$8}' | while read pid_command; do
+    ps -ww -eo pid,cmd | grep "$line" | grep -v "kill_pid.sh" | awk '{print $1,$2}' | while read pid_command; do
         func $pid_command
     done
 fi
+
+
+# 使用 ps -ef 在colab上显示出来的 cmd 不完整
