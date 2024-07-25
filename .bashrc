@@ -46,7 +46,8 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-conda activate
+# conda activate
+source /home/maojingwei/project/common_tools/colab_init.sh
 
 
 

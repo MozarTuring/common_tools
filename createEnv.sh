@@ -41,3 +41,5 @@ echo "using python env:"
 which python
 echo "
 "
+
+cd $cur_dir

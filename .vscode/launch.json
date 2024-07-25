@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            // "type": "debugpy",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "python": "${fileDirname}/aaaMjw_TMP/condaenv/bin/python",
+            "cwd": "${fileDirname}",
+            "justMyCode": false,
+            // "args": ["/home/maojingwei/project/ChatGLM-Efficient-Tuning/config1.yaml"],
+            // "args": ["/home/maojingwei/project/LLaMA-Factory/examples/train_lora/llama3_lora_sft.yaml"],
+            "env": {
+                "jwHomePath": "/home/maojingwei/project"
+            }
+        }
+    ]
+}

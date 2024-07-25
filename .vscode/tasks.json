@@ -1,0 +1,129 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "save file",
+            "type": "shell",
+            "command": "/home/maojingwei/project/common_tools/syncfile.sh",
+            "args": [
+                "${file}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            // "problemMatcher": {
+            //     "owner": "custom",
+            //     "pattern": {
+            //         "regexp": "/home/maojingwei/project/"
+            //     },
+            //     "fileLocation": "absolute"
+            // }
+            // "presentation": {
+            //     "echo": true,
+            //     "reveal": "always",
+            //     "focus": false,
+            //     "panel": "shared",
+            //     "showReuseMessage": true,
+            //     "clear": false
+            // },
+            // "problemMatcher": []
+        },
+        {
+            "label": "run file",
+            "type": "shell",
+            "command": "/home/maojingwei/project/common_tools/run_gen.sh",
+            "args": [
+                "${file}"
+            ],
+            "problemMatcher":[]
+        },
+        // {
+        //     "label": "run file",
+        //     "type": "shell", // can not set to process
+        //     "command": "nohup",
+        //     "args": [
+        //         "bash",
+        //         "/home/maojingwei/project/common_tools_for_centos/run.sh",
+        //         "${file}",
+        //         ">",
+        //         "${file}.log",
+        //         "2>&1",
+        //         "&"
+        //     ]
+        // },
+        // {
+        //     "label": "run file",
+        //     "type": "shell",
+        //     "command": "/home/maojingwei/project/common_tools_for_centos/run.sh ${file}",
+        //     // "command": "echo hhh",
+        //     "problemMatcher": [],
+        //     "presentation": {
+        //         "echo": true,
+        //         "reveal": "always",
+        //         "focus": false,
+        //         "panel": "shared",
+        //         "showReuseMessage": true,
+        //         "clear": false
+        //       },
+
+        //     "isBackground": false
+        // },
+        // {
+        //     "label": "Run A Script",
+        //     "type": "shell",
+        //     "command": "/home/maojingwei/project/common_tools_for_centos/run.sh",
+        //     "args": [
+        //         "${file}"
+        //     ],
+        //     "options": {
+        //       "cwd": "${workspaceFolder}"
+        //     },
+        //     "presentation": {
+        //         "echo": true,
+        //         "reveal": "always",
+        //         "focus": false,
+        //         "panel": "dedicated",
+        //         "showReuseMessage": true,
+        //         "clear": false
+        //     },
+        //     "problemMatcher": [],
+        //     "isBackground": true
+        //   }
+
+        // {
+        //     "label": "Run a script",
+        //     "type": "shell",
+        //     "command": "tmux new-session -d -s mysession '/home/maojingwei/project/common_tools_for_centos/run.sh ${file}'",
+        //     "options": {
+        //         "cwd": "${workspaceFolder}"
+        //     },
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "panel": "new"
+        //     },
+        //     "problemMatcher": []
+        // }
+    //     {
+    //         "label": "Run Script Externally",
+    //         "type": "shell",
+    //         "command": "/home/maojingwei/project/common_tools_for_centos/run.sh ${file}",
+    //         "options": {
+    //             "cwd": "${workspaceFolder}",
+    //             "shell": {
+    //                 "executable": "bash",
+    //                 "args": ["-c"]
+    //             }
+    //         },
+    //         "presentation": {
+    //             "reveal": "always",
+    //             "echo": true,
+    //             "focus": false,
+    //             "panel": "new"
+    //         },
+    //         "runOptions": {
+    //             "runOn": "default"
+    //         }
+    //     }
+    ]
+}
