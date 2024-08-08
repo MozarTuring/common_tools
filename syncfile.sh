@@ -12,7 +12,7 @@ if test -d "$1"; then
     exit
 fi
 
-if [[ "$1" == "/home/maojingwei/project/common_tools/"* || "$1" == "/home/maojingwei/project/vllm/"* || "$1" == "/home/maojingwei/project/LLaMA-Factory/"* ]]; then
+if [[ "$1" == "/home/maojingwei/project/common_tools/"* || "$1" == "/home/maojingwei/project/vllm/"* || "$1" == "/home/maojingwei/project/LLaMA-Factory/"* || "$1" == "/home/maojingwei/project/Telco-RAG/"* || "$1" == "/home/maojingwei/project/DroneDetectron2/"* ]]; then
     set -x
     # sshpass -p 9213fCOW scp $1 maojingwei@10.20.14.43:$1
     # sshpass -p 9213 scp $1 maojingwei@120.79.52.236:$1

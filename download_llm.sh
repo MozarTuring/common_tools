@@ -10,7 +10,13 @@ model="opt-6.7b"
 org="dunzhang"
 model="stella_en_400M_v5"
 
-huggingface-cli download --resume-download ${org}/${model} $@ --local-dir ${jwHomePath}/.resources/${org}/${model}
+org="hustvl"
+model="yolos-tiny"
+
+org="hustvl"
+model="yolos-base"
+
+huggingface-cli download --resume-download ${org}/${model} ${args[@]:1} --local-dir ${jwHomePath}/.resources/${org}/${model}
 
 # huggingface-cli login
 # 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
