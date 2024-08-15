@@ -20,9 +20,10 @@ if [[ "$1" == "/home/maojingwei/project/common_tools/"* || "$1" == "/home/maojin
     bash /home/maojingwei/project/common_tools/file2sribdGroup.sh $1
     set +x
 elif [[ "$1" == "/home/maojingwei/project/attendance_backend"* || "$1" == "/home/maojingwei/project/attendance_web_front"* || "$1" == "/home/maojingwei/project/sribd_attendance/udp2hls.sh" ]]; then
-    set -x
-    sshpass -p 9213 scp $1 maojingwei@120.79.52.236:$1
-    set +x
+echo "pass"
+    # set -x
+    # sshpass -p 9213 scp $1 maojingwei@120.79.52.236:$1
+    # set +x
 fi
 
 
