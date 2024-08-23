@@ -11,7 +11,7 @@ import traceback
 import logging
 logging.basicConfig(level=logging.INFO,
                     # format='%(asctime)s - %(filename)s:%(lineno)d -\n%(message)s',
-                    format='%(asctime)s - %(pathname)s\nLINE%(lineno)d - %(message)s\nMSG-END',
+                    format='%(asctime)s - %(pathname)s\nLINE%(lineno)d - \n%(message)s\nMSG-END',
                     datefmt='%Y-%m-%d %H:%M:%S')
 jwprint = logging.info
 # 这种设置会导致其它所有使用了logging的地方都变成这里设定的格式，而不只是使用 jwprint 的地方
