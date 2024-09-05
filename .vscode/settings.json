@@ -1,0 +1,146 @@
+{
+    "workbench.colorTheme": "Visual Studio Light",
+    "workbench.startupEditor": "none",
+    "notebook.lineNumbers": "on",
+    "explorer.confirmDragAndDrop": false,
+    "jupyter.widgetScriptSources": [
+        "jsdelivr.com",
+        "unpkg.com"
+    ],
+    "remote.SSH.remotePlatform": {
+        "10.20.14.42": "linux",
+        "10.26.6.81": "linux",
+        "10.20.14.43": "linux",
+        "120.79.52.236": "linux",
+        "120.78.204.43": "linux",
+        "10.20.14.63": "linux"
+    },
+    "editor.minimap.enabled": false,
+    "explorer.confirmDelete": false,
+    "editor.wordWrap": "on",
+    "git.openRepositoryInParentFolders": "never",
+    "[python]": {
+        "editor.formatOnType": true
+    },
+    "git.ignoreLegacyWarning": true,
+
+    "latex-workshop.latex.tools": [
+        {
+         "name": "latexmk",
+         "command": "latexmk",
+         "args": [
+          "-synctex=1",
+          "-interaction=nonstopmode",
+          "-file-line-error",
+          "-pdf",
+          "-outdir=%OUTDIR%",
+          "%DOC%"
+         ],
+         "env": {}
+        },
+        {
+         "name": "xelatex",
+         "command": "xelatex",
+         "args": [
+          "-synctex=1",
+          "-interaction=nonstopmode",
+          "-file-line-error",
+          "%DOC%"
+         ],
+         "env": {}
+        },
+        {
+         "name": "pdflatex",
+         "command": "pdflatex",
+         "args": [
+          "-synctex=1",
+          "-interaction=nonstopmode",
+          "-file-line-error",
+          "%DOC%"
+         ],
+         "env": {}
+        },
+        {
+         "name": "bibtex",
+         "command": "bibtex",
+         "args": [
+          "%DOCFILE%"
+         ],
+         "env": {}
+        }
+       ],
+    "latex-workshop.latex.recipes": [
+        {
+         "name": "pdfLaTeX",
+         "tools": [
+          "pdflatex"
+         ]
+        },
+        {
+         "name": "latexmk 🔃",
+         "tools": [
+          "latexmk"
+         ]
+        },
+        {
+         "name": "xelatex",
+         "tools": [
+          "xelatex"
+         ]
+        },
+        {
+         "name": "pdflatex ➞ bibtex ➞ pdflatex`×2",
+         "tools": [
+          "pdflatex",
+          "bibtex",
+          "pdflatex",
+          "pdflatex"
+         ]
+        },
+        {
+        "name": "xelatex ➞ bibtex ➞ xelatex`×2",
+        "tools": [
+          "xelatex",
+          "bibtex",
+          "xelatex",
+          "xelatex"
+         ]
+        }
+    ],
+    "vim.useSystemClipboard": true,
+    "window.zoomLevel": 1,
+    "pasteImage.path": "${currentFileDir}/mdfigures",
+    "files.watcherExclude": {
+        "**/.git/objects/**": false,
+        "**/.git/subtree-cache/**": false,
+        "**/.hg/store/**": false,
+        "**/node_modules/*/**": false
+    },
+    "terminal.integrated.enableMultiLinePasteWarning": false,
+    "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\cmd.exe",
+    "breadcrumbs.enabled": false,
+    "javascript.updateImportsOnFileMove.enabled": "never",
+    "remote.SSH.configFile": "D:\\.ssh\\config",
+    "git.untrackedChanges": "separate",
+    "workbench.editorAssociations": {
+        "*.pdf": "latex-workshop-pdf-hook"
+    },
+    "spellright.language": [],
+    "spellright.documentTypes": [
+        "markdown",
+        "plaintext"
+    ],
+    "cmake.configureOnOpen": true,
+    "cmake.showOptionsMovedNotification": false,
+    "files.watcherInclude": [
+        "/home/maojingwei/project/nal/*.py*"
+    ],
+    "Lingma.LocalStoragePath": "/home/maojingwei/.lingma",
+    "files.autoSave": "off",
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "editor.lineEnding": "lf",
+    "latex-workshop.view.pdf.viewer": "browser",
+    "latex-workshop.latex.autoClean.run": "onBuilt",
+}

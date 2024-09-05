@@ -25,6 +25,8 @@ else
     ln -s /home/maojingwei/project/common_tools/.vscode/launch.json /home/maojingwei/project/.vscode/launch.json
     rm /home/maojingwei/project/.vscode/tasks.json
     ln -s /home/maojingwei/project/common_tools/.vscode/tasks.json /home/maojingwei/project/.vscode/tasks.json
+    rm /home/maojingwei/project/.vscode/settings.json
+    ln -s /home/maojingwei/project/common_tools/.vscode/settings.json /home/maojingwei/project/.vscode/settings.json
 fi
 
 tmpRun=$jwHomePath/common_tools/jwrun.sh
