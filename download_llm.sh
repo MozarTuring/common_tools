@@ -16,7 +16,13 @@ model="yolos-tiny"
 org="hustvl"
 model="yolos-base"
 
-huggingface-cli download --resume-download ${org}/${model} ${args[@]:1} --local-dir ${jwHomePath}/.resources/${org}/${model}
+org="THUDM"
+model="chatglm2-6b-int4"
+
+org="openbmb"
+model="MiniCPM-2B-dpo-bf16"
+
+huggingface-cli download --resume-download ${org}/${model} ${args[@]:1} --local-dir ${jwHomePath}/zzzresources/${org}/${model}
 
 # huggingface-cli login
 # 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

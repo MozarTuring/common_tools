@@ -1,5 +1,5 @@
 if [ -d "/content/drive/MyDrive/maojingwei" ]; then
-rm /usr/local/bin/jw* /usr/local/bin/ngrok
+    rm /usr/local/bin/jw* /usr/local/bin/ngrok
     jwHomePath=/content/drive/MyDrive/maojingwei/project
     jwCondaBin="none"
     jwPlatform="Colab"
@@ -7,9 +7,6 @@ rm /usr/local/bin/jw* /usr/local/bin/ngrok
     cp $jwHomePath/common_tools/id_rsa /root/.ssh/id_rsa
     ssh-keyscan -t rsa github.com >>/root/.ssh/known_hosts
 
-    chmod +x $jwHomePath/ngrok-v3-stable-linux-amd64/ngrok
-    ln -s $jwHomePath/ngrok-v3-stable-linux-amd64/ngrok /usr/local/bin/ngrok
-    ngrok config add-authtoken 2iLwxn3OMhW45CT4SNOIPlXMYPX_3MgeK1rdZdyckMMrLh4xX
 elif [ -d "/mntcephfs/lab_data/maojingwei" ]; then
     export jwCondaBin=/cm/shared/apps/anaconda3/bin
 
@@ -29,25 +26,35 @@ else
     ln -s /home/maojingwei/project/common_tools/.vscode/settings.json /home/maojingwei/project/.vscode/settings.json
 fi
 
-tmpRun=$jwHomePath/common_tools/jwrun.sh
-chmod +x $tmpRun
+jwBin="$jwHomePath/../mjw_tmp_jwm/jwbin"
+mkdir -p $jwBin
 
-tmpKill=$jwHomePath/common_tools/jwkill.sh
-chmod +x $tmpKill
+rm $jwBin/*
 
-tmpRuncpu=$jwHomePath/common_tools/jwruncpu.sh
-chmod +x $tmpRuncpu
+export PATH="$jwBin:$PATH"
 
-if [ $jwPlatform == "Colab" ]; then
+chmod +x $jwHomePath/zzzresources/ngrok
+ln -s $jwHomePath/zzzresources/ngrok $jwBin/ngrok
+ngrok config add-authtoken 2iLwxn3OMhW45CT4SNOIPlXMYPX_3MgeK1rdZdyckMMrLh4xX
 
-    ln -s $tmpRun /usr/local/bin/jwrun
-    ln -s $tmpKill /usr/local/bin/jwkill
-    ln -s $tmpRuncpu /usr/local/bin/jwruncpu
-else
-    export jwrun=$tmpRun
-    export jwkill=$tmpKill
-    export jwruncpu=$tmpRuncpu
-fi
+export jwrun=$jwHomePath/common_tools/jwrun.sh
+chmod +x $jwrun
+
+export jwkill=$jwHomePath/common_tools/jwkill.sh
+chmod +x $jwkill
+
+export jwruncpu=$jwHomePath/common_tools/jwruncpu.sh
+chmod +x $jwruncpu
+
+set -x
+ln -s $jwrun $jwBin/jwrun
+ln -s $jwkill $jwBin/jwkill
+ln -s $jwruncpu $jwBin/jwruncpu
+# ln -s $jwrun /usr/local/bin/jwrun
+# ln -s $jwkill /usr/local/bin/jwkill
+# ln -s $jwruncpu /usr/local/bin/jwruncpu
+set +x
+
 
 # echo $jwrun
 

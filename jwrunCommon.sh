@@ -32,7 +32,7 @@ if [ $file_typ == "sh" ]; then
     source $scriptPath ${args[@]:1}
 elif [ $file_typ == "py" ]; then
     source $cur_dir/jwmaoR.sh
-    $jwkill $1
+    jwkill $1
     cd $cur_dir
     set -x
     if [ ${jwPlatform} == "sribdGC" ]; then
