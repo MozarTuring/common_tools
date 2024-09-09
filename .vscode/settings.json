@@ -136,11 +136,12 @@
         "/home/maojingwei/project/nal/*.py*"
     ],
     "Lingma.LocalStoragePath": "/home/maojingwei/.lingma",
-    "files.autoSave": "off",
+    "files.autoSave": "onFocusChange",
     "files.eol": "\n",
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
     "editor.lineEnding": "lf",
     "latex-workshop.view.pdf.viewer": "browser",
     "latex-workshop.latex.autoClean.run": "onBuilt",
+    "editor.fontSize": 14,
 }
