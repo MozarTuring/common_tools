@@ -47,7 +47,7 @@ fi
 STATE="FALSE"
 
 if [ $jwPlatform == "sribdGC" ]; then
-    dst=$(echo $log_name | sed 's/mntcephfs\/lab_data/home/g')
+    dst=$(echo $log_name | sed "s/mntcephfs\/lab_data/home/g")
     echo "
 sshpass -p 9213 scp $log_name maojingwei@10.20.14.42:$dst" >>$log_name
 fi

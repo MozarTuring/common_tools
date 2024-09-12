@@ -14,6 +14,12 @@ elif [ -d "/mntcephfs/lab_data/maojingwei" ]; then
     alias jwshow="scontrol show"
     export jwPlatform="sribdGC"
 
+elif [ -d /mnt/data/project ]; then
+    export jwCondaBin=/root/anaconda3/bin
+
+    export jwHomePath=/mnt/data/project
+    export jwPlatform="cmhk"
+
 else
     export jwCondaBin=/home/maojingwei/mjw_tmp_jwm/installed/anaconda3/bin
     export jwPlatform="local"
@@ -50,26 +56,7 @@ set -x
 ln -s $jwrun $jwBin/jwrun
 ln -s $jwkill $jwBin/jwkill
 ln -s $jwruncpu $jwBin/jwruncpu
-# ln -s $jwrun /usr/local/bin/jwrun
-# ln -s $jwkill /usr/local/bin/jwkill
-# ln -s $jwruncpu /usr/local/bin/jwruncpu
 set +x
-
-
-# echo $jwrun
-
-# chmod +x jwrun
-# chmod +x jwkill
-
-# jwbin=$jwHomePath/../jwbin
-
-# mkdir -p $jwbin
-
-# rm $jwbin/jwrun
-# chmod +x $jwHomePath/common_tools/jwrun.sh
-# ln -s $jwHomePath/common_tools/jwrun.sh $jwbin/jwrun
-
-# export PATH="$jwbin:$PATH"
 
 cd $jwHomePath
 

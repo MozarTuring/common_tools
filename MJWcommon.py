@@ -10,7 +10,6 @@ import traceback
 
 import logging
 logging.basicConfig(level=logging.INFO,
-                    # format='%(asctime)s - %(filename)s:%(lineno)d -\n%(message)s',
                     format='%(asctime)s - %(pathname)s\nLINE%(lineno)d - \n%(message)s\nMSG-END',
                     datefmt='%Y-%m-%d %H:%M:%S')
 jwprint = logging.info
@@ -75,8 +74,3 @@ def start_mp(targets, args_ls):
 
     for ele in p_list:
         ele.join() ## 不加这个 按 ctrl c 杀不死
-
-
-
-
-
