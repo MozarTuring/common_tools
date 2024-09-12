@@ -35,6 +35,11 @@ else
     source ${jwCondaBin}/activate ./condaenv
     #    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
     pip config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple
+
+    # rm condaenv.tar.gz
+    # pip install conda-pack
+    # conda pack -p ./condaenv
+
 fi
 
 echo "using python env:"

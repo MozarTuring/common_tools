@@ -14,10 +14,10 @@ fi
 
 if [[ "$1" == "/home/maojingwei/project/common_tools/"* || "$1" == "/home/maojingwei/project/vllm/"* || "$1" == "/home/maojingwei/project/LLaMA-Factory/"* || "$1" == "/home/maojingwei/project/Telco-RAG/"* || "$1" == "/home/maojingwei/project/DroneDetectron2/"* ]]; then
     set -x
-    # sshpass -p 9213fCOW scp $1 maojingwei@10.20.14.43:$1
+    bash /home/maojingwei/project/common_tools/rclone.sh $1 43
     # sshpass -p 9213 scp $1 maojingwei@120.79.52.236:$1
-    bash /home/maojingwei/project/common_tools/rclone.sh $1
-    bash /home/maojingwei/project/common_tools/file2sribdGroup.sh $1
+    bash /home/maojingwei/project/common_tools/rclone.sh $1 go
+    # bash /home/maojingwei/project/common_tools/file2sribdGroup.sh $1
     set +x
 elif [[ "$1" == "/home/maojingwei/project/attendance_backend"* || "$1" == "/home/maojingwei/project/attendance_web_front"* || "$1" == "/home/maojingwei/project/sribd_attendance/udp2hls.sh" ]]; then
 echo "pass"

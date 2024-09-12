@@ -1,4 +1,25 @@
-# .bashrc
+
+# Put all the commands here that should run regardless of whether
+# this is an interactive or non-interactive shell.
+
+
+
+# test if the prompt var is not set and also to prevent failures
+# when `$PS1` is unset and `set -u` is used 
+if [ -z "${PS1:-}" ]; then
+    # prompt var is not set, so this is *not* an interactive shell
+    return
+fi
+
+# If we reach this line of code, then the prompt var is set, so
+# this is an interactive shell.
+
+# Put all the commands here that should run only if this is an
+# interactive shell.
+
+
+
+
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
@@ -9,10 +30,6 @@ if [ -f ~/.fzf.bash ]; then
     source ~/.fzf.bash
 fi
 
-# Uncomment the following line if you don't like systemctl's auto-paging feature:
-# export SYSTEMD_PAGER=
-
-# User specific aliases and functions
 
 export PATH="/usr/local/cuda/bin:/usr/local/MATLAB/R2022b/bin:$MJWHOME/mjw_tmp_jwm/TensorRT-8.2.5.1/bin:$MJWHOME/mjw_tmp_jwm/installed/git/bin:$MJWHOME/installed/python3.8.16/lib:$MJWHOME/mjw_tmp_jwm/nvim/bin/:$MJWHOME/mjw_tmp_jwm/cmake/bin/:$PATH"
 export LD_LIBRARY_PATH="/home/maojingwei/mjw_tmp_jwm/TensorRT-8.2.5.1/lib:/usr/local/cuda-11.4/extras/CUPTI/lib64"
@@ -48,6 +65,3 @@ unset __conda_setup
 
 # conda activate
 source /home/maojingwei/project/common_tools/colab_init.sh
-
-
-
