@@ -32,15 +32,29 @@ else
     ln -s /home/maojingwei/project/common_tools/.vscode/settings.json /home/maojingwei/project/.vscode/settings.json
 fi
 
-jwBin="$jwHomePath/../mjw_tmp_jwm/jwbin"
-mkdir -p $jwBin
+export PATH="/usr/local/cuda/bin:/usr/local/MATLAB/R2022b/bin:~/mjw_tmp_jwm/TensorRT-8.2.5.1/bin:$jwHomePath/zzzresources/software/nvim/bin/:~/mjw_tmp_jwm/cmake/bin/:~/mjw_tmp_jwm/jwbin:$PATH"
+# nvim in resources because it may add packages which should be saved
+export LD_LIBRARY_PATH="~/mjw_tmp_jwm/TensorRT-8.2.5.1/lib:/usr/local/cuda-11.4/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
+export LD_INCLUDE_PATH="~/mjw_tmp_jwm/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
 
-rm $jwBin/*
 
-export PATH="$jwBin:$PATH"
 
+
+mkdir -p ~/.config/nvim/
+rm ~/.config/nvim/init.lua
+ln -s $jwHomePath/common_tools/init_nvim.lua ~/.config/nvim/init.lua
+ln -s $jwHomePath/common_tools/tmux.conf ~/.tmux.conf
+
+
+# jwBin=~/mjw_tmp_jwm/jwbin
+# mkdir -p $jwBin this way will not treat ~ as the home dir
+mkdir -p ~/mjw_tmp_jwm/jwbin
+
+rm ~/mjw_tmp_jwm/jwbin/*
+
+export TERM=xterm-256color
 chmod +x $jwHomePath/zzzresources/ngrok
-ln -s $jwHomePath/zzzresources/ngrok $jwBin/ngrok
+ln -s $jwHomePath/zzzresources/ngrok ~/mjw_tmp_jwm/jwbin/ngrok
 ngrok config add-authtoken 2iLwxn3OMhW45CT4SNOIPlXMYPX_3MgeK1rdZdyckMMrLh4xX
 
 export jwrun=$jwHomePath/common_tools/jwrun.sh
@@ -53,10 +67,12 @@ export jwruncpu=$jwHomePath/common_tools/jwruncpu.sh
 chmod +x $jwruncpu
 
 set -x
-ln -s $jwrun $jwBin/jwrun
-ln -s $jwkill $jwBin/jwkill
-ln -s $jwruncpu $jwBin/jwruncpu
+ln -s $jwrun ~/mjw_tmp_jwm/jwbin/jwrun
+ln -s $jwkill ~/mjw_tmp_jwm/jwbin/jwkill
+ln -s $jwruncpu ~/mjw_tmp_jwm/jwbin/jwruncpu
 set +x
+
+alias rm='DIR=~/mjw_tmp_jwm/trash/`date +%F%T`;mkdir -p $DIR;mv -t $DIR' 
 
 cd $jwHomePath
 

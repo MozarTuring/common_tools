@@ -17,4 +17,4 @@
 # echo "cpu mode"
 # fi
 
-source ${jwHomePath}"/common_tools/jwrunCommon.sh"
+source ${jwHomePath}"/common_tools/jwruncommon.sh"

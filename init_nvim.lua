@@ -1,18 +1,3 @@
-vim.cmd('source /home/maojingwei/project/common_tools_for_centos/init_nvim.vim')
---
---
---
---
---vim.api.nvim_set_keymap(
---  "n",
---  "<space>fb",
---  ":Telescope file_browser<CR>",
---  { noremap = true }
---)
---
---vim.api.nvim_set_keymap(
---  "n",
---  "<space>fb",
---  ":Telescope file_browser path=%:p:h select_buffer=true<CR>",
---  { noremap = true }
---)
+vim.cmd('source $jwHomePath/common_tools/init_nvim.vim')
+vim.g.mouse_right = ""
+vim.g.mouse_modeless = 0

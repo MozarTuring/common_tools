@@ -1,10 +1,9 @@
-if has("win64")
-    set runtimepath^=~/.mjw_vim_pack runtimepath+=~/.mjw_vim_pack/after
-    let &packpath = &runtimepath
-else
-    set runtimepath^=$MJWHOME/mjw_tmp_jwm/vim_pack runtimepath+=$MJWHOME/mjw_tmp_jwm/vim_pack/after
-    let &packpath = &runtimepath
-endif
+
+set runtimepath^=$jwHomePath/zzzresources/software/nvim/vim_pack runtimepath+=$jwHomePath/zzzresources/software/nvim/vim_pack/after
+let &packpath = &runtimepath
+
+"set termguicolors
+set t_Co=256
 
 set nocompatible              " be iMproved, required
 filetype off                  " required
@@ -15,8 +14,8 @@ filetype off                  " required
 "packadd jedi-vim
 "packadd nerdtree
 
-"curl -fLo /home/maojingwei/mjw_tmp_jwm/vim_pack/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-call plug#begin('/home/maojingwei/mjw_tmp_jwm/vim_pack/bundle')
+"curl -fLo $jwHomePath/zzzresources/software/nvim/vim_pack/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+call plug#begin('$jwHomePath/zzzresources/software/nvim/vim_pack/bundle')
 Plug 'https://github.com/vim-airline/vim-airline.git', { 'on':[]}
 "d9f42cb46710e31962a9609939ddfeb0685dd779
 Plug 'https://github.com/pocco81/auto-save.nvim.git'
@@ -47,7 +46,6 @@ set smartindent
 set scrolloff=4
 set showmatch
 set nu
-set t_Co=256 
 
 let python_highlight_all=1
 au Filetype python set tabstop=4
@@ -62,16 +60,10 @@ autocmd Filetype python set foldlevel=99
 
 
 syntax enable
+
+"colorscheme solarized
 set background=light
-@REM colorscheme solarized
 
-
-@REM if has('gui_running')
-@REM   set background=dark
-@REM   colorscheme solarized
-@REM else
-  
-@REM endif
 
 "maj <F3> :NERDTreeMirror<CR>
 
@@ -311,9 +303,14 @@ endfunc
 
 func! CompileRunGcc(inp_mode)
     exec "e"
-    let [abs_path, abs_dir, cur_name, abs_path_split] = CompileStop()
+    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
     let cur_file = abs_path_split[-1]
+    let cur_dir = abs_path_split[-2]
     let log_prefix = abs_dir. "/". cur_file. "_log"
+
+    exec "!jwrun ". cur_dir. "/". cur_file
+
+    return 0
 
     let count = 0
 
@@ -496,8 +493,8 @@ else
     set clipboard=unnamed
 endif
 
-"set mouse=
-set mouse=a
+set mouse=
+"set mouse=a
 
 
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
@@ -529,4 +526,3 @@ nnoremap <M-8> 8gt
 nnoremap <M-9> 9gt
 
 nnoremap <M-0> :tablast<CR>
-
