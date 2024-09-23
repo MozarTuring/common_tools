@@ -13,7 +13,6 @@ func() {
 }
 
 line="$@"
-echo $line
 if [ ${line:0:4} == "lsof" ]; then
     # echo "1"
     $line | awk '{print $2,$8}' | while read pid_command; do
@@ -21,7 +20,10 @@ if [ ${line:0:4} == "lsof" ]; then
     done
 elif [[ $line == *".py" ]]; then
     # echo "2"
-    line=${jwHomePath}/$line
+    if [[ "$line" != /* ]]; then
+        line=${jwHomePath}/$line
+    fi
+    echo $line
     ps -ww -eo pid,cmd | grep "$line" | grep "python" | awk '{print $1,$2}' | while read pid_command; do
         func $pid_command
     done

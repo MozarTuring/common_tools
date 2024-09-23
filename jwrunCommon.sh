@@ -36,15 +36,15 @@ export jwResourceDir=$jwHomePath/zzzresources/$cur_dir_name
 mkdir -p $jwResourceDir
 
 export jwtime=$(date +"%Y%m%d%H%M%S")
-export jwoutput=$cur_dir/outputjw${jwPlatform}
+# export jwoutput=$cur_dir/${jwtime}_jwo${jwPlatform}
 
-if [ -d $jwoutput ]; then
-    echo "output dir exists"
-    exit
-fi
+
+# if [ -d $jwoutput ]; then
+#     echo "output dir exists"
+#     exit
+# fi
 
 if [ -d $scriptPath ]; then
-    mkdir -p $jwoutput
     source $cur_dir/jwmaoR.sh
     cd $cur_dir
     python
@@ -59,12 +59,12 @@ elif [ $file_typ == "py" ]; then
     cd $cur_dir
 
     jwkill $1
-    mkdir -p $jwoutput
+    # mkdir -p $jwoutput
     set -x
     if [ ${jwPlatform} == "sribdGC" ]; then
-        python $scriptPath ${args[@]:1} >$jwoutput/log${jwtime}.txt 2>&1
+        python $scriptPath ${args[@]:1} 2>&1
     else
-        nohup python $scriptPath ${args[@]:1} >$jwoutput/log${jwtime}.txt 2>&1 &
+        nohup python $scriptPath ${args[@]:1} 2>&1 &
     fi
     set +x
 else
@@ -74,7 +74,9 @@ fi
 STATE="FALSE"
 
 if [ $jwPlatform == "sribdGC" ]; then
-    dst=$(echo $jwoutput/log${jwtime}.txt | sed "s/mntcephfs\/lab_data/home/g")
+    dst=$(echo $jwoutput/log.txt | sed "s/mntcephfs\/lab_data/home/g")
     echo "
-sshpass -p 9213 scp $jwoutput/log${jwtime}.txt maojingwei@10.20.14.42:$dst" >>$jwoutput/log${jwtime}.txt
+sshpass -p 9213 scp $jwoutput/log.txt maojingwei@10.20.14.42:$dst" >>$jwoutput/log.txt
 fi
+
+echo "shell exit" >> $jwoutput/log.txt

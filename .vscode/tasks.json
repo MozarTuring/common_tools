@@ -4,7 +4,15 @@
         {
             "label": "save file",
             "type": "shell",
-            "command": "/home/maojingwei/project/common_tools/syncfile.sh",
+            "command": "~/project/common_tools/syncfile.sh",
+            "windows": {
+                "options": {
+                    "shell": {
+                        "executable": "C:/Program Files/Git/bin/bash.exe",
+                        "args": ["-l", "-c"]
+                    }
+                }
+            },
             "args": [
                 "${file}"
             ],

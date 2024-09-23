@@ -1,5 +1,7 @@
-set -e
-
+if [ "$#" -ne 2 ]; then
+    echo "error"
+    exit
+fi
 if [ $2 == "go" ]; then
     remoteName=googleDrive # 填写 rclone config 的时候设置的名称
 
@@ -17,4 +19,4 @@ else
 fi
 
 
-# bash /home/maojingwei/project/common_tools/rclone.sh
+# jwclone /home/maojingwei/project/vllm/ 43

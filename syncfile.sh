@@ -1,5 +1,9 @@
 # set -e
 
+echo "aa"
+echo $1
+exit
+
 if [ -d "/content/drive/MyDrive/maojingwei" ]; then
     home_path="/content/drive/MyDrive/maojingwei/project"
 else
