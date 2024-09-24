@@ -42,10 +42,12 @@ export LD_INCLUDE_PATH="~/mjw_tmp_jwm/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
 
 
 
+rm ~/.config/nvim
 
+# ln -s $jwHomePath/common_tools/lazy_nvim ~/.config/nvim
 mkdir -p ~/.config/nvim/
-rm ~/.config/nvim/init.lua
 ln -s $jwHomePath/common_tools/init_nvim.lua ~/.config/nvim/init.lua
+
 ln -s $jwHomePath/common_tools/tmux.conf ~/.tmux.conf
 
 

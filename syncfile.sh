@@ -1,8 +1,6 @@
 # set -e
 
-echo "aa"
 echo $1
-exit
 
 if [ -d "/content/drive/MyDrive/maojingwei" ]; then
     home_path="/content/drive/MyDrive/maojingwei/project"
@@ -16,21 +14,14 @@ if test -d "$1"; then
     exit
 fi
 
-if [[ "$1" == "/home/maojingwei/project/common_tools/"* || "$1" == "/home/maojingwei/project/vllm/"* || "$1" == "/home/maojingwei/project/LLaMA-Factory/"* || "$1" == "/home/maojingwei/project/Telco-RAG/"* || "$1" == "/home/maojingwei/project/DroneDetectron2/"* ]]; then
-    set -x
-    bash /home/maojingwei/project/common_tools/rclone.sh $1 43
-    # sshpass -p 9213 scp $1 maojingwei@120.79.52.236:$1
-    bash /home/maojingwei/project/common_tools/rclone.sh $1 go
-    # bash /home/maojingwei/project/common_tools/file2sribdGroup.sh $1
-    set +x
-elif [[ "$1" == "/home/maojingwei/project/attendance_backend"* || "$1" == "/home/maojingwei/project/attendance_web_front"* || "$1" == "/home/maojingwei/project/sribd_attendance/udp2hls.sh" ]]; then
-echo "pass"
-    # set -x
-    # sshpass -p 9213 scp $1 maojingwei@120.79.52.236:$1
-    # set +x
+if [[ "$1" == "/home/maojingwei/project/vllm"* ]]; then
+    bash /home/maojingwei/project/common_tools/jwclone.sh $1 43
+elif [[ "$1" == "/home/maojingwei/project/cmhk"* ]]; then
+    bash /home/maojingwei/project/common_tools/jwclone.sh $1 42
+elif [[ "$1" == "/home/maojingwei/project/common_tools"* ]]; then
+    bash /home/maojingwei/project/common_tools/jwclone.sh $1 43
+    bash /home/maojingwei/project/common_tools/jwclone.sh $1 42
 fi
-
-
 
 # if [[ "$1" == *".py" ]]; then
 #     env_path=$cur_dir"/"$cur_name_pre"_jwenv.sh"
@@ -45,12 +36,12 @@ fi
 #             echo"
 # set -e
 # if [ -d '/content/drive/MyDrive/maojingwei' ]; then
-#    python -m pip install 
+#    python -m pip install
 # else
 #    home_path='/home/maojingwei/project'
 #    source $home_path/common_tools/myhead.sh condaenv $cur_dir $py_ver
 # cd $cur_dir
-# python -m pip install 
+# python -m pip install
 # python -m pip list > $cur_dir/jwmaoRpip.txt
 
 # python -m pip install conda-pack

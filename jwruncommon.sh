@@ -38,6 +38,7 @@ mkdir -p $jwResourceDir
 export jwtime=$(date +"%Y%m%d%H%M%S")
 # export jwoutput=$cur_dir/${jwtime}_jwo${jwPlatform}
 
+export jw_cur_dir=$cur_dir
 
 # if [ -d $jwoutput ]; then
 #     echo "output dir exists"
@@ -47,7 +48,8 @@ export jwtime=$(date +"%Y%m%d%H%M%S")
 if [ -d $scriptPath ]; then
     source $cur_dir/jwmaoR.sh
     cd $cur_dir
-    python
+    nvim .
+    # python
     exit
 fi
 
@@ -64,7 +66,7 @@ elif [ $file_typ == "py" ]; then
     if [ ${jwPlatform} == "sribdGC" ]; then
         python $scriptPath ${args[@]:1} 2>&1
     else
-        nohup python $scriptPath ${args[@]:1} 2>&1 &
+        nohup python $scriptPath ${args[@]:1} > ${scriptPath}${jwPlatform} 2>&1 &
     fi
     set +x
 else
@@ -79,4 +81,4 @@ if [ $jwPlatform == "sribdGC" ]; then
 sshpass -p 9213 scp $jwoutput/log.txt maojingwei@10.20.14.42:$dst" >>$jwoutput/log.txt
 fi
 
-echo "shell exit" >> $jwoutput/log.txt
+echo "shell exit" 
