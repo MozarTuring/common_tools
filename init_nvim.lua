@@ -15,12 +15,8 @@ vim.cmd [[filetype off]]
 
 vim.cmd [[
 call plug#begin('$jwHomePath/zzzresources/software/nvim/vim_pack/bundle')
-Plug 'https://github.com/vim-airline/vim-airline.git', { 'on':[]}
-"d9f42cb46710e31962a9609939ddfeb0685dd779
 Plug 'https://github.com/pocco81/auto-save.nvim.git'
 "979b6c82f60cfa80f4cf437d77446d0ded0addf0
-Plug 'https://github.com/mattn/emmet-vim.git'
-"def5d57a1ae5afb1b96ebe83c4652d1c03640f4d
 Plug 'https://github.com/tpope/vim-fugitive.git'
 "dac8e5c2d85926df92672bf2afb4fc48656d96c7
 "Plug 'https://github.com/Yggdroot/indentLine.git'
@@ -29,9 +25,11 @@ Plug 'https://github.com/davidhalter/jedi-vim.git'
 "9bd79ee41ac59a33f5890fa50b6d6a446fcc38c7
 Plug 'https://github.com/preservim/nerdtree.git'
 "f3a4d8eaa8ac10305e3d53851c976756ea9dc8e8
-Plug 'bfredl/nvim-ipy', { 'on':[]}
-Plug 'https://github.com/ivanov/vim-ipython.git', { 'on':[]}
 Plug 'Vigemus/iron.nvim'
+Plug 'nvim-telescope/telescope.nvim'
+Plug 'nvim-lua/plenary.nvim'
+"Plug 'gbprod/substitute.nvim', { 'on':[]}
+"Plug 'https://github.com/svermeulen/vim-subversive.git'
 call plug#end()
 ]]
 
@@ -99,11 +97,10 @@ vim.api.nvim_set_keymap('n', ',t', ':NERDTreeFocus<CR>', { noremap = true, silen
 -- vim.api.nvim_set_keymap('n', 'fp', ':lua print("aidasa")<CR>', { noremap = true, silent = true })
 
 
-vim.cmd('source $jwHomePath/common_tools/init_nvim.vim')
 
 
 local iron = require("iron.core")
-local view = require("iron.view")
+local view = require('iron.view')
 
 iron.setup {
   config = {
@@ -118,37 +115,32 @@ iron.setup {
       },
       python = {
         command = { "python3" },  -- or { "ipython", "--no-autoindent" }
---        command = function()
---          local abs_path = vim.api.nvim_call_function('GetAbsPath', {"b"})
---          print(abs_path)
---          local current_dir = vim.fn.fnamemodify(current_file_path, ':h')
---          return { current_dir .. "/aaaMjw_TMP/condaenv/bin/python" }
---        end,
         format = require("iron.fts.common").bracketed_paste_python
       }
     },
     -- How the repl window will be displayed
     -- See below for more information
     -- repl_open_cmd = require('iron.view').bottom(40),
-    repl_open_cmd = view.split.vertical.botright(50),
+--    repl_open_cmd = view.split.vertical.botright(50),
+    repl_open_cmd = view.split.horizontal.below(0.3),
   },
   -- Iron doesn't set keymaps by default anymore.
   -- You can set them here or manually add keymaps to the functions in iron.core
   keymaps = {
-    send_motion = "<space>sc",
-    visual_send = "<space>sc",
-    send_file = "<space>sf",
-    send_line = "<space>sl",
-    send_paragraph = "<space>sp",
-    send_until_cursor = "<space>su",
-    send_mark = "<space>sm",
-    mark_motion = "<space>mc",
-    mark_visual = "<space>mc",
-    remove_mark = "<space>md",
-    cr = "<space>s<cr>",
-    interrupt = "<space>s<space>",
-    exit = "<space>sq",
-    clear = "<space>cl",
+    visual_send = "gl",
+    send_line = "gl",
+    -- send_file = "<space>sf",
+    -- send_motion = "<space>sc",
+    -- send_paragraph = "<space>sp",
+    -- send_until_cursor = "<space>su",
+    -- send_mark = "<space>sm",
+    -- mark_motion = "<space>mc",
+    -- mark_visual = "<space>mc",
+    -- remove_mark = "<space>md",
+    -- cr = "<space>s<cr>",
+    -- interrupt = "<space>s<space>",
+    -- exit = "<space>sq",
+    -- clear = "<space>cl",
   },
   -- If the highlight is on, you can change how it looks
   -- For the available options, check nvim_set_hl
@@ -158,9 +150,9 @@ iron.setup {
   ignore_blank_lines = true, -- ignore blank lines when sending visual select lines
 }
 
--- -- iron also has a list of commands, see :h iron-commands for all available commands
+-- iron also has a list of commands, see :h iron-commands for all available commands
 -- vim.keymap.set('n', '<space>rs', '<cmd>IronRepl<cr>')
--- vim.keymap.set('n', '<space>rr', '<cmd>IronRestart<cr>')
+vim.keymap.set('n', '<space>rr', '<cmd>IronRestart<cr>')
 -- vim.keymap.set('n', '<space>rf', '<cmd>IronFocus<cr>')
 -- vim.keymap.set('n', '<space>rh', '<cmd>IronHide<cr>')
 
@@ -235,3 +227,66 @@ iron.setup {
 
 -- 映射一个快捷键来启动指定 Python 解释器的 REPL
 -- vim.api.nvim_set_keymap('n', 'fz', ':lua mjw()<CR>', { noremap = true, silent = true })
+
+
+
+local home_path = os.getenv('jwHomePath')
+local actions = require("telescope.actions")
+require('telescope').setup {
+  defaults = {
+    file_ignore_patterns = { '**/111mjw_tmp_jwm', '.git', '.hg', 'zzzresources' },  -- 忽略这些目录
+    mappings = {
+	    i = {
+		    ["<c-j>"] = actions.move_selection_next,
+		    ["<c-k>"] = actions.move_selection_previous
+	    },
+    }
+    },
+	pickers = {
+        find_files = {
+            -- 使用环境变量
+            path_display = { "absolute" },
+            cwd = home_path,
+            hidden = true, -- 显示隐藏文件
+        },
+    },
+}
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = 'Telescope find files' })
+vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
+vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
+vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
+
+vim.o.termguicolors = true
+
+vim.cmd('source $jwHomePath/common_tools/init_nvim.vim')
+
+function Jwcl()
+--    local abs_path = vim.api.nvim_call_function('GetAbsPath', {"b"})
+    local tmp = vim.fn.GetAbsPath("a")
+    local abs_dir = tmp[2]
+    local cur_name = tmp[3]
+    local current_time = os.date("%Y%m%d_%H%M%S")
+    local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") .. "/" .. current_time
+    local tmp = 'jwcl("' .. tmp_dir .. '")'
+    iron.send(nil, tmp)
+--    vim.fn.setreg('a', tmp)
+    
+--    local tmp = '"aP'
+--    vim.api.nvim_feedkeys(tmp, "n", true)
+--    iron.send_line()
+--    vim.api.nvim_feedkeys("<Esc>", 'n', true)
+    vim.api.nvim_feedkeys("dd", "n", true)
+    local tmp = 'i#' .. tmp_dir
+    vim.api.nvim_feedkeys(tmp, "n", true)
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+end
+vim.api.nvim_set_keymap('n', 'fj', '<cmd>lua Jwcl()<CR>', { noremap = true, silent = true })
+
+--function InsertCurrentTime()
+--  local current_time = os.date("%Y-%m-%d %H:%M:%S")
+--  print(current_time)
+--  vim.api.nvim_replace_termcodes(current_time, true, true, true)
+--end
+
+--vim.api.nvim_set_keymap('n', '<leader>t', '<cmd>lua InsertCurrentTime()<CR>', { noremap = true, silent = true })

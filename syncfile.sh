@@ -16,8 +16,6 @@ fi
 
 if [[ "$1" == "/home/maojingwei/project/vllm"* ]]; then
     bash /home/maojingwei/project/common_tools/jwclone.sh $1 43
-elif [[ "$1" == "/home/maojingwei/project/cmhk"* ]]; then
-    bash /home/maojingwei/project/common_tools/jwclone.sh $1 42
 elif [[ "$1" == "/home/maojingwei/project/common_tools"* ]]; then
     bash /home/maojingwei/project/common_tools/jwclone.sh $1 43
     bash /home/maojingwei/project/common_tools/jwclone.sh $1 42

@@ -1,4 +1,9 @@
-alias rm='DIR=~/mjw_tmp_jwm/trash/`date +%F%T`;mkdir -p $DIR;mv -t $DIR'
+mkdir -p ~/111mjw_tmp_jwm
+alias rm='DIR=~/111mjw_tmp_jwm/trash/`date +%F%T`;mkdir -p $DIR;mv -t $DIR'
+
+export jwCondaBin=~/111mjw_tmp_jwm/anaconda3/bin
+export jwPlatform="local"
+export jwHomePath=~/project
 
 if [ -d /content/drive/MyDrive/maojingwei ]; then
     rm /usr/local/bin/jw* /usr/local/bin/ngrok
@@ -17,27 +22,25 @@ elif [ -d /mntcephfs/lab_data/maojingwei ]; then
     export jwPlatform="sribdGC"
 
 elif [ -d /mnt/data/project ]; then
-    export jwCondaBin=/root/anaconda3/bin
-
     export jwHomePath=/mnt/data/project
     export jwPlatform="cmhk"
-
+elif [ -d 
+    export jwHomePath=/home/jht/sribd/maojingwei/project
+    export jwPlatform="jtc"
 else
-    export jwCondaBin=/home/maojingwei/mjw_tmp_jwm/installed/anaconda3/bin
-    export jwPlatform="local"
-    export jwHomePath=~/project
-    rm $jwHomePath/.vscode/launch.json
-    ln -s $jwHomePath/common_tools/.vscode/launch.json $jwHomePath/.vscode/launch.json
-    rm $jwHomePath/.vscode/tasks.json
-    ln -s $jwHomePath/common_tools/.vscode/tasks.json $jwHomePath/.vscode/tasks.json
-    rm $jwHomePath/.vscode/settings.json
-    ln -s $jwHomePath/common_tools/.vscode/settings.json $jwHomePath/.vscode/settings.json
+    echo "pass"
 fi
 
-export PATH="/usr/local/cuda/bin:/usr/local/MATLAB/R2022b/bin:~/mjw_tmp_jwm/TensorRT-8.2.5.1/bin:$jwHomePath/zzzresources/software/nvim/bin/:~/mjw_tmp_jwm/cmake/bin/:~/mjw_tmp_jwm/jwbin:$PATH"
+
+if [ -d $jwHomePath/common_tools/.vscode ]; then 
+    rm $jwHomePath/.vscode
+    ln -s $jwHomePath/common_tools/.vscode $jwHomePath/.vscode
+fi
+
+export PATH="/usr/local/cuda/bin:/usr/local/MATLAB/R2022b/bin:~/111mjw_tmp_jwm/TensorRT-8.2.5.1/bin:$jwHomePath/zzzresources/software/nvim/bin/:~/111mjw_tmp_jwm/cmake/bin/:~/111mjw_tmp_jwm/jwbin:$PATH"
 # nvim in resources because it may add packages which should be saved
-export LD_LIBRARY_PATH="~/mjw_tmp_jwm/TensorRT-8.2.5.1/lib:/usr/local/cuda-11.4/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
-export LD_INCLUDE_PATH="~/mjw_tmp_jwm/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
+export LD_LIBRARY_PATH="~/111mjw_tmp_jwm/TensorRT-8.2.5.1/lib:/usr/local/cuda-11.4/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
+export LD_INCLUDE_PATH="~/111mjw_tmp_jwm/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
 
 
 
@@ -51,15 +54,15 @@ ln -s $jwHomePath/common_tools/init_nvim.lua ~/.config/nvim/init.lua
 ln -s $jwHomePath/common_tools/tmux.conf ~/.tmux.conf
 
 
-# jwBin=~/mjw_tmp_jwm/jwbin
+# jwBin=~/111mjw_tmp_jwm/jwbin
 # mkdir -p $jwBin this way will not treat ~ as the home dir
-mkdir -p ~/mjw_tmp_jwm/jwbin
+mkdir -p ~/111mjw_tmp_jwm/jwbin
 
-rm ~/mjw_tmp_jwm/jwbin/*
+rm ~/111mjw_tmp_jwm/jwbin/*
 
 export TERM=xterm-256color
 chmod +x $jwHomePath/zzzresources/ngrok
-ln -s $jwHomePath/zzzresources/ngrok ~/mjw_tmp_jwm/jwbin/ngrok
+ln -s $jwHomePath/zzzresources/ngrok ~/111mjw_tmp_jwm/jwbin/ngrok
 ngrok config add-authtoken 2iLwxn3OMhW45CT4SNOIPlXMYPX_3MgeK1rdZdyckMMrLh4xX
 
 export jwrun=$jwHomePath/common_tools/jwrun.sh
@@ -75,10 +78,10 @@ export jwclone=$jwHomePath/common_tools/jwclone.sh
 chmod +x $jwclone
 
 set -x
-ln -s $jwrun ~/mjw_tmp_jwm/jwbin/jwrun
-ln -s $jwkill ~/mjw_tmp_jwm/jwbin/jwkill
-ln -s $jwruncpu ~/mjw_tmp_jwm/jwbin/jwruncpu
-ln -s $jwclone ~/mjw_tmp_jwm/jwbin/jwclone
+ln -s $jwrun ~/111mjw_tmp_jwm/jwbin/jwrun
+ln -s $jwkill ~/111mjw_tmp_jwm/jwbin/jwkill
+ln -s $jwruncpu ~/111mjw_tmp_jwm/jwbin/jwruncpu
+ln -s $jwclone ~/111mjw_tmp_jwm/jwbin/jwclone
 set +x
 
  

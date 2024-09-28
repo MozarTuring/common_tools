@@ -7,6 +7,7 @@ from functools import wraps
 import traceback
 import logging
 import sys
+import inspect
 
 
 
@@ -14,8 +15,8 @@ import sys
 # logging.basicConfig(level=logging.INFO,
 #                     format='%(asctime)s - %(pathname)s\nLINE%(lineno)d - \n%(message)s\nMSG-END',
 #                     datefmt='%Y-%m-%d %H:%M:%S')
-# jwprint = logging.info
-# 这种设置会导致其它所有使用了logging的地方都变成这里设定的格式，而不只是使用 jwprint 的地方
+# jwp = logging.info
+# 这种设置会导致其它所有使用了logging的地方都变成这里设定的格式，而不只是使用 jwp 的地方
 
 
 jwPlatform = os.getenv("jwPlatform")
@@ -26,30 +27,39 @@ console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)
 logger.addHandler(console_handler)
 
-jwprint=logger.info
+jwp=logger.info
 
 jw_cur_dir = os.getenv("jw_cur_dir")
+cur_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+jwoutput_base = os.path.join(jw_cur_dir, f"jwo{jwPlatform}/{cur_time}")
+ 
 def jwcl():
-    cur_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-    jwoutput = os.path.join(jw_cur_dir, f"jwo{jwPlatform}/{cur_time}")
-    os.environ["jwo"] = jwoutput
-    print(jwoutput)
+    # stack = inspect.stack()
+    # print(stack[1].filename)
+    ind = 1
+    while True:
+        jwoutput = os.path.join(jwoutput_base,  f"{ind}")
+        if os.path.exists(jwoutput):
+            ind += 1
+        else:
+            break
     os.makedirs(jwoutput)
-    logPath = os.path.join(jwoutput, f"log.txt")
-    formatter = logging.Formatter('LINE%(lineno)d - %(asctime)s - %(pathname)s\n%(message)s\nMSG-END', datefmt='%Y-%m-%d %H:%M:%S')
+#    formatter = logging.Formatter('LINE%(lineno)d - %(asctime)s - %(pathname)s\n%(message)s   MSG-END', datefmt='%Y-%m-%d %H:%M:%S')
     logger = logging.getLogger("my_logger")
-    for ele in logger.handlers:
+    for ele in logger.handlers[:]:
         logger.removeHandler(ele)
+    logPath = os.path.join(jwoutput, "log.txt")
     file_handler = logging.FileHandler(logPath, mode="a")
-    file_handler.setFormatter(formatter)
+#    file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.INFO)
     logger.addHandler(file_handler)
     console_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter('%(message)s\nMSG-END #'+jwoutput, datefmt='%Y-%m-%d %H:%M:%S')
-    console_handler.setFormatter(formatter)
+#    formatter = logging.Formatter('%(message)s   MSG-END#'+logPath, datefmt='%Y-%m-%d %H:%M:%S')
+#    console_handler.setFormatter(formatter)
     console_handler.setLevel(logging.INFO)
     logger.addHandler(console_handler)
-    jwprint("start")
+    jwp("start")
+    return jwoutput
 
 
 
@@ -63,7 +73,7 @@ def timer_wrapper(inp_func):
     def decorated(*args, **kwargs):
         tmp = time.time()
         inp_func(*args, **kwargs)
-        jwprint(time.time() - tmp)
+        jwp(time.time() - tmp)
     return decorated
 
 
@@ -74,7 +84,7 @@ def except_wrapper(inp_func):
         try:
             inp_func(*args, **kwargs)
         except:
-            jwprint(traceback.format_exc())
+            jwp(traceback.format_exc())
     return decorated
 
 
@@ -112,3 +122,4 @@ def start_mp(targets, args_ls):
 
     for ele in p_list:
         ele.join() ## 不加这个 按 ctrl c 杀不死
+

@@ -8,16 +8,17 @@ nmap ff :call Clearnvim()<cr>
 
 
 function! Yankpath()
+    let tmp_path = ""
     if g:NERDTree.IsOpen()
         let n = g:NERDTreeFileNode.GetSelected()
         if n != {}
             let tmp_path = n.path.str()
             echo tmp_path
-            call setreg('"', tmp_path)
         endif
     else
-        call GetAbsPath("b")
+        let tmp_path = GetAbsPath("b")
     endif
+    call setreg('""', tmp_path)
 endfunction
 nmap yp :call Yankpath()<cr>
 
@@ -88,8 +89,34 @@ func! Comment() range
 endfunc
 vnoremap <silent> # :call Comment()<CR>
 nmap <silent> # :call Comment()<CR>
-vnoremap <C-s> "hy:%s/<C-r>h//gc<left><left><left>
+
+func! MyReplace()
+    normal! gv"ay 
+" not working without gv
+    let tmp = @a
+    echo tmp
+    let tmp = substitute(tmp, '"', '\\"', 'g')
+    echo tmp
+    let tmp_rep = input("substitute with:")
+    let tmp_command = ":%s/". tmp. "/".tmp_rep."/gc"
+    echo tmp_command
+    exec tmp_command
+"    call setreg('a', tmp)
+"    normal! :%s/<C-r>a//gc
+endfunc
+vnoremap <C-s> :call MyReplace()<CR>
 " <left> means cursor moves towards left; <C-r>h means use content in h register
+
+
+"func! Jwcl()
+"    let current_date = strftime("%Y%m%d_%H%M%S")
+"    let tmp = 'jwcl("'. current_date. '")'
+"    execute "normal! O" . tmp
+"    normal! <C-l>
+"    normal! gl
+"endfunc
+"nmap fj :call Jwcl()<CR>
+
 
 func! GenerateCode() range
     let v = @"
@@ -125,10 +152,8 @@ func! GetAbsPath(inp_mode)
     let cur_name = split(abs_path_split[-1],'\.')[0]
     " notice that the above sep must be in single quote
     if a:inp_mode=="a"
-        return [l:abs_path,l:abs_dir,l:cur_name,l:abs_path_split]
+        return [abs_path,abs_dir,cur_name,abs_path_split]
     else
-        echo "here"
-        call setreg('"', abs_path)
         return abs_path
     endif
 endfunc
@@ -149,19 +174,26 @@ endfunction
 
 
 func! OpenLog(inp)
-    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-    let cur_file = abs_path_split[-1]
-    let log_prefix = abs_path. $jwPlatform
+"    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
+"    let cur_file = abs_path_split[-1]
+"    let log_prefix = abs_path. $jwPlatform
 
-    let tmp_path = log_prefix .a:inp
+"    let tmp_path = log_prefix .a:inp
+"    let tmp_path = getline(1)
+    let tmp_path = getline('.')
+    let tmp_path = tmp_path[1:]
+    echo tmp_path
 "    let window_count = winnr('$') - 1
     if filereadable(tmp_path)
 "        if GoToTabByName(tmp_path) == "fail"
         let cur_tab_nr = tabpagenr()
         let tab_window_count = tabpagewinnr(cur_tab_nr, "$")
-        if tab_window_count == 1
-            execute "botright split " . tmp_path
-        endif
+"        if tab_window_count == 1
+"            execute "botright split " . tmp_path
+"        endif
+        execute "botright vsplit " . tmp_path
+"        execute "topleft split " . tmp_path
+        normal! ,f
     endif
 endfunc
 nmap fl :call OpenLog("")<CR>
@@ -237,7 +269,6 @@ func! CompileRunGcc(inp_mode)
 endfunc
 
 nmap fr :call CompileRunGcc("r")<CR>
-nmap fd :call CompileRunGcc("d")<CR>
 
 
 func! CompileStop()
@@ -385,9 +416,7 @@ else
 endif
 
 set mouse=a
-if isdirectory('/mnt/data/project')
-set mouse=
-endif
+"set mouse=
 
 
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
@@ -419,3 +448,31 @@ nnoremap <M-8> 8gt
 nnoremap <M-9> 9gt
 
 nnoremap <M-0> :tablast<CR>
+
+set clipboard+=unnamedplus
+let g:clipboard = {
+            \   'name': 'WslClipboard',
+            \   'copy': {
+            \      '+': 'clip.exe',
+            \      '*': 'clip.exe',
+            \    },
+            \   'paste': {
+            \      '+': 'powershell.exe -NoLogo -NoProfile -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
+            \      '*': 'powershell.exe -NoLogo -NoProfile -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
+            \   },
+            \   'cache_enabled': 0,
+            \ }
+
+
+"function! MyCustomFinder()
+"  let opts = {
+"  \ 'prompt_title': 'Custom File Finder',
+"  \ 'ignore_patterns': ['111mjw_tmp_jwm', 'node_modules', 'build', 'dist', '*.log', '*.tmp'],
+"  \ 'hidden': 1
+"  \ }
+"  call telescope#builtin#find_files(opts)
+"endfunction
+"
+"" 映射快捷键
+"nnoremap <leader>ff :call MyCustomFinder()<CR>
+

@@ -144,4 +144,5 @@
     "latex-workshop.view.pdf.viewer": "browser",
     "latex-workshop.latex.autoClean.run": "onBuilt",
     "editor.fontSize": 14,
+    "git.ignoreLimitWarning": true,
 }

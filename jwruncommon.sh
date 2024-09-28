@@ -17,48 +17,50 @@ if [ $jwPlatform == "sribdGC" ]; then
 fi
 echo "Project path: "$jwHomePath
 
-
 scriptPath=${jwHomePath}/$1
-cur_dir=${scriptPath%/}
+
+
+export jw_cur_dir=${scriptPath%/}
 if [ -f $scriptPath ]; then
-    cur_dir=${scriptPath%/*}
+    export jw_cur_dir=${scriptPath%/*}
     file_typ=${scriptPath##*.}
     fileName=$(basename $scriptPath "."$file_typ)
 elif [ -d $scriptPath ]; then
     echo "launch python"
+    source $jw_cur_dir/jwmaoR.sh
+    cd $jw_cur_dir
+    nvim .
+    exit
 else
     echo "error"
     exit
 fi
 
-cur_dir_name=$(basename $cur_dir)
+if [ $file_typ == "sh" ]; then
+    source $scriptPath ${args[@]:1} >${scriptPath}${jwPlatform} 2>&1 & # source can not be run using nohup
+    exit
+fi
+
+
+cur_dir_name=$(basename $jw_cur_dir)
 export jwResourceDir=$jwHomePath/zzzresources/$cur_dir_name
 mkdir -p $jwResourceDir
 
 export jwtime=$(date +"%Y%m%d%H%M%S")
-# export jwoutput=$cur_dir/${jwtime}_jwo${jwPlatform}
+# export jwoutput=$jw_cur_dir/${jwtime}_jwo${jwPlatform}
 
-export jw_cur_dir=$cur_dir
+
 
 # if [ -d $jwoutput ]; then
 #     echo "output dir exists"
 #     exit
 # fi
 
-if [ -d $scriptPath ]; then
-    source $cur_dir/jwmaoR.sh
-    cd $cur_dir
-    nvim .
-    # python
-    exit
-fi
 
-if [ $file_typ == "sh" ]; then
-    source $scriptPath ${args[@]:1}
-elif [ $file_typ == "py" ]; then
+if [ $file_typ == "py" ]; then
 
-    source $cur_dir/jwmaoR.sh
-    cd $cur_dir
+    source $jw_cur_dir/jwmaoR.sh
+    cd $jw_cur_dir
 
     jwkill $1
     # mkdir -p $jwoutput
@@ -66,7 +68,7 @@ elif [ $file_typ == "py" ]; then
     if [ ${jwPlatform} == "sribdGC" ]; then
         python $scriptPath ${args[@]:1} 2>&1
     else
-        nohup python $scriptPath ${args[@]:1} > ${scriptPath}${jwPlatform} 2>&1 &
+        nohup python $scriptPath ${args[@]:1} >${scriptPath}${jwPlatform} 2>&1 &
     fi
     set +x
 else
@@ -81,4 +83,4 @@ if [ $jwPlatform == "sribdGC" ]; then
 sshpass -p 9213 scp $jwoutput/log.txt maojingwei@10.20.14.42:$dst" >>$jwoutput/log.txt
 fi
 
-echo "shell exit" 
+echo "shell exit"
