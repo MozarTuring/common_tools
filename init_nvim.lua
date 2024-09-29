@@ -96,7 +96,11 @@ vim.api.nvim_set_keymap('n', ',t', ':NERDTreeFocus<CR>', { noremap = true, silen
 
 -- vim.api.nvim_set_keymap('n', 'fp', ':lua print("aidasa")<CR>', { noremap = true, silent = true })
 
-
+local jwview = function(inp)
+    vim.cmd("tabnew")
+    local winid = vim.api.nvim_get_current_win()
+    return winid
+end
 
 
 local iron = require("iron.core")
@@ -122,13 +126,14 @@ iron.setup {
     -- See below for more information
     -- repl_open_cmd = require('iron.view').bottom(40),
 --    repl_open_cmd = view.split.vertical.botright(50),
-    repl_open_cmd = view.split.horizontal.below(0.3),
+--    repl_open_cmd = view.split.horizontal.below(0.3),
+    repl_open_cmd = jwview,
   },
   -- Iron doesn't set keymaps by default anymore.
   -- You can set them here or manually add keymaps to the functions in iron.core
   keymaps = {
-    visual_send = "gl",
-    send_line = "gl",
+--    visual_send = "<space>ll",
+--    send_line = "<space>ll",
     -- send_file = "<space>sf",
     -- send_motion = "<space>sc",
     -- send_paragraph = "<space>sp",
@@ -237,8 +242,9 @@ require('telescope').setup {
     file_ignore_patterns = { '**/111mjw_tmp_jwm', '.git', '.hg', 'zzzresources' },  -- 忽略这些目录
     mappings = {
 	    i = {
-		    ["<c-j>"] = actions.move_selection_next,
-		    ["<c-k>"] = actions.move_selection_previous
+	    ["<c-j>"] = actions.move_selection_next,
+	    ["<c-k>"] = actions.move_selection_previous,
+            ["<esc>"] = actions.close
 	    },
     }
     },
@@ -252,14 +258,136 @@ require('telescope').setup {
     },
 }
 local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = 'Telescope find files' })
-vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
-vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
-vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
+vim.keymap.set('n', 'ff', builtin.find_files, { desc = 'Telescope find files' })
+--vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
+--vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
+--vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
 
 vim.o.termguicolors = true
 
 vim.cmd('source $jwHomePath/common_tools/init_nvim.vim')
+
+
+local function setup_auto_refresh(file_path)
+-- Create an augroup to contain the autocommands
+vim.api.nvim_create_augroup("AutoRefresh", { clear = true })
+
+-- Define an autocommand for the specific file
+vim.api.nvim_create_autocmd("BufReadPost", {
+group = "AutoRefresh",
+pattern = file_path,
+callback = function()
+-- Check if the file has been modified externally
+local stat = vim.loop.fs_stat(file_path)
+if stat and stat.mtime.sec > vim.api.nvim_buf_get_mark(0, "<")[1] then
+-- If modified, reload the buffer
+local tmp = "edit " .. file_path
+vim.cmd("edit " .. file_path)
+end
+end,
+})
+end
+
+local function retrieve_file_info(file_path)
+    local buf_nr = vim.fn.bufnr(file_path)
+    local win_nr = vim.fn.win_getpos(buf_nr)[1]
+    vim.api.nvim_set_current_win(win_nr)
+    local last_win_nr = vim.fn.tabpagewinnr(vim.api.nvim_get_current_tabpage(), "$")
+--local stat = vim.loop.fs_stat(file_path)
+--if stat then
+--print("File:", file_path)
+--print("Type:", stat.type)
+--print("Size:", stat.size)
+--print("Last modification time (seconds):", stat.mtime.sec)
+--print("---")
+--else
+--print("Failed to retrieve file system information for:", file_path)
+--end
+end
+
+local function start_periodic_retrieval(file_path, interval)
+-- Create a timer
+local timer = vim.loop.new_timer()
+
+-- Start the timer to retrieve file info periodically
+timer:start(interval, interval, vim.schedule_wrap(function()
+require("init").retrieve_file_info(file_path)
+end))
+
+return timer
+end
+
+
+
+local jw_append = function(inp_path, inp_content)
+    local file = io.open(inp_path, "a")
+
+    -- Check if the file was opened successfully
+    if not file then
+        error("Could not open the file for appending.")
+    end
+
+    -- Append content to the file
+    file:write(inp_content .. "\n")
+
+    -- Close the file
+    file:close()
+end
+
+
+
+local jw_mkdir = function(inp_dir)
+    local command = string.format("mkdir %s", inp_dir)
+
+    -- Execute the command
+    local success = os.execute(command)
+
+    -- Check if the command was executed successfully
+    if success == 0 then
+        print("Directory created successfully.")
+    else
+        print("Failed to create directory.")
+    end
+end
+
+function directory_exists(dir_path)
+    local stat = vim.loop.fs_stat(dir_path)
+    return stat and stat.type == 'directory'
+end
+
+
+function find_window_for_file(file_path)
+    local windows = vim.api.nvim_list_wins()
+    for _, win in ipairs(windows) do
+        local buf = vim.api.nvim_win_get_buf(win)
+        local buf_name = vim.api.nvim_buf_get_name(buf)
+        print(buf_name, file_path, win)
+        if buf_name == file_path then
+            return win
+        end
+    end
+    return nil
+end
+
+
+function OpenLog(inp_content)
+--        local tmp = 'jwo=jwcl("' .. tmp_dir .. '")'
+    local tmp = vim.fn.GetAbsPath("a")
+    local abs_dir = tmp[2]
+    local cur_name = tmp[3]
+--    local current_time = os.date("%Y%m%d_%H%M%S")
+--    local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") .. "/" .. current_time
+    local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") 
+    local tmp_path = tmp_dir .. '/' .. cur_name .. 'log.txt'
+    local tmp_path2 = tmp_dir .. '/' .. cur_name .. 'log.txt.tmp'
+    local ret = 'sys.stdout = open("' .. tmp_path2 .. '", "w") \n' .. inp_content .. '\nsys.stdout.close()'
+    if not directory_exists(tmp_dir) then
+        jw_mkdir(tmp_dir)
+    end
+    
+    return ret, tmp_path, tmp_path2
+end
+--vim.api.nvim_set_keymap('n', 'fl', '<cmd>lua OpenLog()<CR>', { noremap = true, silent = true })
 
 function Jwcl()
 --    local abs_path = vim.api.nvim_call_function('GetAbsPath', {"b"})
@@ -268,20 +396,123 @@ function Jwcl()
     local cur_name = tmp[3]
     local current_time = os.date("%Y%m%d_%H%M%S")
     local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") .. "/" .. current_time
-    local tmp = 'jwcl("' .. tmp_dir .. '")'
+    local tmp = 'jwo=jwcl("' .. tmp_dir .. '")'
+    local current_win_nr = vim.api.nvim_get_current_win()
     iron.send(nil, tmp)
+    vim.cmd("botright vsplit " .. tmp_dir .. '/log.txt')
+    _G.myw = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(current_win_nr)
+    vim.api.nvim_feedkeys('i' .. tmp, "n", true)
+
 --    vim.fn.setreg('a', tmp)
     
 --    local tmp = '"aP'
 --    vim.api.nvim_feedkeys(tmp, "n", true)
 --    iron.send_line()
 --    vim.api.nvim_feedkeys("<Esc>", 'n', true)
-    vim.api.nvim_feedkeys("dd", "n", true)
-    local tmp = 'i#' .. tmp_dir
-    vim.api.nvim_feedkeys(tmp, "n", true)
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+--    vim.api.nvim_feedkeys('Ojwo="' .. tmp_dir .. '"', "n", true)
+    --    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+--    vim.api.nvim_feedkeys("fl", 'n', true)
+--    vim.fn.OpenLog('')
+--    setup_auto_refresh(tmp_dir .. '/log.txt')
 end
 vim.api.nvim_set_keymap('n', 'fj', '<cmd>lua Jwcl()<CR>', { noremap = true, silent = true })
+
+
+function PrintCurrentMode()
+  local mode_info = vim.api.nvim_get_mode()
+  local current_mode = mode_info.mode
+
+  print("Current mode: " .. current_mode)
+end
+--vim.api.nvim_set_keymap('v', '<leader>u', '<cmd>lua PrintCurrentMode()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('v', 'mm', ':lua PrintCurrentMode()<CR>', {noremap = true})
+
+
+local jwread = function(src)
+    local source_file_handle = io.open(src, "r")
+    if source_file_handle then
+        local source_content = source_file_handle:read("*a") -- Read the entire file content
+        source_file_handle:close() -- Close the source file handle
+        return source_content
+    else
+        print("Error: Unable to open the source file.")
+    end
+end
+
+local jw_send = function(inp_send)
+    local new_send, tmp_path, tmp_path2 = OpenLog(inp_send)
+    iron.send(nil, new_send)
+    jw_append(tmp_path, inp_send)
+    local tmp_content = jwread(tmp_path2)
+    print(tmp_content)
+    vim.fn.input("p")
+    jw_append(tmp_path, "[OUT]: "..tmp_content)
+    local current_win_nr = vim.api.nvim_get_current_win()
+    tmp_win = find_window_for_file(tmp_path)
+    if tmp_win == nil then
+        vim.cmd("botright vsplit " .. tmp_path)
+--        local tmp_win = vim.api.nvim_get_current_win()
+        tmp_win = vim.api.nvim_get_current_win()
+--        print(type(tmp_win), tmp_win, "adfa")
+    end
+    vim.api.nvim_set_current_win(tmp_win)
+    vim.cmd("edit")
+    vim.api.nvim_set_current_win(current_win_nr)
+end
+
+
+function Jw_send_l()
+--    local mode_info = vim.api.nvim_get_mode()
+--    vim.api.nvim_echo({{"Current mode: " .. mode_info.mode}}, true)
+--    vim.api.nvim_feedkeys("<Esc>", "i", true)
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+--    local current_line = vim.api.nvim_get_current_line()
+    local tmp_send = vim.fn.getline(".")
+    jw_send(tmp_send)
+--    if current_line:match("^%s*$") then
+--        Jwcl()
+--    elseif string.sub(current_line, 1, 3) == "jwp" then
+--    elseif string.find(current_line, '=') then
+--    else
+--        current_line = 'jwp(' .. current_line .. ')'
+--        vim.api.nvim_feedkeys('ddO' .. current_line, 'n', true) 
+--    end
+    
+
+--    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+end
+vim.api.nvim_set_keymap('n', 'm', ":lua Jw_send_l()<CR>", { noremap = true, silent = true })
+--vim.api.nvim_set_keymap('i', '<M-l>', "<cmd>lua Jw_send_l()<CR>", { noremap = true, silent = true })
+--vim.api.nvim_set_keymap('i', '<S-Return>', "<cmd>lua Jw_send_l()<CR>", { noremap = true, silent = true })
+--vim.api.nvim_set_keymap('i', '<S-Return>', 'v:lua.Jw_send_l()', { expr = true })
+--vim.api.nvim_set_keymap('i', '<c-l>', ":lua Jw_send_l()<CR>", { noremap = true, silent = true }) invalid
+
+function Jw_send_v()
+--    local mode_info = vim.api.nvim_get_mode()
+--    print("Current mode: " .. mode_info.mode)
+--    local mode = vim.api.nvim_get_mode().mode
+--    print(mode)
+    tmp_start = vim.fn.line("'<")
+    tmp_end = vim.fn.line("'>")
+    tmp_gap = tmp_end-tmp_start
+    vim.api.nvim_feedkeys(tmp_gap .. 'j', 'n', true) 
+--    print(tmp_gap)
+--    vim.fn.input("p")
+    local lines = vim.fn.getline(tmp_start, tmp_end)
+    local tmp_send = table.concat(lines, "\n") 
+    jw_send(tmp_send)
+end
+--vim.api.nvim_set_keymap('v', '<space>ll', '<cmd>lua Jwsend()<CR>', { noremap = true, silent = true})
+vim.api.nvim_set_keymap('v', 'm', ":lua Jw_send_v()<CR>", { noremap = true, silent = true })
+
+
+
+--function Uw()
+--print(vim.api.nvim_buf_get_name(0))
+--this could return abs path
+--end
+
 
 --function InsertCurrentTime()
 --  local current_time = os.date("%Y-%m-%d %H:%M:%S")

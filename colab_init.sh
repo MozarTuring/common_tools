@@ -24,7 +24,7 @@ elif [ -d /mntcephfs/lab_data/maojingwei ]; then
 elif [ -d /mnt/data/project ]; then
     export jwHomePath=/mnt/data/project
     export jwPlatform="cmhk"
-elif [ -d 
+elif [ -d /home/jht/sribd/maojingwei ]; then
     export jwHomePath=/home/jht/sribd/maojingwei/project
     export jwPlatform="jtc"
 else

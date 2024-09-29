@@ -1,10 +1,10 @@
 
 " Below is my design
 
-function! Clearnvim()
+function! Clswap()
     execute "!rm ~/.local/state/nvim/swap/*"
 endfunction
-nmap ff :call Clearnvim()<cr>
+nmap cls :call Clswap()<cr>
 
 
 function! Yankpath()
@@ -181,7 +181,8 @@ func! OpenLog(inp)
 "    let tmp_path = log_prefix .a:inp
 "    let tmp_path = getline(1)
     let tmp_path = getline('.')
-    let tmp_path = tmp_path[1:]
+    echo tmp_path
+    let tmp_path = tmp_path[5:strlen(tmp_path)-2]. '/log.txt'
     echo tmp_path
 "    let window_count = winnr('$') - 1
     if filereadable(tmp_path)
@@ -195,6 +196,7 @@ func! OpenLog(inp)
 "        execute "topleft split " . tmp_path
         normal! ,f
     endif
+    redraw
 endfunc
 nmap fl :call OpenLog("")<CR>
 

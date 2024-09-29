@@ -33,16 +33,19 @@ jw_cur_dir = os.getenv("jw_cur_dir")
 cur_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 jwoutput_base = os.path.join(jw_cur_dir, f"jwo{jwPlatform}/{cur_time}")
  
-def jwcl():
+def jwcl(inp_dir=None):
     # stack = inspect.stack()
     # print(stack[1].filename)
     ind = 1
-    while True:
-        jwoutput = os.path.join(jwoutput_base,  f"{ind}")
-        if os.path.exists(jwoutput):
-            ind += 1
-        else:
-            break
+    if not inp_dir:
+        while True:
+            jwoutput = os.path.join(jwoutput_base,  f"{ind}")
+            if os.path.exists(jwoutput):
+                ind += 1
+            else:
+                break
+    else:
+        jwoutput = inp_dir
     os.makedirs(jwoutput)
 #    formatter = logging.Formatter('LINE%(lineno)d - %(asctime)s - %(pathname)s\n%(message)s   MSG-END', datefmt='%Y-%m-%d %H:%M:%S')
     logger = logging.getLogger("my_logger")
