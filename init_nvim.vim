@@ -198,7 +198,7 @@ func! OpenLog(inp)
     endif
     redraw
 endfunc
-nmap fl :call OpenLog("")<CR>
+"nmap fl :call OpenLog("")<CR>
 
 
 

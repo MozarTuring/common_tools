@@ -317,22 +317,43 @@ end))
 return timer
 end
 
-
-
-local jw_append = function(inp_path, inp_content)
-    local file = io.open(inp_path, "a")
-
-    -- Check if the file was opened successfully
-    if not file then
-        error("Could not open the file for appending.")
+local function read_source(source)
+    if vim.fn.filereadable(source) == 1 then
+        -- If the source is a file path, read its content
+        local source_file_handle = io.open(source, "r")
+        if source_file_handle then
+            local content = source_file_handle:read("*a") -- Read the entire file content
+            source_file_handle:close() -- Close the source file handle
+            return content
+        else
+            error("Error: Unable to open the source file.")
+        end
+    else
+        -- If the source is not a file path, treat it as text
+        return source
     end
-
-    -- Append content to the file
-    file:write(inp_content .. "\n")
-
-    -- Close the file
-    file:close()
 end
+
+-- Function to append content to the destination file
+local function append_content(content, destination_file_path)
+    -- Open the destination file in append mode
+    local destination_file_handle = io.open(destination_file_path, "a")
+    if destination_file_handle then
+        -- Append the content to the destination file
+        destination_file_handle:write(content)
+        destination_file_handle:close() -- Close the destination file handle
+        print("Content appended successfully.")
+    else
+        error("Error: Unable to open the destination file for appending.")
+    end
+end
+
+-- Main function to append content from source to destination
+local function jw_append(source, dst)
+    local content = read_source(source)
+    append_content(content, dst)
+end
+
 
 
 
@@ -356,12 +377,12 @@ function directory_exists(dir_path)
 end
 
 
-function find_window_for_file(file_path)
+local function find_window_for_file(file_path)
     local windows = vim.api.nvim_list_wins()
     for _, win in ipairs(windows) do
         local buf = vim.api.nvim_win_get_buf(win)
         local buf_name = vim.api.nvim_buf_get_name(buf)
-        print(buf_name, file_path, win)
+--        print(buf_name, file_path, win)
         if buf_name == file_path then
             return win
         end
@@ -370,7 +391,7 @@ function find_window_for_file(file_path)
 end
 
 
-function OpenLog(inp_content)
+local function get_log_path()
 --        local tmp = 'jwo=jwcl("' .. tmp_dir .. '")'
     local tmp = vim.fn.GetAbsPath("a")
     local abs_dir = tmp[2]
@@ -380,14 +401,66 @@ function OpenLog(inp_content)
     local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") 
     local tmp_path = tmp_dir .. '/' .. cur_name .. 'log.txt'
     local tmp_path2 = tmp_dir .. '/' .. cur_name .. 'log.txt.tmp'
-    local ret = 'sys.stdout = open("' .. tmp_path2 .. '", "w") \n' .. inp_content .. '\nsys.stdout.close()'
     if not directory_exists(tmp_dir) then
         jw_mkdir(tmp_dir)
     end
     
-    return ret, tmp_path, tmp_path2
+    return tmp_path, tmp_path2
 end
---vim.api.nvim_set_keymap('n', 'fl', '<cmd>lua OpenLog()<CR>', { noremap = true, silent = true })
+
+local function jw_center()
+--    local last_line_number = vim.api.nvim_buf_line_count(0)
+--
+---- Get the window height
+--    local window_height = vim.api.nvim_win_get_height(0)
+--
+--    -- Calculate the middle line number
+--    local middle_line_number = math.ceil((window_height - 1) / 2)
+--
+--    -- Calculate the scroll offset to center the last line
+--    local scroll_offset = last_line_number - middle_line_number
+--
+--    -- Set the window scroll offset to center the last line
+--    vim.api.nvim_win_set_scroll(0, scroll_offset) -- no such fn
+    vim.cmd('normal! zz') -- in the middle
+--    vim.cmd('normal! zt') -- on top
+end
+
+local function get_last_lines()
+    local num_lines = 15
+    local last_line_number = vim.api.nvim_buf_line_count(0)
+    local start_line_number = math.max(1, last_line_number - num_lines)
+    local last_5_lines = vim.api.nvim_buf_get_lines(0, start_line_number - 1, last_line_number, false)
+    local new_lines = {}
+    for _, line in ipairs(last_5_lines) do
+        if line ~= "" then
+            table.insert(new_lines, "")
+        end
+    end
+    vim.api.nvim_buf_set_lines(0, last_line_number, -1, false, new_lines)
+end
+
+
+function OpenLog()
+    local tmp_path, tmp_path2 = get_log_path()
+    local current_win_nr = vim.api.nvim_get_current_win()
+    tmp_win = find_window_for_file(tmp_path)
+    if tmp_win == nil then
+        vim.cmd("botright vsplit " .. tmp_path)
+        tmp_win = vim.api.nvim_get_current_win() -- if local tmp_win, it will be unknown outside if
+--        print(type(tmp_win), tmp_win, "adfa")
+    end
+    vim.api.nvim_set_current_win(tmp_win)
+    vim.cmd("edit")
+    local last_line_number = vim.api.nvim_buf_line_count(0)
+    vim.api.nvim_win_set_cursor(0, {last_line_number, 0})
+--    vim.api.nvim_set_current_win(tmp_win)
+--    vim.api.nvim_feedkeys('G', "n", true)
+    jw_center()
+    vim.api.nvim_set_current_win(current_win_nr)
+end
+vim.api.nvim_set_keymap('n', 'fl', '<cmd>lua OpenLog()<CR>', { noremap = true, silent = true })
+
 
 function Jwcl()
 --    local abs_path = vim.api.nvim_call_function('GetAbsPath', {"b"})
@@ -413,7 +486,7 @@ function Jwcl()
 --    vim.api.nvim_feedkeys('Ojwo="' .. tmp_dir .. '"', "n", true)
     --    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
 --    vim.api.nvim_feedkeys("fl", 'n', true)
---    vim.fn.OpenLog('')
+--    vim.fn.get_log_path('')
 --    setup_auto_refresh(tmp_dir .. '/log.txt')
 end
 vim.api.nvim_set_keymap('n', 'fj', '<cmd>lua Jwcl()<CR>', { noremap = true, silent = true })
@@ -429,36 +502,48 @@ end
 vim.api.nvim_set_keymap('v', 'mm', ':lua PrintCurrentMode()<CR>', {noremap = true})
 
 
-local jwread = function(src)
-    local source_file_handle = io.open(src, "r")
+local jwread = function(source_file_path, destination_file_path)
+    -- Open the source file and read its content
+    local source_file_handle = io.open(source_file_path, "r")
     if source_file_handle then
         local source_content = source_file_handle:read("*a") -- Read the entire file content
         source_file_handle:close() -- Close the source file handle
-        return source_content
+
+        -- Open the destination file in append mode
+        local destination_file_handle = io.open(destination_file_path, "a")
+        if destination_file_handle then
+            -- Append the source content to the destination file
+            destination_file_handle:write(source_content)
+            destination_file_handle:close() -- Close the destination file handle
+
+            print("Content appended successfully.")
+        else
+            print("Error: Unable to open the destination file for appending.")
+        end
     else
         print("Error: Unable to open the source file.")
     end
 end
 
-local jw_send = function(inp_send)
-    local new_send, tmp_path, tmp_path2 = OpenLog(inp_send)
-    iron.send(nil, new_send)
-    jw_append(tmp_path, inp_send)
-    local tmp_content = jwread(tmp_path2)
-    print(tmp_content)
-    vim.fn.input("p")
-    jw_append(tmp_path, "[OUT]: "..tmp_content)
-    local current_win_nr = vim.api.nvim_get_current_win()
-    tmp_win = find_window_for_file(tmp_path)
-    if tmp_win == nil then
-        vim.cmd("botright vsplit " .. tmp_path)
---        local tmp_win = vim.api.nvim_get_current_win()
-        tmp_win = vim.api.nvim_get_current_win()
---        print(type(tmp_win), tmp_win, "adfa")
+
+local jw_send = function(inp_send, inp_line)
+    local today = os.date("%Y-%m-%d")
+    local current_time = os.date("%H:%M:%S")
+    if inp_line == 1 then
+        session_start = '\n\n**********' .. today .. '**********\n'
+    else
+        session_start = "\n"
     end
-    vim.api.nvim_set_current_win(tmp_win)
-    vim.cmd("edit")
-    vim.api.nvim_set_current_win(current_win_nr)
+    local tmp_path, tmp_path2 = get_log_path(inp_send)
+    local new_send = 'sys.stdout = open("' .. tmp_path .. '", "a") \n' .. inp_send .. '\nsys.stdout.close()'
+    jw_append(session_start .. '[' .. current_time .. ']\n' .. inp_send .. '  [INPEND]\n', tmp_path)
+    iron.send(nil, new_send)
+    OpenLog()
+--    local tmp_content = jwread(tmp_path2)
+--    print(tmp_content)
+--    vim.fn.input("p")
+--    jw_append(tmp_path, "[OUT]: "..tmp_content)
+
 end
 
 
@@ -469,7 +554,9 @@ function Jw_send_l()
     vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
 --    local current_line = vim.api.nvim_get_current_line()
     local tmp_send = vim.fn.getline(".")
-    jw_send(tmp_send)
+    local cursor_position = vim.api.nvim_win_get_cursor(0)
+    local current_line_number = cursor_position[1]
+    jw_send(tmp_send, current_line_number)
 --    if current_line:match("^%s*$") then
 --        Jwcl()
 --    elseif string.sub(current_line, 1, 3) == "jwp" then
@@ -501,7 +588,7 @@ function Jw_send_v()
 --    vim.fn.input("p")
     local lines = vim.fn.getline(tmp_start, tmp_end)
     local tmp_send = table.concat(lines, "\n") 
-    jw_send(tmp_send)
+    jw_send(tmp_send, tmp_start)
 end
 --vim.api.nvim_set_keymap('v', '<space>ll', '<cmd>lua Jwsend()<CR>', { noremap = true, silent = true})
 vim.api.nvim_set_keymap('v', 'm', ":lua Jw_send_v()<CR>", { noremap = true, silent = true })
@@ -521,3 +608,20 @@ vim.api.nvim_set_keymap('v', 'm', ":lua Jw_send_v()<CR>", { noremap = true, sile
 --end
 
 --vim.api.nvim_set_keymap('n', '<leader>t', '<cmd>lua InsertCurrentTime()<CR>', { noremap = true, silent = true })
+
+local function mygg(args)
+    vim.api.nvim_feedkeys(args .. "gg", "n", true)
+    vim.api.nvim_feedkeys("^", "n", true)
+end
+vim.keymap.set('n', 'gg', function()
+    mygg(vim.v.count)
+end, { silent = true, noremap = true })
+
+local function myG()
+    vim.api.nvim_feedkeys("G", "n", true)
+    vim.api.nvim_feedkeys("$", "n", true)
+end
+vim.keymap.set('v', 'G', function()
+    myG()
+end, { silent = true, noremap = true })
+

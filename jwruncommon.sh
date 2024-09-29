@@ -84,3 +84,4 @@ sshpass -p 9213 scp $jwoutput/log.txt maojingwei@10.20.14.42:$dst" >>$jwoutput/l
 fi
 
 echo "shell exit"
+

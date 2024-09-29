@@ -2,12 +2,10 @@ mkdir -p ~/111mjw_tmp_jwm
 alias rm='DIR=~/111mjw_tmp_jwm/trash/`date +%F%T`;mkdir -p $DIR;mv -t $DIR'
 
 export jwCondaBin=~/111mjw_tmp_jwm/anaconda3/bin
-export jwPlatform="local"
-export jwHomePath=~/project
 
 if [ -d /content/drive/MyDrive/maojingwei ]; then
     rm /usr/local/bin/jw* /usr/local/bin/ngrok
-    jwHomePath=/content/drive/MyDrive/maojingwei/project
+    export HOME=/content/drive/MyDrive/maojingwei
     jwCondaBin="none"
     jwPlatform="Colab"
     mkdir -p /root/.ssh
@@ -15,22 +13,26 @@ if [ -d /content/drive/MyDrive/maojingwei ]; then
     ssh-keyscan -t rsa github.com >>/root/.ssh/known_hosts
 
 elif [ -d /mntcephfs/lab_data/maojingwei ]; then
+    export HOME=/mntcephfs/lab_data/maojingwei
     export jwCondaBin=/cm/shared/apps/anaconda3/bin
-
-    export jwHomePath="/mntcephfs/lab_data/maojingwei/project"
     alias jwshow="scontrol show"
     export jwPlatform="sribdGC"
 
 elif [ -d /mnt/data/project ]; then
-    export jwHomePath=/mnt/data/project
+    export HOME=/mnt/data/maojingwei
     export jwPlatform="cmhk"
+
 elif [ -d /home/jht/sribd/maojingwei ]; then
-    export jwHomePath=/home/jht/sribd/maojingwei/project
+    export HOME=/home/jht/sribd/maojingwei
     export jwPlatform="jtc"
+#    export jwCondaBin=$(which conda)/..
+    export jwCondaBin=/opt/soft/anacondas/bin
 else
-    echo "pass"
+    export HOME=/home/maojngwei
+    export jwPlatform="local"
 fi
 
+export jwHomePath=~/project
 
 if [ -d $jwHomePath/common_tools/.vscode ]; then 
     rm $jwHomePath/.vscode
@@ -91,3 +93,4 @@ cd $jwHomePath
 ps aux --sort=-rss | head
 
 # 在colab上直接编辑文件，输入以上内容似乎不能正常运行。可能和colab编辑器采用的换行符不对有关。在本地编辑好再上传是ok的
+
