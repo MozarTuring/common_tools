@@ -7,20 +7,21 @@ endfunction
 nmap cls :call Clswap()<cr>
 
 
-function! Yankpath()
-    let tmp_path = ""
-    if g:NERDTree.IsOpen()
-        let n = g:NERDTreeFileNode.GetSelected()
-        if n != {}
-            let tmp_path = n.path.str()
-            echo tmp_path
-        endif
-    else
-        let tmp_path = GetAbsPath("b")
-    endif
-    call setreg('""', tmp_path)
-endfunction
-nmap yp :call Yankpath()<cr>
+"function! Yankpath()
+"    let tmp_path = ""
+"    if g:NERDTree.IsOpen()
+"        let n = g:NERDTreeFileNode.GetSelected()
+"        if n != {}
+"            let tmp_path = n.path.str()
+"            echo tmp_path
+"        endif
+"    else
+"        let tmp_path = GetAbsPath("b")
+"    endif
+"    echo 'h'
+"    call setreg('"*', tmp_path)
+"endfunction
+"nmap yp :call Yankpath()<cr>
 
 
 func! Comment() range
@@ -86,6 +87,7 @@ func! Comment() range
         exec ele
     endfor
     exec "noh"
+    redraw
 endfunc
 vnoremap <silent> # :call Comment()<CR>
 nmap <silent> # :call Comment()<CR>
@@ -311,18 +313,6 @@ nmap ;p :call PasteToNewLine()<cr>
 
 
 
-func! MyWriteFile()
-    exec "w"
-    let [abs_path, abs_dir, cur_name, abs_path_split] = GetAbsPath("a")
-    if abs_dir == "/home/maojingwei/project/common_tools_for_centos"
-        exec "!sshpass -p 9213fCOW scp ". abs_path " maojingwei@10.20.14.43:". abs_path
-        exec "!sshpass -p 9213 scp ". abs_path " maojingwei@120.79.52.236:". abs_path
-    elseif abs_dir == "/home/maojingwei/project/attendance_backend"
-        exec "!sshpass -p 9213 scp ". abs_path " maojingwei@120.79.52.236:". abs_path
-    endif
-endfunc
-
-
 func! MyRefreshFile()
     exec "e"
     exec "normal G"
@@ -353,7 +343,6 @@ function! MyTabLine()
     endfor
     return s
 endfunction
-
 "set tabline=%!MyTabLine()
 
 func! CheckMyProcess()
@@ -362,16 +351,14 @@ endfunc
 nmap ck :call CheckMyProcess()<cr>
 
 
-
-nmap gr :!grep -n
+"nmap gr :!grep -n
 nmap ,f :NERDTreeFind<CR>
 
-nmap ;d :call ClearFile()<cr>
-nmap ;q :q<cr>
-nmap ;a :qall<cr>
+"nmap ;d :call ClearFile()<cr>
+nmap ;q :wq<cr>
+nmap ;a :wqall<cr>
 " 这会导致;q 的响应变慢，需要等待一会儿以确定确实是;q而不是;qall
-nmap ;w :call MyWriteFile()<cr>
-nmap <space> :call MyRefreshFile()<cr>
+nmap ;e :call MyRefreshFile()<cr>
 nmap <2-LeftMouse> :call CompileRunGcc('r')<cr>
 nmap ;s :source /home/maojingwei/project/common_tools_for_centos/vimrc<cr>
 "noremap ;s <c-w>w hard to remap, just need to practice your fingure get used to this key combination
@@ -417,8 +404,6 @@ else
     set clipboard=unnamed
 endif
 
-set mouse=a
-"set mouse=
 
 
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
@@ -477,4 +462,5 @@ let g:clipboard = {
 "
 "" 映射快捷键
 "nnoremap <leader>ff :call MyCustomFinder()<CR>
+let g:jedi#show_call_signatures = "0"
 

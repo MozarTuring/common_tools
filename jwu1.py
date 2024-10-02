@@ -9,6 +9,7 @@ import logging
 import sys
 import inspect
 
+jwp = print
 
 
 # import logging
@@ -19,20 +20,21 @@ import inspect
 # 这种设置会导致其它所有使用了logging的地方都变成这里设定的格式，而不只是使用 jwp 的地方
 
 
-jwPlatform = os.getenv("jwPlatform")
-logger = logging.getLogger("my_logger")
-logger.setLevel(logging.INFO)
+#jwPlatform = os.getenv("jwPlatform")
+#logger = logging.getLogger("my_logger")
+#logger.setLevel(logging.INFO)
+#
+#console_handler = logging.StreamHandler(sys.stdout)
+#console_handler.setLevel(logging.INFO)
+#logger.addHandler(console_handler)
+#
+#jwp=logger.info
+#
+#jw_cur_dir = os.getenv("jw_cur_dir")
+#cur_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+#jwoutput_base = os.path.join(jw_cur_dir, f"jwo{jwPlatform}/{cur_time}")
 
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-logger.addHandler(console_handler)
-
-jwp=logger.info
-
-jw_cur_dir = os.getenv("jw_cur_dir")
-cur_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-jwoutput_base = os.path.join(jw_cur_dir, f"jwo{jwPlatform}/{cur_time}")
- 
+""" 
 def jwcl(inp_dir=None):
     # stack = inspect.stack()
     # print(stack[1].filename)
@@ -63,7 +65,26 @@ def jwcl(inp_dir=None):
     logger.addHandler(console_handler)
     jwp("start")
     return jwoutput
+"""
 
+def jwcopy_file_content(src_file_path, dest_file_path, th=50):
+    cur_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    with open(src_file_path, 'a') as wf:
+        wf.write(f'\n[OUTEND@{cur_time}]')
+
+    with open(src_file_path, 'r') as src_file:
+        lines = src_file.readlines()
+        line_count = len(lines)
+
+    with open(dest_file_path, 'a') as dest_file:
+        out = ['\n']
+        if line_count < th:
+            out.extend(lines)
+            os.remove(src_file_path)
+        else:
+            out.append(src_file_path)#+f'  [OUTEND@{cur_time}]')
+        out.append('\n')
+        dest_file.writelines(out)
 
 
 week_day_ch = ["一", "二", "三", "四", "五", "六", "日"]
@@ -85,7 +106,7 @@ def except_wrapper(inp_func):
     @wraps(inp_func)
     def decorated(*args, **kwargs):
         try:
-            inp_func(*args, **kwargs)
+            return inp_func(*args, **kwargs)
         except:
             jwp(traceback.format_exc())
     return decorated

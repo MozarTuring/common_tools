@@ -18,7 +18,7 @@ elif [ -d /mntcephfs/lab_data/maojingwei ]; then
     alias jwshow="scontrol show"
     export jwPlatform="sribdGC"
 
-elif [ -d /mnt/data/project ]; then
+elif [ -d /mnt/data/maojingwei/project ]; then
     export HOME=/mnt/data/maojingwei
     export jwPlatform="cmhk"
 
@@ -28,7 +28,7 @@ elif [ -d /home/jht/sribd/maojingwei ]; then
 #    export jwCondaBin=$(which conda)/..
     export jwCondaBin=/opt/soft/anacondas/bin
 else
-    export HOME=/home/maojngwei
+    export HOME=/home/maojingwei
     export jwPlatform="local"
 fi
 
@@ -84,6 +84,7 @@ ln -s $jwrun ~/111mjw_tmp_jwm/jwbin/jwrun
 ln -s $jwkill ~/111mjw_tmp_jwm/jwbin/jwkill
 ln -s $jwruncpu ~/111mjw_tmp_jwm/jwbin/jwruncpu
 ln -s $jwclone ~/111mjw_tmp_jwm/jwbin/jwclone
+ln -s ${jwCondaBin}/conda ~/111mjw_tmp_jwm/jwbin/conda
 set +x
 
  

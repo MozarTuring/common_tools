@@ -18,19 +18,25 @@ if [ ! -d "condaenv" ]; then
         echo "create condaenv"
         ${jwCondaBin}/conda create -y -p condaenv python=$1
         source ${jwCondaBin}/activate ./condaenv
+#        conda create -y -p condaenv python=$1
+#        conda activate ./condaenv
         pip config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple
         rm condaenv.tar.gz
         pip install conda-pack
         pip install pynvim
         pip install jedi
         conda pack -p ./condaenv
+        echo "condaenv created and exit"
         exit
     fi
 fi
+
 if [ -f ./condaenv/bin/activate ]; then
     source ./condaenv/bin/activate
 else
     source ${jwCondaBin}/activate ./condaenv
+#    conda init
+#    conda activate ./condaenv
 fi
 #    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 pip config set global.index-url https://pypi.mirrors.ustc.edu.cn/simple
