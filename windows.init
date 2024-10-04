@@ -1,0 +1,2 @@
+mklink C:\Users\Mozar\AppData\Local\nvim\init.lua C:\Users\Mozar\BaiduSyncdisk\project\common_tools\init_nvim.lua
+mklink /D C:\Users\Mozar\BaiduSyncdisk\project\.vscode C:\Users\Mozar\BaiduSyncdisk\project\common_tools\.vscode

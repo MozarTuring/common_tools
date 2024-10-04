@@ -22,42 +22,45 @@ move_cursor_to(inp, inp_command){
         MsgBox "not exists"
         return
     }
-    Sleep(2000)
-    WinActivate cur_title
+    ; Sleep(2000)
+    ; WinActivate cur_title
     ; Sleep(1000)
     ; MsgBox xpos " " ypos
     ; MouseMove xpos, ypos
     
 }
 
-^j::
-{
-    ; A_Clipboard := ""  ; 先让剪贴板为空, 这样可以使用 ClipWait 检测文本什么时候被复制到剪贴板中.
-    ; Send "^c"
-    ; ClipWait
-    if WinActive("ahk_class TFormDetachedTab")
-    { 
-        move_cursor_to("ahk_class TMobaXtermForm", "+{Insert}")      
-    }
+; ^j::
+; {
+;     ; A_Clipboard := ""  ; 先让剪贴板为空, 这样可以使用 ClipWait 检测文本什么时候被复制到剪贴板中.
+;     ; Send "^c"
+;     ; ClipWait
+;     if WinActive("ahk_class TFormDetachedTab")
+;     { 
+;         move_cursor_to("ahk_class TMobaXtermForm", "+{Insert}")      
+;     }
     
-}
+; }
 
 
-^o::
+!o::
 {
     cur_title := WinGetTitle("A")
     if InStr(cur_title, "NVIM")
     {
-        tmp_pos := InStr(cur_title, '(')
-        filename := SubStr(cur_title, 1, tmp_pos-1)
-        tmp_pos2 := InStr(cur_title, ')')
-        filedir := SubStr(cur_title, tmp_pos+1, tmp_pos2-tmp_pos-1)
-        aa := StrSplit(filedir, '\', '')
-        new_path := "~/" aa[2] "/" aa[3] "/" filename
-        ; A_Clipboard := ""
-        ; Send "yp"
-        ; ClipWait
-        ; new_path := A_Clipboard
+        ; tmp_pos := InStr(cur_title, '(')
+        ; filename := SubStr(cur_title, 1, tmp_pos-1)
+        ; tmp_pos2 := InStr(cur_title, ')')
+        ; filedir := SubStr(cur_title, tmp_pos+1, tmp_pos2-tmp_pos-1)
+        ; aa := StrSplit(filedir, '\', '')
+        ; new_path := "~/" aa[2] "/" aa[3] "/" filename
+        A_Clipboard := ""
+        Send "yp"
+        ClipWait
+        tmp_path := A_Clipboard
+        aa := StrSplit(tmp_path, '\', '')
+        new_path := '~/' aa[5] '/' aa[6] '/' aa[7]
+        new_dir := '~/' aa[5] '/' aa[6]
         A_Clipboard := ""
         Send "sy"
         ClipWait
@@ -69,15 +72,37 @@ move_cursor_to(inp, inp_command){
         start_line := lines_sp[1]
         line_num := lines_sp[2]
         tmp_command := []
+        ; tmp_command.Push(":{!}mkdir -p " new_dir)
+        tmp_command.Push(":lua createDir('" new_dir "')")
+        tmp_command.Push("{Enter} ")
         tmp_command.Push(":Jwtabnew " new_path)
-        ; tmp_command.Push("{Enter}")
-        ; tmp_command.Push(':lua goto_or_add_line(' line_num '){Enter}O' )
-        ; tmp_command.Push("+{Insert}{Esc}")
-        ; if line_num == 0{
-        ;     tmp_command.Push(start_line "ggm")
-        ; }else{
-        ;     tmp_command.Push(start_line "ggv" line_num "jm")
-        ; }
+        tmp_command.Push("{Enter} ")
+        tmp_command.Push(':lua goto_or_add_line(' start_line '){Enter}O' )
+        A_Clipboard := SubStr(tmp_content, tmp_pos+2)
+        tmp_command.Push("+{Insert}{Esc}")
+        if line_num == 0{
+            tmp_command.Push(start_line "ggm")
+        }else{
+            tmp_command.Push(start_line "ggv" line_num "jm")
+        }
         move_cursor_to("ahk_class TMobaXtermForm", tmp_command)
     }
+}
+
+
+
+
+
+
+!j::
+{
+    cur_title := WinGetTitle("A")
+    if InStr(cur_title, "NVIM")
+    {
+        move_cursor_to("ahk_class TMobaXtermForm", [])
+    }
+    if InStr(cur_title, "10.20.14.42")
+        {
+            move_cursor_to("NVIM", [])
+        }
 }
