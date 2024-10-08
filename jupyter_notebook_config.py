@@ -9,4 +9,5 @@ c.NotebookApp.allow_remote_access = True
 # 设置工作目录
 #c.NotebookApp.notebook_dir = '/path/to/your/notebooks'
 # 设置密码
+c.NotebookApp.allow_password_change = False
 c.NotebookApp.password = u'

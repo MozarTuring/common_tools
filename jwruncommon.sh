@@ -1,5 +1,5 @@
 if [ "$#" -eq 0 ]; then
-    echo "error"
+    echo "not enough args"
     exit
 fi
 
@@ -28,7 +28,9 @@ if [ -f $scriptPath ]; then
 elif [ -d $scriptPath ]; then
     echo "launch python"
     source $jw_cur_dir/jwmaoR.sh
-    cd $jw_cur_dir
+    cd $jwHomePath
+#    cd $jw_cur_dir
+    pwd
     nvim .
     exit
 else

@@ -6,9 +6,9 @@ is_win = isWindows()
 
 
 if is_win then
-    jwHomePath = 'C:/Users/Mozar/BaiduSyncdisk'
+    jwHomePath = 'C:/Users/Mozar/BaiduSyncdisk/project'
 else
-    jwHomePath = '~'
+    jwHomePath = os.getenv("jwHomePath")
 end
 
 local function directory_exists(dir_path)
@@ -25,14 +25,14 @@ local function file_exists(path)
     end
 end
 
-vim.cmd('set runtimepath^=' .. jwHomePath .. '/project/zzzresources/software/nvim/vim_pack')
-vim.cmd('set runtimepath+=' .. jwHomePath .. '/project/zzzresources/software/nvim/vim_pack/after')
+vim.cmd('set runtimepath^=' .. jwHomePath .. '/zzzresources/software/nvim/vim_pack')
+vim.cmd('set runtimepath+=' .. jwHomePath .. '/zzzresources/software/nvim/vim_pack/after')
 vim.cmd('let &packpath = &runtimepath')
 
 
 -- 基础设置
 
-vim.cmd[[
+vim.cmd [[
 set t_Co=256
 
 set nocompatible              " be iMproved, required
@@ -43,50 +43,41 @@ set ic
 set hlsearch
 set encoding=utf-8
 set fileencodings=utf-8,ucs-bom,GB2312,big5
+set fileformat=unix
 set cursorline
 set autoindent
 set smartindent
 set scrolloff=4
 set showmatch
-set nu
+set nonu
 
-let python_highlight_all=1
-au Filetype python set tabstop=4
-au Filetype python set softtabstop=4
-au Filetype python set shiftwidth=4
-au Filetype python set expandtab
-au Filetype python set fileformat=unix
-autocmd Filetype python set foldmethod=indent
-autocmd Filetype python set foldlevel=99
-
-syntax enable
+autocmd Filetype python set tabstop=4|set softtabstop=4|set shiftwidth=4|set expandtab|set nu|set foldmethod=indent|set foldlevel=99
 
 set background=light
-
 let NERDTreeShowHidden=1
+let python_highlight_all=1
 ]]
 
 
-local tmp_path = jwHomePath .. '/project/zzzresources/software/nvim/vim_pack/autoload/plug.vim'
-if not file_exists(tmp_path) then
+local tmp_path = jwHomePath .. '/zzzresources/software/nvim/vim_pack/autoload/plug.vim'
+tmp = file_exists(tmp_path) -- will be false if using ~ rather than abs
+if not tmp then
     vim.cmd('!curl -fLo ' .. tmp_path .. ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
 end
 
-local bundle_path = jwHomePath .. '/project/zzzresources/software/nvim/vim_pack/bundle'
+local bundle_path = jwHomePath .. '/zzzresources/software/nvim/vim_pack/bundle'
 vim.cmd('call plug#begin("' .. bundle_path .. '")')
 vim.cmd [[
 Plug 'https://github.com/pocco81/auto-save.nvim.git'
 Plug 'https://github.com/preservim/nerdtree.git'
+Plug 'Vigemus/iron.nvim'
+Plug 'https://github.com/davidhalter/jedi-vim.git'
+Plug 'https://github.com/tpope/vim-fugitive.git'
+Plug 'nvim-telescope/telescope.nvim'
+Plug 'nvim-lua/plenary.nvim'
+call plug#end()
 ]]
-if is_win then
-    vim.cmd [[
-        Plug 'Vigemus/iron.nvim'
-        Plug 'https://github.com/davidhalter/jedi-vim.git'
-        Plug 'https://github.com/tpope/vim-fugitive.git'
-        Plug 'nvim-telescope/telescope.nvim'
-        Plug 'nvim-lua/plenary.nvim'
-        call plug#end()
-]]
+
 
 
 -- 设置 Python 文件类型特定的缩进和格式化
@@ -163,7 +154,7 @@ iron.setup {
 local actions = require("telescope.actions")
 local action_state = require('telescope.actions.state')
 
-tmp_cwd = jwHomePath .. '/project'
+tmp_cwd = jwHomePath
 require('telescope').setup {
   defaults = {
 --    cwd = tmp_cwd,
@@ -209,7 +200,7 @@ vim.keymap.set('n', 'ff', builtin.find_files, { desc = 'Telescope find files' })
 vim.opt.termguicolors = true
 
 
-vim.cmd('source ' .. jwHomePath .. '/project/common_tools/init_nvim.vim')
+vim.cmd('source ' .. jwHomePath .. '/common_tools/init_nvim.vim')
 
 local function setup_auto_refresh(file_path)
 -- Create an augroup to contain the autocommands
@@ -327,10 +318,14 @@ local function get_log_path()
     local tmp_path = tmp_dir .. '/log.txt'
 
     tmp_count = 1
-    tmp_path2 = _G.tmp_dir2 .. '/' .. tmp_count .. '.txt'
-    while file_exists(tmp_path2) do
-        tmp_count = tmp_count + 1
+    if _G.tmp_dir2 ~= nil then
         tmp_path2 = _G.tmp_dir2 .. '/' .. tmp_count .. '.txt'
+        while file_exists(tmp_path2) do
+            tmp_count = tmp_count + 1
+            tmp_path2 = _G.tmp_dir2 .. '/' .. tmp_count .. '.txt'
+        end
+    else
+        tmp_path2 = nil
     end
     
     return tmp_path, tmp_path2, tmp[1], tmp_dir
@@ -455,13 +450,14 @@ local function jw_restart()
     local cur_name = tmp[3]
     local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") .. '/' .. cur_name
     local tmp_path = tmp_dir .. '/log.txt'
-    clear_file(tmp_path)
+--    clear_file(tmp_path)
     _G.jwsession = tmp[1]
     _G.tmp_dir2 = tmp_dir .. '/log' .. current_time
     jw_mkdir(_G.tmp_dir2)
     if not directory_exists(tmp_dir) then
         jw_mkdir(tmp_dir)
     end
+    return current_time
 end
 
 local jw_send = function(inp_send, inp_line)
@@ -476,11 +472,14 @@ local jw_send = function(inp_send, inp_line)
     local err = ''
     local ou = ''
     local tmp_copy = ''
+    session_start = "\n" -- because most cases execute this
     if _G.jwsession == nil then
-        jw_restart()
+        tmp_time = jw_restart()
+        session_start = "\n************ " .. tmp_time .. " ************\n"
         tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
     elseif _G.jwsession ~= tmp[1] then
-        jw_restart()
+        tmp_time = jw_restart()
+        session_start = "\n************ " .. tmp_time .. " ************\n"
         tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
         iron.repl_restart()
     else
@@ -489,7 +488,6 @@ local jw_send = function(inp_send, inp_line)
         ou = 'sys.stdout = open("' .. tmp_path2 .. '", "w") \n'
         tmp_copy = '\n\nsys.stdout.close()\nsys.stderr.close()\njwcopy_file_content("' .. tmp_path2 .. '", "' .. tmp_path .. '")\n'
     end
-    session_start = "\n"
     
     local new_send = err .. ou .. inp_send .. tmp_copy
     jw_append(session_start .. '\n' .. inp_send .. '  [INPEND]\n', tmp_path)
@@ -536,7 +534,7 @@ function Jw_send_v()
 end
 
 function jw_iron_restart()
-    jw_restart()
+    _G.jwsession = nil
     iron.repl_restart()
 end
 
@@ -581,14 +579,16 @@ function myWriteFile()
 --    end
     local file_path = vim.fn.expand('%:p')  -- Gets the full path of the current file
     -- Check the directory and execute specific shell commands
+    vim.cmd('silent w')
     if is_in_inp_dir(file_path, "/home/maojingwei/project/common_tools") then
         vim.cmd('silent w')
         -- Execute the command using jwclone
-        tmp = "jwclone " .. file_path .. " 42"
-        vim.cmd('!' .. tmp)
+--        tmp = "jwclone " .. file_path .. " 42"
+--        vim.cmd('!' .. tmp)
 --        os.execute("jwclone " .. file_path .. " 42")
     end
 end
+
 function OpenOrSwitchToFile(filename)
     local bfound = false
     -- Check all windows to see if the file is already open
@@ -654,6 +654,8 @@ function copy_visual_lines()
 
     -- Copy the text to the unnamed register
     vim.fn.setreg('*', start_line .. ',' .. tmp_num .. "|" .. text, "c")
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+    vim.api.nvim_feedkeys(end_line .. 'ggj', 'n', true) 
 end
 
 function copy_normal_lines()
@@ -665,6 +667,7 @@ function copy_normal_lines()
 
     -- Copy the text to the unnamed register
     vim.fn.setreg('*', start_line .. ',' .. 0 .. "|" .. text, "c")
+    vim.api.nvim_feedkeys('j', 'n', true) 
 end
 
 
@@ -711,11 +714,16 @@ end
 
 function Clswap()
     -- 执行 shell 命令来删除交换文件
-    vim.cmd("!rm " .. jwHomePath .. "/.local/state/nvim/swap/*")
+    vim.cmd("!rm " .. jwHomePath .. "/../.local/state/nvim/swap/*")
 end
 
 vim.cmd('let NERDTreeChDirMode=2')
 
+vim.api.nvim_set_keymap('n', 's', '<Nop>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', 't', '<Nop>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<c-o>', '<Nop>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<space>', '<Nop>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', '<M-o>', '<Nop>', {noremap = true, silent = true})
 
 --keymaps
 vim.api.nvim_set_keymap('n', ',f', ':NERDTreeFind<CR>', { noremap = true })
@@ -746,23 +754,19 @@ vim.api.nvim_set_keymap('n', 'cls', ':lua Clswap()<CR>', { noremap = true })
 
 
 vim.api.nvim_set_keymap('n', 'fl', '<cmd>lua OpenLog()<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', 'm', ":lua Jw_send_l()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<space>', ":lua Jw_send_l()<CR>", { noremap = true, silent = true })
 
 --vim.api.nvim_set_keymap('v', '<space>ll', '<cmd>lua Jwsend()<CR>', { noremap = true, silent = true})
-vim.api.nvim_set_keymap('v', 'm', ":lua Jw_send_v()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('v', '<space>', ":lua Jw_send_v()<CR>", { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap('n', '<space>rr', '<cmd>lua jw_iron_restart()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', 'tt', '<cmd>lua jw_iron_restart()<CR>', { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap('n', 'yp', '<cmd>lua CopyFilePathToClipboard()<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', 'cp', '<cmd>lua CopyFilePathToClipboard()<CR>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('v', 'cp', '<cmd>lua CopyFilePathToClipboard()<CR>', {noremap = true, silent = true})
 vim.api.nvim_set_keymap('n', ';w', '<cmd>lua myWriteFile()<CR>', {noremap = true, silent = true})
 
-vim.api.nvim_set_keymap('n', 's', '<Nop>', {noremap = true, silent = true})
-vim.api.nvim_set_keymap('n', '<c-o>', '<Nop>', {noremap = true, silent = true})
-vim.api.nvim_set_keymap('n', '<space>', '<Nop>', {noremap = true, silent = true})
-vim.api.nvim_set_keymap('n', '<M-o>', '<Nop>', {noremap = true, silent = true})
 
 
 vim.api.nvim_set_keymap('v', 'sy', ':lua copy_visual_lines()<CR>', {noremap = true, silent = true}) -- here <cmd> not work in windows
 
 vim.api.nvim_set_keymap('n', 'sy', ':lua copy_normal_lines()<CR>', {noremap = true, silent = true})
-

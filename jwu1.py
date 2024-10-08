@@ -147,3 +147,4 @@ def start_mp(targets, args_ls):
     for ele in p_list:
         ele.join() ## 不加这个 按 ctrl c 杀不死
 
+jwHomePath = os.getenv('jwHomePath')
