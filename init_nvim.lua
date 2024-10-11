@@ -51,12 +51,15 @@ set scrolloff=4
 set showmatch
 set nonu
 
-autocmd Filetype python set tabstop=4|set softtabstop=4|set shiftwidth=4|set expandtab|set nu|set foldmethod=indent|set foldlevel=99
+autocmd Filetype * set tabstop=4|set softtabstop=4|set shiftwidth=4|set expandtab|set nu|set foldmethod=indent|set foldlevel=99
 
 set background=light
 let NERDTreeShowHidden=1
 let python_highlight_all=1
 ]]
+
+--vim.opt.mouse = 'a'
+vim.opt.mouse = ''
 
 
 local tmp_path = jwHomePath .. '/zzzresources/software/nvim/vim_pack/autoload/plug.vim'
@@ -154,6 +157,9 @@ iron.setup {
 local actions = require("telescope.actions")
 local action_state = require('telescope.actions.state')
 
+
+
+
 tmp_cwd = jwHomePath
 require('telescope').setup {
   defaults = {
@@ -165,17 +171,12 @@ require('telescope').setup {
 	    i = {
         ["<esc>"] = actions.close,
         ["<CR>"] = function(prompt_bufnr)
-                    -- Get the current selection's file path
                     local selection = action_state.get_selected_entry(prompt_bufnr)
-                    -- Close the Telescope picker
                     actions.close(prompt_bufnr)
-                    -- Open the file in a new tab
-                    if is_win then
-                        vim.cmd('tabnew ' .. selection.value)
-                    else
-                    vim.cmd('tabnew ' .. tmp_cwd .. '/' .. selection.value)
+                    local tmp_value = string.sub(selection.value, 3)
+                    local abs_path = vim.fn.expand(tmp_cwd .. '/' .. tmp_value)
+                    vim.cmd('Jwtabnew ' .. abs_path)
                     end
-                end
 	    },
     }
     },
@@ -222,25 +223,6 @@ end,
 })
 end
 
-local function retrieve_file_info(file_path)
-    local buf_nr = vim.fn.bufnr(file_path)
-    local win_nr = vim.fn.win_getpos(buf_nr)[1]
-    vim.api.nvim_set_current_win(win_nr)
-    local last_win_nr = vim.fn.tabpagewinnr(vim.api.nvim_get_current_tabpage(), "$")
-end
-
-local function start_periodic_retrieval(file_path, interval)
--- Create a timer
-local timer = vim.loop.new_timer()
-
--- Start the timer to retrieve file info periodically
-timer:start(interval, interval, vim.schedule_wrap(function()
-require("init").retrieve_file_info(file_path)
-end))
-
-return timer
-end
-
 local function read_source(source)
     if vim.fn.filereadable(source) == 1 then
         -- If the source is a file path, read its content
@@ -280,16 +262,9 @@ end
 
 
 local jw_mkdir = function(inp_dir)
-    local command = string.format("mkdir -p %s", inp_dir)
-
-    -- Execute the command
-    local success = os.execute(command)
-
-    -- Check if the command was executed successfully
-    if success == 0 then
---        print("Directory created successfully.")
-    else
---        print("Failed to create directory.")
+    if not directory_exists(inp_dir) then
+        local command = string.format("mkdir -p %s", inp_dir)
+        local success = os.execute(command)
     end
 end
 
@@ -307,29 +282,6 @@ local function find_window_for_file(file_path)
     return nil
 end
 
-
-local function get_log_path()
-    local tmp = vim.fn.GetAbsPath("a")
-    local abs_dir = tmp[2]
-    local cur_name = tmp[3]
-    local abs_path = abs_dir .. '/' .. cur_name
-    local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") .. '/' .. cur_name
-    
-    local tmp_path = tmp_dir .. '/log.txt'
-
-    tmp_count = 1
-    if _G.tmp_dir2 ~= nil then
-        tmp_path2 = _G.tmp_dir2 .. '/' .. tmp_count .. '.txt'
-        while file_exists(tmp_path2) do
-            tmp_count = tmp_count + 1
-            tmp_path2 = _G.tmp_dir2 .. '/' .. tmp_count .. '.txt'
-        end
-    else
-        tmp_path2 = nil
-    end
-    
-    return tmp_path, tmp_path2, tmp[1], tmp_dir
-end
 
 local function jw_center()
     vim.cmd('normal! zz') -- in the middle
@@ -349,19 +301,18 @@ local function get_last_lines()
     vim.api.nvim_buf_set_lines(0, last_line_number, -1, false, new_lines)
 end
 
-local function open_cur(inp)
+local function open_cur()
     local current_line = vim.api.nvim_get_current_line()
     local filename = current_line:match "^%s*(.-)%s*$" -- 去除前后空格
 
     if filename ~= nil and vim.loop.fs_stat(filename) then
-        vim.cmd('botright split ' .. filename)
-    else
-        vim.api.nvim_set_current_win(inp)
+        vim.cmd('tabnew ' .. filename)
+        return 'open'
     end
 end
 
 
-local function RefreshFile(buffer_name, current_win_nr)
+local function RefreshFile(buffer_name)
     local bufnr = vim.fn.bufnr(buffer_name)
 
     -- Check if the buffer exists and is loaded
@@ -369,40 +320,15 @@ local function RefreshFile(buffer_name, current_win_nr)
         -- Execute checktime for the specific buffer
         vim.api.nvim_buf_call(bufnr, function()
             vim.cmd('checktime')
+--            local last_line_number = vim.api.nvim_buf_line_count(0)
+--            vim.api.nvim_win_set_cursor(0, {last_line_number, 0})
+--            jw_center()
         end)
     else
 --        print("refresh error")
     end
 --    vim.api.nvim_set_current_win(current_win_nr)
 end
-
--- Create a timer to refresh the file every 30 seconds
-local timer = vim.loop.new_timer()
-
-
-function OpenLog()
-    local tmp_path = get_log_path()
-    local current_win_nr = vim.api.nvim_get_current_win()
-    tmp_win = find_window_for_file(tmp_path)
-    if tmp_win == nil then
-        vim.cmd("botright split " .. tmp_path)
-        tmp_win = vim.api.nvim_get_current_win() -- if local tmp_win, it will be unknown outside if
-    end
-    vim.api.nvim_set_current_win(tmp_win)
-    vim.cmd("edit")
-    local last_line_number = vim.api.nvim_buf_line_count(0)
-    vim.api.nvim_win_set_cursor(0, {last_line_number, 0})
-    jw_center()
-    if _G.jwtimer == nil then
-        timer:start(1000, 1000, vim.schedule_wrap(function()
-                RefreshFile(tmp_path, current_win_nr)
-            end))
-        _G.jwtimer = "set"
-    end
-    open_cur(current_win_nr)
-end
-
-
 
 
 local jwread = function(source_file_path, destination_file_path)
@@ -442,23 +368,81 @@ end
 --    os.remove(inp)
 --end
 
-
-local function jw_restart()
+local function get_log_path(inp)
     local current_time = os.date("%Y%m%d_%H%M%S")
     local tmp = vim.fn.GetAbsPath("a")
     local abs_dir = tmp[2]
     local cur_name = tmp[3]
-    local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") .. '/' .. cur_name
-    local tmp_path = tmp_dir .. '/log.txt'
---    clear_file(tmp_path)
-    _G.jwsession = tmp[1]
-    _G.tmp_dir2 = tmp_dir .. '/log' .. current_time
-    jw_mkdir(_G.tmp_dir2)
-    if not directory_exists(tmp_dir) then
-        jw_mkdir(tmp_dir)
+--    local abs_path = abs_dir .. '/' .. cur_name
+    tmp_dir = abs_dir .. '/jwoutput/' .. cur_name .. '/logs'
+    
+    tmp_count = 1
+    if _G.tmp_dir2 ~= nil then
+        tmp_path2 = _G.tmp_dir2 .. '/' .. tmp_count .. '.txt'
+        while file_exists(tmp_path2) do
+            tmp_count = tmp_count + 1
+            tmp_path2 = _G.tmp_dir2 .. '/' .. tmp_count .. '.txt'
+        end
+    else
+        tmp_path2 = nil
     end
-    return current_time
+
+    if inp == 'restart' then
+        _G.jwsession = tmp[1]
+        _G.tmp_dir2 = tmp_dir .. '/' .. current_time
+        jw_mkdir(_G.tmp_dir2)
+        jw_mkdir(tmp_dir)
+        return current_time
+    end
+    
+    local tmp_path = tmp_dir .. '/log.txt'
+    return tmp_path, tmp_path2, tmp[1], tmp_dir
 end
+
+local timer = vim.loop.new_timer()
+function OpenLog()
+    tmp=open_cur()
+    if tmp == 'open' then
+        return
+    end
+    local tmp_path = get_log_path()
+    local current_win_nr = vim.api.nvim_get_current_win()
+    tmp_win = find_window_for_file(tmp_path)
+    if tmp_win == nil then
+        vim.cmd("botright 32split " .. tmp_path)
+        tmp_win = vim.api.nvim_get_current_win() -- if local tmp_win, it will be unknown outside if
+    end
+    vim.api.nvim_set_current_win(tmp_win)
+    vim.cmd("edit")
+    local last_line_number = vim.api.nvim_buf_line_count(0)
+    vim.api.nvim_win_set_cursor(0, {last_line_number, 0})
+    jw_center()
+    if _G.jwtimer ~= tmp_path then
+        timer:start(1000, 1000, vim.schedule_wrap(function()
+                RefreshFile(tmp_path)
+            end))
+        _G.jwtimer = tmp_path
+    end
+    open_cur()
+end
+
+
+
+
+--local function jw_restart()
+--    local current_time = os.date("%Y%m%d_%H%M%S")
+--    local tmp = vim.fn.GetAbsPath("a")
+--    local abs_dir = tmp[2]
+--    local cur_name = tmp[3]
+--    local tmp_dir = abs_dir .. "/jwo" ..  os.getenv("jwPlatform") .. '/' .. cur_name
+--    local tmp_path = tmp_dir .. '/log.txt'
+----    clear_file(tmp_path)
+--    _G.jwsession = tmp[1]
+--    _G.tmp_dir2 = tmp_dir .. '/logs/' .. current_time
+--    jw_mkdir(_G.tmp_dir2)
+--    jw_mkdir(tmp_dir)
+--    return current_time
+--end
 
 local jw_send = function(inp_send, inp_line)
 --    local today = os.date("%Y-%m-%d")
@@ -474,11 +458,12 @@ local jw_send = function(inp_send, inp_line)
     local tmp_copy = ''
     session_start = "\n" -- because most cases execute this
     if _G.jwsession == nil then
-        tmp_time = jw_restart()
+        tmp_time = get_log_path('restart')
         session_start = "\n************ " .. tmp_time .. " ************\n"
         tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
     elseif _G.jwsession ~= tmp[1] then
-        tmp_time = jw_restart()
+        tmp_time = get_log_path('restart')
+--        tmp_time = jw_restart()
         session_start = "\n************ " .. tmp_time .. " ************\n"
         tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
         iron.repl_restart()
@@ -555,8 +540,6 @@ vim.keymap.set('v', 'G', function()
     myG()
 end, { silent = true, noremap = true })
 
---vim.opt.mouse = 'a'
-vim.opt.mouse = ''
 
 function is_in_inp_dir(current_file, inp_dir)
 --  print(current_file, current_file:sub(1, #inp_dir), inp_dir)
@@ -596,7 +579,6 @@ function OpenOrSwitchToFile(filename)
         local buf = vim.api.nvim_win_get_buf(win)
         local buf_name = vim.api.nvim_buf_get_name(buf)
         if buf_name:find(filename) then
-            -- File is open, switch to the window
             vim.api.nvim_set_current_win(win)
             bfound = true
             break
@@ -604,7 +586,6 @@ function OpenOrSwitchToFile(filename)
     end
 
     if not bfound then
-        -- File is not open, open it in a new buffer
         vim.cmd('tabnew ' .. filename)
     end
 end
@@ -720,6 +701,9 @@ end
 vim.cmd('let NERDTreeChDirMode=2')
 
 vim.api.nvim_set_keymap('n', 's', '<Nop>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', 'e', '<Nop>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', 'cc', '<Nop>', {noremap = true, silent = true})
+vim.api.nvim_set_keymap('n', 'I', '<Nop>', {noremap = true, silent = true})
 vim.api.nvim_set_keymap('n', 't', '<Nop>', {noremap = true, silent = true})
 vim.api.nvim_set_keymap('n', '<c-o>', '<Nop>', {noremap = true, silent = true})
 vim.api.nvim_set_keymap('n', '<space>', '<Nop>', {noremap = true, silent = true})
@@ -754,12 +738,12 @@ vim.api.nvim_set_keymap('n', 'cls', ':lua Clswap()<CR>', { noremap = true })
 
 
 vim.api.nvim_set_keymap('n', 'fl', '<cmd>lua OpenLog()<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<space>', ":lua Jw_send_l()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', 'm', ":lua Jw_send_l()<CR>", { noremap = true, silent = true })
 
 --vim.api.nvim_set_keymap('v', '<space>ll', '<cmd>lua Jwsend()<CR>', { noremap = true, silent = true})
-vim.api.nvim_set_keymap('v', '<space>', ":lua Jw_send_v()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('v', 'm', ":lua Jw_send_v()<CR>", { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap('n', 'tt', '<cmd>lua jw_iron_restart()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', 'ee', '<cmd>lua jw_iron_restart()<CR>', { noremap = true, silent = true })
 
 vim.api.nvim_set_keymap('n', 'cp', '<cmd>lua CopyFilePathToClipboard()<CR>', {noremap = true, silent = true})
 vim.api.nvim_set_keymap('v', 'cp', '<cmd>lua CopyFilePathToClipboard()<CR>', {noremap = true, silent = true})
@@ -770,3 +754,11 @@ vim.api.nvim_set_keymap('n', ';w', '<cmd>lua myWriteFile()<CR>', {noremap = true
 vim.api.nvim_set_keymap('v', 'sy', ':lua copy_visual_lines()<CR>', {noremap = true, silent = true}) -- here <cmd> not work in windows
 
 vim.api.nvim_set_keymap('n', 'sy', ':lua copy_normal_lines()<CR>', {noremap = true, silent = true})
+
+
+
+if directory_exists('/home/jht/sribd/maojingwei') then
+    vim.cmd [[
+    set mouse=a
+    ]]
+end
