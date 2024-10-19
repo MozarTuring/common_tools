@@ -5,7 +5,7 @@ export jwCondaBin=~/111mjw_tmp_jwm/anaconda3/bin
 
 if [ -d /content/drive/MyDrive/maojingwei ]; then
     rm /usr/local/bin/jw* /usr/local/bin/ngrok
-    export HOME=/content/drive/MyDrive/maojingwei
+    export jwHomePath=/content/drive/MyDrive/maojingwei/project
     jwCondaBin="none"
     jwPlatform="Colab"
     mkdir -p /root/.ssh
@@ -13,39 +13,34 @@ if [ -d /content/drive/MyDrive/maojingwei ]; then
     ssh-keyscan -t rsa github.com >>/root/.ssh/known_hosts
 
 elif [ -d /mntcephfs/lab_data/maojingwei ]; then
-    export HOME=/mntcephfs/lab_data/maojingwei
+    export jwHomePath=/mntcephfs/lab_data/maojingwei/project
     export jwCondaBin=/cm/shared/apps/anaconda3/bin
     alias jwshow="scontrol show"
     export jwPlatform="sribdGC"
 
 elif [ -d /mnt/data/maojingwei/project ]; then
-    export HOME=/mnt/data/maojingwei
+    export jwHomePath=/mnt/data/maojingwei/project
     export jwPlatform="cmhk"
 
 elif [ -d /home/jht/sribd/maojingwei ]; then
-    export HOME=/home/jht/sribd/maojingwei
+    export jwHomePath=/home/jht/sribd/maojingwei/project
     export jwPlatform="jtc"
-#    export jwCondaBin=$(which conda)/..
+    #    export jwCondaBin=$(which conda)/..
     export jwCondaBin=/opt/soft/anacondas/bin
 else
-    export HOME=/home/maojingwei
+    export jwHomePath=/home/maojingwei/project
     export jwPlatform="local"
 fi
 
-export jwHomePath=~/project
-
-if [ -d $jwHomePath/common_tools/.vscode ]; then 
-    rm $jwHomePath/.vscode
-    ln -s $jwHomePath/common_tools/.vscode $jwHomePath/.vscode
-fi
+# if [ -d $jwHomePath/common_tools/.vscode ]; then
+#     rm $jwHomePath/.vscode
+#     ln -s $jwHomePath/common_tools/.vscode $jwHomePath/.vscode
+# fi
 
 export PATH="/usr/local/cuda/bin:/usr/local/MATLAB/R2022b/bin:~/111mjw_tmp_jwm/TensorRT-8.2.5.1/bin:$jwHomePath/zzzresources/software/nvim/bin/:~/111mjw_tmp_jwm/cmake/bin/:~/111mjw_tmp_jwm/jwbin:$PATH"
 # nvim in resources because it may add packages which should be saved
 export LD_LIBRARY_PATH="~/111mjw_tmp_jwm/TensorRT-8.2.5.1/lib:/usr/local/cuda-11.4/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
 export LD_INCLUDE_PATH="~/111mjw_tmp_jwm/TensorRT-8.2.5.1/include:$LD_INCLUDE_PATH"
-
-
-
 
 rm ~/.config/nvim
 
@@ -54,7 +49,6 @@ mkdir -p ~/.config/nvim/
 ln -s $jwHomePath/common_tools/init_nvim.lua ~/.config/nvim/init.lua
 
 ln -s $jwHomePath/common_tools/tmux.conf ~/.tmux.conf
-
 
 # jwBin=~/111mjw_tmp_jwm/jwbin
 # mkdir -p $jwBin this way will not treat ~ as the home dir
@@ -84,14 +78,11 @@ ln -s $jwrun ~/111mjw_tmp_jwm/jwbin/jwrun
 ln -s $jwkill ~/111mjw_tmp_jwm/jwbin/jwkill
 ln -s $jwruncpu ~/111mjw_tmp_jwm/jwbin/jwruncpu
 ln -s $jwclone ~/111mjw_tmp_jwm/jwbin/jwclone
-ln -s ${jwCondaBin}/conda ~/111mjw_tmp_jwm/jwbin/conda
+# ln -s ${jwCondaBin}/conda ~/111mjw_tmp_jwm/jwbin/conda
 set +x
-
- 
 
 cd $jwHomePath
 
 ps aux --sort=-rss | head
 
 # 在colab上直接编辑文件，输入以上内容似乎不能正常运行。可能和colab编辑器采用的换行符不对有关。在本地编辑好再上传是ok的
-

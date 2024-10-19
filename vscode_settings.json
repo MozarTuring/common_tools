@@ -145,4 +145,26 @@
     "latex-workshop.latex.autoClean.run": "onBuilt",
     "editor.fontSize": 14,
     "git.ignoreLimitWarning": true,
+    "vim.handleKeys": {
+        "<C-d>": true,
+        "<C-s>": false,
+        "<C-z>": false,
+        "<C-l>": false,
+        "<C-c>": false,
+        "<C-f>": false
+    },
+    "vim.normalModeKeyBindingsNonRecursive": [
+    {
+      "before": ["g", "y"],
+      "after": ["g", "t"]
+    },
+    {
+      "before": ["g", "t"],
+      "after": ["g", "T"]
+    },
+    {
+      "before": [";", "q"],
+      "after": [":", "q", "<CR>"]
+    }
+  ]
 }

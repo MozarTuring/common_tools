@@ -57,6 +57,7 @@ set background=light
 let NERDTreeShowHidden=1
 let python_highlight_all=1
 ]]
+-- vim.opt.termguicolors = true
 
 --vim.opt.mouse = 'a'
 vim.opt.mouse = ''
@@ -74,10 +75,10 @@ vim.cmd [[
 Plug 'https://github.com/pocco81/auto-save.nvim.git'
 Plug 'https://github.com/preservim/nerdtree.git'
 Plug 'Vigemus/iron.nvim'
-Plug 'https://github.com/davidhalter/jedi-vim.git'
-Plug 'https://github.com/tpope/vim-fugitive.git'
-Plug 'nvim-telescope/telescope.nvim'
-Plug 'nvim-lua/plenary.nvim'
+"Plug 'https://github.com/davidhalter/jedi-vim.git'
+"Plug 'https://github.com/tpope/vim-fugitive.git'
+"Plug 'nvim-telescope/telescope.nvim'
+"Plug 'nvim-lua/plenary.nvim'
 call plug#end()
 ]]
 
@@ -154,54 +155,46 @@ iron.setup {
   ignore_blank_lines = true, -- ignore blank lines when sending visual select lines
 }
 
-local actions = require("telescope.actions")
-local action_state = require('telescope.actions.state')
+-- local actions = require("telescope.actions")
+-- local action_state = require('telescope.actions.state')
 
-
-
-
-tmp_cwd = jwHomePath
-require('telescope').setup {
-  defaults = {
---    cwd = tmp_cwd,
---    hidden = true,
-    relative = true,
-    file_ignore_patterns = { '**/111mjw_tmp_jwm', '.git', '.hg', 'zzzresources' },  -- 忽略这些目录
-    mappings = {
-	    i = {
-        ["<esc>"] = actions.close,
-        ["<CR>"] = function(prompt_bufnr)
-                    local selection = action_state.get_selected_entry(prompt_bufnr)
-                    actions.close(prompt_bufnr)
-                    local tmp_value = string.sub(selection.value, 3)
-                    local abs_path = vim.fn.expand(tmp_cwd .. '/' .. tmp_value)
-                    vim.cmd('Jwtabnew ' .. abs_path)
-                    end
-	    },
-    }
-    },
-	pickers = {
-        find_files = {
-            cwd = tmp_cwd,
-            hidden = true, -- 显示隐藏文件
-            relative = true
-        },
-        buffers = {
-            relative = true
-        }
-    },
-}
-local builtin = require('telescope.builtin')
---vim.keymap.set('n', 'ff', '<cmd> lua require("telescope.builtin").find_files()<CR>', { desc = 'Telescope find files' })
-vim.keymap.set('n', 'ff', builtin.find_files, { desc = 'Telescope find files' })
---vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
---vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
---vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
-
-vim.opt.termguicolors = true
-
-
-vim.cmd('source ' .. jwHomePath .. '/common_tools/init_nvim.vim')
+-- tmp_cwd = jwHomePath
+-- require('telescope').setup {
+--   defaults = {
+-- --    cwd = tmp_cwd,
+-- --    hidden = true,
+--     relative = true,
+--     file_ignore_patterns = { '**/111mjw_tmp_jwm', '.git', '.hg', 'zzzresources' },  -- 忽略这些目录
+--     mappings = {
+-- 	    i = {
+--         ["<esc>"] = actions.close,
+--         ["<CR>"] = function(prompt_bufnr)
+--                     local selection = action_state.get_selected_entry(prompt_bufnr)
+--                     actions.close(prompt_bufnr)
+--                     local tmp_value = string.sub(selection.value, 3)
+--                     local abs_path = vim.fn.expand(tmp_cwd .. '/' .. tmp_value)
+--                     vim.cmd('Jwtabnew ' .. abs_path)
+--                     end
+-- 	    },
+--     }
+--     },
+-- 	pickers = {
+--         find_files = {
+--             cwd = tmp_cwd,
+--             hidden = true, -- 显示隐藏文件
+--             relative = true
+--         },
+--         buffers = {
+--             relative = true
+--         }
+--     },
+-- }
+-- local builtin = require('telescope.builtin')
+-- --vim.keymap.set('n', 'ff', '<cmd> lua require("telescope.builtin").find_files()<CR>', { desc = 'Telescope find files' })
+-- vim.keymap.set('n', 'ff', builtin.find_files, { desc = 'Telescope find files' })
+-- --vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
+-- --vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
+-- --vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
 
 local function setup_auto_refresh(file_path)
 -- Create an augroup to contain the autocommands
@@ -504,6 +497,8 @@ function Jw_send_l()
 
 --    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
 end
+
+
 function Jw_send_v()
 --    local mode_info = vim.api.nvim_get_mode()
 --    print("Current mode: " .. mode_info.mode)
@@ -667,23 +662,17 @@ function goto_or_add_line(line_num)
     vim.api.nvim_win_set_cursor(0, {line_num, 0}) -- Move cursor to the specified line
 end
 
-function CursorPosition()
-    local row, col = unpack(vim.api.nvim_win_get_cursor(0))
-    return "Line " .. row .. ":" .. "Col " .. col
-end
+-- function CursorPosition()
+--     local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+--     return "Line " .. row .. ":" .. "Col " .. col
+-- end
 --vim.opt.statusline = "%f %h%m%r%=%{v:lua.CursorPosition()} %l/%L %c"
 vim.opt.statusline = "%l/%L %f %h%m%r"
 vim.opt.endofline = true
 vim.o.clipboard = 'unnamedplus'
-vim.cmd('let g:jedi#show_call_signatures = "0"')
-vim.cmd('let g:jedi#use_tabs_not_buffers = 1')
-vim.cmd('let g:jedi#popup_on_dot = 0')
-
-function createDir(path)
-    if not directory_exists(path) then
-    os.execute("mkdir -p " .. path)
-end
-end
+-- vim.cmd('let g:jedi#show_call_signatures = "0"')
+-- vim.cmd('let g:jedi#use_tabs_not_buffers = 1')
+-- vim.cmd('let g:jedi#popup_on_dot = 0')
 
 function MyRefreshFile()
     -- 执行命令 "e"，通常用于编辑文件，但在这里可能只是刷新当前文件
@@ -757,8 +746,8 @@ vim.api.nvim_set_keymap('n', 'sy', ':lua copy_normal_lines()<CR>', {noremap = tr
 
 
 
-if directory_exists('/home/jht/sribd/maojingwei') then
-    vim.cmd [[
-    set mouse=a
-    ]]
-end
+
+
+
+
+vim.cmd('source ' .. jwHomePath .. '/common_tools/init_nvim.vim')

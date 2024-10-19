@@ -16,7 +16,7 @@ if [ ! -d "condaenv" ]; then
         exit
     else
         echo "create condaenv"
-        ${jwCondaBin}/conda create -y -p condaenv python=$1
+        ${jwCondaBin}/conda create -y -p ./condaenv python=$1
         source ${jwCondaBin}/activate ./condaenv
 #        conda create -y -p condaenv python=$1
 #        conda activate ./condaenv
@@ -47,4 +47,3 @@ echo "
 "
 
 cd $jw_cur_dir
-

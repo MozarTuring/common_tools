@@ -14,11 +14,11 @@ if test -d "$1"; then
     exit
 fi
 
-if [[ "$1" == "/home/maojingwei/project/vllm"* ]]; then
-    bash /home/maojingwei/project/common_tools/jwclone.sh $1 43
-elif [[ "$1" == "/home/maojingwei/project/common_tools"* ]]; then
-    bash /home/maojingwei/project/common_tools/jwclone.sh $1 43
-    bash /home/maojingwei/project/common_tools/jwclone.sh $1 42
+if [[ "$1" == *'project\vllm'* ]]; then
+    bash c:/Users/Mozar/BaiduSyncdisk/project/common_tools/jwclone.sh $1 43
+elif [[ "$1" == *'project\common_tools'* ]]; then
+    bash c:/Users/Mozar/BaiduSyncdisk/project/common_tools/jwclone.sh $1 43
+    bash c:/Users/Mozar/BaiduSyncdisk/project/common_tools/jwclone.sh $1 42
 fi
 
 # if [[ "$1" == *".py" ]]; then
