@@ -8,16 +8,14 @@ import traceback
 import logging
 import sys
 import inspect
-from common_tools.jwu2 import *
-
-jwp = print
 
 
-# import logging
-# logging.basicConfig(level=logging.INFO,
-#                     format='%(asctime)s - %(pathname)s\nLINE%(lineno)d - \n%(message)s\nMSG-END',
-#                     datefmt='%Y-%m-%d %H:%M:%S')
-# jwp = logging.info
+
+import logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(pathname)s\nLINE%(lineno)d - \n%(message)s\nMSG-END',
+                    datefmt='%Y-%m-%d %H:%M:%S')
+jwp = logging.info
 # 这种设置会导致其它所有使用了logging的地方都变成这里设定的格式，而不只是使用 jwp 的地方
 
 
@@ -130,3 +128,28 @@ def start_mp(targets, args_ls):
         ele.join() ## 不加这个 按 ctrl c 杀不死
 
 jwHomePath = os.getenv('jwHomePath')
+
+@except_wrapper
+def a2func1(inp_df):
+    cate_cols = list()
+    need_check = list()
+    single_dominant_value = list()
+    one_value = list()
+    object_not_used = list()
+    for ele in inp_df.columns:
+        tmp = inp_df[ele].value_counts(dropna=False, normalize=True)
+        jwp(tmp)
+        if len(tmp) == 1:
+            one_value.append(ele)
+        elif tmp.iloc[0] > 0.9:
+            single_dominant_value.append(ele)
+        elif len(tmp) < min(100, 0.01*len(inp_df)):
+            cate_cols.append(ele)
+        else:
+            try:
+                inp_df[ele].astype(float)
+                need_check.append(ele)
+            except:
+                object_not_used.append(ele)
+    jwp(f"cate_cols={cate_cols}\n\nneed_check={need_check}\n\nsingle_dominant_value={single_dominant_value}\n\none_value={one_value}\n\nobject_not_used={object_not_used}")
+    return cate_cols, need_check, single_dominant_value, one_value, object_not_used

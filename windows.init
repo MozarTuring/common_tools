@@ -2,4 +2,5 @@ mklink C:\Users\Mozar\AppData\Local\nvim\init.lua C:\Users\Mozar\BaiduSyncdisk\p
 
 mklink /D C:\Users\Mozar\BaiduSyncdisk\project\.vscode C:\Users\Mozar\BaiduSyncdisk\project\common_tools\.vscode
 
-mklink C:\Users\Mozar\AppData\Roaming\Code\User\settings.json C:\Users\Mozar\BaiduSyncdisk\project\common_tools\vscode_settings.json 
+mklink C:\Users\Mozar\AppData\Roaming\Code\User\settings.json C:\Users\Mozar\BaiduSyncdisk\project\common_tools\vscode\settings.json 
+mklink C:\Users\Mozar\AppData\Roaming\Code\User\keybindings.json C:\Users\Mozar\BaiduSyncdisk\project\common_tools\vscode\keybindings.json 

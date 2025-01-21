@@ -23,92 +23,40 @@
         "editor.formatOnType": true
     },
     "git.ignoreLegacyWarning": true,
-
-    "latex-workshop.latex.tools": [
-        {
-         "name": "latexmk",
-         "command": "latexmk",
-         "args": [
-          "-synctex=1",
-          "-interaction=nonstopmode",
-          "-file-line-error",
-          "-pdf",
-          "-outdir=%OUTDIR%",
-          "%DOC%"
-         ],
-         "env": {}
-        },
-        {
-         "name": "xelatex",
-         "command": "xelatex",
-         "args": [
-          "-synctex=1",
-          "-interaction=nonstopmode",
-          "-file-line-error",
-          "%DOC%"
-         ],
-         "env": {}
-        },
-        {
-         "name": "pdflatex",
-         "command": "pdflatex",
-         "args": [
-          "-synctex=1",
-          "-interaction=nonstopmode",
-          "-file-line-error",
-          "%DOC%"
-         ],
-         "env": {}
-        },
-        {
-         "name": "bibtex",
-         "command": "bibtex",
-         "args": [
-          "%DOCFILE%"
-         ],
-         "env": {}
-        }
-       ],
-    "latex-workshop.latex.recipes": [
-        {
-         "name": "pdfLaTeX",
-         "tools": [
-          "pdflatex"
-         ]
-        },
-        {
-         "name": "latexmk 🔃",
-         "tools": [
-          "latexmk"
-         ]
-        },
-        {
-         "name": "xelatex",
-         "tools": [
-          "xelatex"
-         ]
-        },
-        {
-         "name": "pdflatex ➞ bibtex ➞ pdflatex`×2",
-         "tools": [
-          "pdflatex",
-          "bibtex",
-          "pdflatex",
-          "pdflatex"
-         ]
-        },
-        {
-        "name": "xelatex ➞ bibtex ➞ xelatex`×2",
-        "tools": [
-          "xelatex",
-          "bibtex",
-          "xelatex",
-          "xelatex"
-         ]
-        }
-    ],
-    "vim.useSystemClipboard": true,
     "window.zoomLevel": 1,
+    "latex-workshop.latex.tools": [
+      {
+          "name": "pdflatex",
+          "command": "C:\\texlive\\2024\\bin\\windows\\pdflatex.exe",
+          "args": [
+              "-synctex=1",
+              "-interaction=nonstopmode",
+              "-file-line-error",
+              "%DOCFILE%"
+          ]
+      },
+      {
+          "name": "xelatex",
+          "command": "C:\\texlive\\2024\\bin\\windows\\xelatex.exe",
+          "args": [
+              "-synctex=1",
+              "-interaction=nonstopmode",
+              "-file-line-error",
+              "%DOCFILE%"
+          ]
+      }
+  ],
+  "latex-workshop.latex.recipes": [
+      {
+          "name": "xelatex",
+          "tools": [
+              "xelatex"
+          ]
+      }
+  ],
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.view.pdf.autoSync": true,
+  "latex-workshop.view.pdf.autoRefresh": true,
     "pasteImage.path": "${currentFileDir}/mdfigures",
     "files.watcherExclude": {
         "**/.git/objects/**": false,
@@ -116,15 +64,34 @@
         "**/.hg/store/**": false,
         "**/node_modules/*/**": false
     },
+    "latex-workshop.latex.clean.fileTypes": [
+    "*.aux",
+    "*.bbl",
+    "*.blg",
+    "*.idx",
+    "*.ind",
+    "*.lof",
+    "*.lot",
+    "*.out",
+    "*.toc",
+    "*.acn",
+    "*.acr",
+    "*.alg",
+    "*.glg",
+    "*.glo",
+    "*.gls",
+    "*.ist",
+    "*.fls",
+    "*.log",
+    "*.fdb_latexmk"
+],
+"latex-workshop.latex.autoClean.run": "onBuilt",
     "terminal.integrated.enableMultiLinePasteWarning": false,
     "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\cmd.exe",
     "breadcrumbs.enabled": false,
     "javascript.updateImportsOnFileMove.enabled": "never",
     "remote.SSH.configFile": "D:\\.ssh\\config",
     "git.untrackedChanges": "separate",
-    "workbench.editorAssociations": {
-        "*.pdf": "latex-workshop-pdf-hook"
-    },
     "spellright.language": [],
     "spellright.documentTypes": [
         "markdown",
@@ -141,8 +108,6 @@
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
     "editor.lineEnding": "lf",
-    "latex-workshop.view.pdf.viewer": "browser",
-    "latex-workshop.latex.autoClean.run": "onBuilt",
     "editor.fontSize": 14,
     "git.ignoreLimitWarning": true,
     "vim.handleKeys": {
@@ -151,8 +116,14 @@
         "<C-z>": false,
         "<C-l>": false,
         "<C-c>": false,
-        "<C-f>": false
+        "<C-f>": false,
+        "<C-p>": false,
+        "<C-a>": false,
+        "<C-x>": false,
+        "<C-v>": false,
+        "<C-b>": true
     },
+    "vim.useSystemClipboard": true,
     "vim.normalModeKeyBindingsNonRecursive": [
     {
       "before": ["g", "y"],
@@ -164,7 +135,11 @@
     },
     {
       "before": [";", "q"],
-      "after": [":", "q", "<CR>"]
+      "commands": [":q"]
+    },
+    {
+      "before": ["g", "j"],
+      "after": ["<CR>", "<LeftMouse>"]
     }
   ]
 }

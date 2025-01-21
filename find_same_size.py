@@ -26,54 +26,68 @@ def find_files_with_same_size(directory):
     size_to_files = defaultdict(list)
     
     # 遍历目录中的所有文件
+    to_remove=list()
     for root, dirs, files in os.walk(directory):
         print(root)
         tmp = len(dirs)+len(files)
         if tmp == 0:
             shutil.rmtree(root)
             print(f"{root} removed")
-        for filename in files:
-            filepath = os.path.join(root, filename)
-            if args.danger and filename.split(".")[-1] in ["html", "apk", "mht", "chm", "htm", "DS_Store", "url", "ini", "txt", "exe", "log", "js", "torrent"]:
-                # os.remove(filepath)
-                print(f"{filepath} removed")
-                continue
-            try:
-                # 获取文件大小
-                size = None
-                if filepath.split(".")[-1] in ["jpg", "png", "JPG", "pdf", "txt", "doc", "docx", "md", "ppt", "pptx"]:
-                    size = get_file_hash(filepath)
-                    # if filepath == r'F:\LenovoSoftstore\src\1 - 副本 (23)\1 - 副本 (23)\XNJPBO\BHDP.TUMBLR.COM (1).jpg':
-                    # if filepath == r'F:\LenovoSoftstore\src\XNJPBO\BHDP.TUMBLR.COM (1).jpg':
-                    #     print(size)
-                    #     exit()
-                else:
-                    size = os.path.getsize(filepath)
-                    if size > large_ls[-1][-1]:
-                        large_ls[-1] = (filepath, size)
-                        large_ls.sort(key=lambda x: x[-1], reverse=True)
-                    pass
-                    
-                # 将文件路径添加到对应大小的列表中
-                if size:
-                    size_to_files[size].append(filepath)
-            except OSError as e:
-                print(f"Error: {e}")
-                continue
-    
+        elif tmp==1:
+            if len(dirs)==1:
+                tmppp=dirs[0]
+            else:
+                tmppp=files[0]
+            dst=os.path.join(root,'..',tmppp)
+            if not os.path.exists(dst):
+                shutil.move(os.path.join(root,tmppp),dst)
+        else:
+            for filename in files:
+                filepath = os.path.join(root, filename)
+                if filename.split('.')[-1] in ['jpg','JPG'] and ('新地址' in filename or '维码' in filename):
+                    to_remove.append(filepath)
+                    continue
+                if args.danger and filename.split(".")[-1] in ["html", "apk", "mht", "chm", "htm", "DS_Store", "url", "ini", "txt", "exe", "log", "js", "torrent"]:
+                    # os.remove(filepath)
+                    print(f"{filepath} removed")
+                    continue
+                try:
+                    # 获取文件大小
+                    size = None
+                    if filepath.split(".")[-1] in ["jpg", "png", "JPG", "pdf", "txt", "doc", "docx", "md", "ppt", "pptx"]:
+                        size = get_file_hash(filepath)
+                        # if filepath == r'F:\LenovoSoftstore\src\1 - 副本 (23)\1 - 副本 (23)\XNJPBO\BHDP.TUMBLR.COM (1).jpg':
+                        # if filepath == r'F:\LenovoSoftstore\src\XNJPBO\BHDP.TUMBLR.COM (1).jpg':
+                        #     print(size)
+                        #     exit()
+                    else:
+                        size = os.path.getsize(filepath)
+                        if size > large_ls[-1][-1]:
+                            large_ls[-1] = (filepath, size)
+                            large_ls.sort(key=lambda x: x[-1], reverse=True)
+                        pass
+                        
+                    # 将文件路径添加到对应大小的列表中
+                    if size:
+                        size_to_files[size].append(filepath)
+                except OSError as e:
+                    print(f"Error: {e}")
+                    continue
+        
     # 找出具有相同大小的文件对
     same_size_files = []
     for size, files in size_to_files.items():
         if len(files) > 1:
             same_size_files.append((size, files))
     
+    print('to remove', to_remove)
     return same_size_files
 
 
 
 if __name__ == "__main__":
 
-    inp_path = r"C:\BaiduSyncdisk\mydrive"
+    inp_path = r"E:\LenovoSoftstore"
 
     files_with_same_size = find_files_with_same_size(inp_path)
 

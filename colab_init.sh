@@ -78,7 +78,7 @@ ln -s $jwrun ~/111mjw_tmp_jwm/jwbin/jwrun
 ln -s $jwkill ~/111mjw_tmp_jwm/jwbin/jwkill
 ln -s $jwruncpu ~/111mjw_tmp_jwm/jwbin/jwruncpu
 ln -s $jwclone ~/111mjw_tmp_jwm/jwbin/jwclone
-# ln -s ${jwCondaBin}/conda ~/111mjw_tmp_jwm/jwbin/conda
+ln -s ${jwCondaBin}/conda ~/111mjw_tmp_jwm/jwbin/conda
 set +x
 
 cd $jwHomePath

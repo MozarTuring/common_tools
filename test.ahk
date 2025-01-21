@@ -64,9 +64,13 @@ get_path(inp){
     tmp_path := A_Clipboard
     aa := StrSplit(tmp_path, 'project\', '')
     new_path := StrReplace(aa[2], "\", "/")
+    new_path := StrReplace(new_path, ".ipynb", ".py")
     A_Clipboard := ""
     if (inp == 'a') {
         Send "^a"
+    }else{
+    Send 'V'
+    Sleep(100)
     }
     Send '^c'
     ; send 'y'
@@ -86,19 +90,19 @@ tgt_action(inp_path, inp_title){
     Sleep(200)
     Send "{Esc}"
     Sleep(500)
-    SendText "gg"
+    Send "gg"
     Sleep(200)
-    SendText "v"
+    Send "v"
     Sleep(200)
-    SendText 'G'
+    Send 'G'
     Sleep(200)
-    SendText 'd'
-    SendText 'i'
+    Send 'd'
+    Send 'i'
     Sleep(200)
     Send '+{Insert}'
     Sleep(1000)
     Send '{Esc}'
-    Sleep(200)
+    Sleep(500)
     return 'ok'
 }
 
@@ -113,10 +117,12 @@ Space & l::
         if (tmp == 'fail' ){
             return 'fail'
         }
-        Send 'v'
-        Send 'gg'
         Sleep(200)
-        SendText 'm'
+        Send 'v'
+        Sleep(500)
+        Send 'gg'
+        Sleep(500)
+        Send 'm'
         Sleep(500)
         Send '#1'
         Sleep(100)
@@ -144,6 +150,8 @@ Space & l::
         Send 'gg'
         Sleep(200)
         Send '#1'
+        Sleep(100)
+        Send '{Esc}'
     }
 }
 

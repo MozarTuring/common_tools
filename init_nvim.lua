@@ -298,6 +298,7 @@ local function open_cur()
     local current_line = vim.api.nvim_get_current_line()
     local filename = current_line:match "^%s*(.-)%s*$" -- 去除前后空格
 
+    local filename=string.sub(filename,4)
     if filename ~= nil and vim.loop.fs_stat(filename) then
         vim.cmd('tabnew ' .. filename)
         return 'open'
@@ -394,8 +395,9 @@ end
 
 local timer = vim.loop.new_timer()
 function OpenLog()
-    tmp=open_cur()
-    if tmp == 'open' then
+    tmp=vim.api.nvim_buf_get_name(0)
+    if string.sub(tmp, -2) == 'xt' then
+        open_cur()
         return
     end
     local tmp_path = get_log_path()
@@ -446,29 +448,39 @@ local jw_send = function(inp_send, inp_line)
         error("not python")
     end
 
-    local err = ''
-    local ou = ''
-    local tmp_copy = ''
+    local init=''
+    local startstamp='jwstarttime=time.time()\n'
+    local timecost='jwtimecost=time.time()-jwstarttime\n'
     session_start = "\n" -- because most cases execute this
     if _G.jwsession == nil then
         tmp_time = get_log_path('restart')
         session_start = "\n************ " .. tmp_time .. " ************\n"
         tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
+        init='jwo="' .. tmp_dir .. '/.."\nfrom common_tools.jwu2 import *\n'
+        err = 'sys.stderr = open("' .. tmp_path2 .. '", "a") \n'
+        ou = 'sys.stdout = open("' .. tmp_path2 .. '", "w") \n'
+        tmp_copy = '\n\njwcopy_file_content("' .. tmp_path2 .. '", "' .. tmp_path .. '")\nsys.stdout.close()\nsys.stderr.close()\n'
     elseif _G.jwsession ~= tmp[1] then
         tmp_time = get_log_path('restart')
 --        tmp_time = jw_restart()
         session_start = "\n************ " .. tmp_time .. " ************\n"
         tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
         iron.repl_restart()
-    else
-        tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
-        err = 'sys.stderr = open("' .. tmp_path .. '", "a") \n'
+        init='jwo="' .. tmp_dir .. '/.."\nfrom common_tools.jwu2 import *\n'
+        err = 'sys.stderr = open("' .. tmp_path2 .. '", "a") \n'
         ou = 'sys.stdout = open("' .. tmp_path2 .. '", "w") \n'
-        tmp_copy = '\n\nsys.stdout.close()\nsys.stderr.close()\njwcopy_file_content("' .. tmp_path2 .. '", "' .. tmp_path .. '")\n'
+        tmp_copy = '\n\njwcopy_file_content("' .. tmp_path2 .. '", "' .. tmp_path .. '")\nsys.stdout.close()\nsys.stderr.close()\n'
+
+   else
+        tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
+        err = 'sys.stderr = open("' .. tmp_path2 .. '", "a") \n'
+        ou = 'sys.stdout = open("' .. tmp_path2 .. '", "w") \n'
+        tmp_copy = '\n\njwcopy_file_content("' .. tmp_path2 .. '", "' .. tmp_path .. '")\nsys.stdout.close()\nsys.stderr.close()\n'
     end
     
-    local new_send = err .. ou .. inp_send .. tmp_copy
-    jw_append(session_start .. '\n' .. inp_send .. '  [INPEND]\n', tmp_path)
+    inp_send=inp_send:gsub('^%s%s%s%s', '')
+    local new_send = init .. err .. ou .. startstamp .. inp_send .. tmp_copy .. timecost
+    jw_append(session_start .. '\n[I] ' .. inp_send .. '\n', tmp_path)
     iron.send(nil, new_send)
     OpenLog()
 --    local tmp_content = jwread(tmp_path2)
@@ -684,7 +696,7 @@ end
 
 function Clswap()
     -- 执行 shell 命令来删除交换文件
-    vim.cmd("!rm " .. jwHomePath .. "/../.local/state/nvim/swap/*")
+    vim.cmd("!rm " .. "~/.local/state/nvim/swap/*")
 end
 
 vim.cmd('let NERDTreeChDirMode=2')
@@ -743,10 +755,6 @@ vim.api.nvim_set_keymap('n', ';w', '<cmd>lua myWriteFile()<CR>', {noremap = true
 vim.api.nvim_set_keymap('v', 'sy', ':lua copy_visual_lines()<CR>', {noremap = true, silent = true}) -- here <cmd> not work in windows
 
 vim.api.nvim_set_keymap('n', 'sy', ':lua copy_normal_lines()<CR>', {noremap = true, silent = true})
-
-
-
-
 
 
 

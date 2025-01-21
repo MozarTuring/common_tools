@@ -3,9 +3,6 @@ if [ "$#" -eq 0 ]; then
     exit
 fi
 
-args=("$@")
-last_arg=${args[-1]}
-
 if [ $jwPlatform == "sribdGC" ]; then
     function gpus_collection() {
         for ((i = 0; i < 1000; i++)); do
@@ -15,10 +12,12 @@ if [ $jwPlatform == "sribdGC" ]; then
     }
     gpus_collection &
 fi
+
+args=("$@")
+last_arg=${args[-1]}
+
 echo "Project path: "$jwHomePath
-
 scriptPath=${jwHomePath}/$1
-
 
 export jw_cur_dir=${scriptPath%/}
 if [ -f $scriptPath ]; then
