@@ -39,10 +39,6 @@
         "when": "editorTextFocus"
     },
     {
-        "key": "ctrl+s",
-        "command": "workbench.action.tasks.runTask"
-    },
-    {
         "key": "a",
         "command": "-notebook.cell.insertCodeCellAboveAndFocusContainer",
         "when": "notebookEditorFocused && !inputFocus && !notebookOutputInputFocused"
