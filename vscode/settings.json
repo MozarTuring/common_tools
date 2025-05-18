@@ -24,68 +24,81 @@
     },
     "git.ignoreLegacyWarning": true,
     "window.zoomLevel": 1,
-    "latex-workshop.latex.tools": [
-      {
-          "name": "pdflatex",
-          "command": "C:\\texlive\\2024\\bin\\windows\\pdflatex.exe",
-          "args": [
-              "-synctex=1",
-              "-interaction=nonstopmode",
-              "-file-line-error",
-              "%DOCFILE%"
-          ]
-      },
-      {
-          "name": "xelatex",
-          "command": "C:\\texlive\\2024\\bin\\windows\\xelatex.exe",
-          "args": [
-              "-synctex=1",
-              "-interaction=nonstopmode",
-              "-file-line-error",
-              "%DOCFILE%"
-          ]
-      }
-  ],
-  "latex-workshop.latex.recipes": [
-      {
-          "name": "xelatex",
-          "tools": [
-              "xelatex"
-          ]
-      }
-  ],
-  "latex-workshop.view.pdf.viewer": "tab",
-  "latex-workshop.view.pdf.autoSync": true,
-  "latex-workshop.view.pdf.autoRefresh": true,
-    "pasteImage.path": "${currentFileDir}/mdfigures",
-    "files.watcherExclude": {
-        "**/.git/objects/**": false,
-        "**/.git/subtree-cache/**": false,
-        "**/.hg/store/**": false,
-        "**/node_modules/*/**": false
-    },
-    "latex-workshop.latex.clean.fileTypes": [
-    "*.aux",
-    "*.bbl",
-    "*.blg",
-    "*.idx",
-    "*.ind",
-    "*.lof",
-    "*.lot",
-    "*.out",
-    "*.toc",
-    "*.acn",
-    "*.acr",
-    "*.alg",
-    "*.glg",
-    "*.glo",
-    "*.gls",
-    "*.ist",
-    "*.fls",
-    "*.log",
-    "*.fdb_latexmk"
+"latex-workshop.latex.tools": [
+  {
+    "name": "pdflatex",
+    "command": "pdflatex",
+    "args": [
+      "-interaction=nonstopmode",
+      "-file-line-error",
+      "-synctex=1",
+      "%DOC%"
+    ]
+  },
+  {
+    "name": "xelatex",
+    "command": "xelatex",
+    "args": [
+      "-synctex=1",
+      "-interaction=nonstopmode",
+      "-file-line-error",
+      "%DOC%"
+    ]
+  },
+  {
+    "name": "latexmk",
+    "command": "latexmk",
+    "args": [
+      "-synctex=1",
+      "-interaction=nonstopmode",
+      "-file-line-error",
+      "-pdf",
+      "%DOC%"
+    ]
+  },
+  {
+    "name": "biber",
+    "command": "biber",
+    "args": [
+      "%DOCFILE%"
+    ]
+  }
 ],
-"latex-workshop.latex.autoClean.run": "onBuilt",
+"latex-workshop.latex.recipes": [
+    {"tools": ["latexmk"]},
+  {
+    "name": "pdflatex ➜ biber ➜ pdflatex×2",
+    "tools": ["xelatex", "biber", "xelatex", "xelatex"]
+  }
+],
+    "latex-workshop.view.pdf.viewer": "browser",
+    "latex-workshop.view.pdf.autoSync": true,
+    "latex-workshop.view.pdf.autoRefresh": true,
+    "latex-workshop.latex.clean.enabled": true,
+// "latex-workshop.latex.clean.onFailBuild": true,
+"latex-workshop.latex.clean.fileTypes": [
+  "*.aux",
+  "*.bbl",
+  "*.blg",
+  "*.idx",
+  "*.ind",
+  "*.lof",
+  "*.lot",
+  "*.out",
+  "*.toc",
+  "*.acn",
+  "*.acr",
+  "*.alg",
+  "*.glg",
+  "*.glo",
+  "*.gls",
+  "*.fls",
+  "*.log",
+  "*.fdb_latexmk"
+],
+    // "latex-workshop.latex.clean.fileTypes": [],
+    "latex-workshop.latex.autoClean.run": "onBuilt",
+    // "latex-workshop.latex.autoBuild.run": "onSave",
     "terminal.integrated.enableMultiLinePasteWarning": false,
     "terminal.integrated.shell.windows": "C:\\WINDOWS\\System32\\cmd.exe",
     "breadcrumbs.enabled": false,
@@ -125,21 +138,54 @@
     },
     "vim.useSystemClipboard": true,
     "vim.normalModeKeyBindingsNonRecursive": [
-    {
-      "before": ["g", "y"],
-      "after": ["g", "t"]
+        {
+            "before": [
+                "g",
+                "y"
+            ],
+            "after": [
+                "g",
+                "t"
+            ]
+        },
+        {
+            "before": [
+                "g",
+                "t"
+            ],
+            "after": [
+                "g",
+                "T"
+            ]
+        },
+        {
+            "before": [
+                ";",
+                "q"
+            ],
+            "commands": [
+                ":q"
+            ]
+        },
+        {
+            "before": [
+                "g",
+                "j"
+            ],
+            "after": [
+                "<CR>",
+                "<LeftMouse>"
+            ]
+        }
+    ],
+    "pasteImage.path": "${currentFileDir}/mdfigures",
+    "files.watcherExclude": {
+        "**/.git/objects/**": false,
+        "**/.git/subtree-cache/**": false,
+        "**/.hg/store/**": false,
+        "**/node_modules/*/**": false
     },
-    {
-      "before": ["g", "t"],
-      "after": ["g", "T"]
-    },
-    {
-      "before": [";", "q"],
-      "commands": [":q"]
-    },
-    {
-      "before": ["g", "j"],
-      "after": ["<CR>", "<LeftMouse>"]
+    "workbench.editorAssociations": {
+      "*.pdf": "default"
     }
-  ]
 }
