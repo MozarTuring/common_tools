@@ -1,3 +1,7 @@
+--[[ for windows
+mklink C:\Users\Mozar\AppData\Local\nvim\init.lua C:\Users\Mozar\BaiduSyncdisk\project\common_tools\init_nvim.lua
+]]
+
 local function isWindows()
     local uname = vim.loop.os_uname()
     return uname.sysname == "Windows" or uname.sysname == "Windows_NT"
@@ -8,7 +12,7 @@ is_win = isWindows()
 if is_win then
     jwHomePath = 'C:/Users/Mozar/BaiduSyncdisk/project'
 else
-    jwHomePath = os.getenv("jwHomePath")
+    jwHomePath = '~/baidu'
 end
 
 local function directory_exists(dir_path)
@@ -25,8 +29,8 @@ local function file_exists(path)
     end
 end
 
-vim.cmd('set runtimepath^=' .. jwHomePath .. '/zzzresources/software/nvim/vim_pack')
-vim.cmd('set runtimepath+=' .. jwHomePath .. '/zzzresources/software/nvim/vim_pack/after')
+vim.cmd('set runtimepath^=' .. jwHomePath .. '/nvim/vim_pack')
+vim.cmd('set runtimepath+=' .. jwHomePath .. '/nvim/vim_pack/after')
 vim.cmd('let &packpath = &runtimepath')
 
 
@@ -63,13 +67,13 @@ let python_highlight_all=1
 vim.opt.mouse = ''
 
 
-local tmp_path = jwHomePath .. '/zzzresources/software/nvim/vim_pack/autoload/plug.vim'
-tmp = file_exists(tmp_path) -- will be false if using ~ rather than abs
-if not tmp then
-    vim.cmd('!curl -fLo ' .. tmp_path .. ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
-end
+-- local tmp_path = jwHomePath .. '/nvim/vim_pack/autoload/plug.vim'
+-- tmp = file_exists(tmp_path) -- will be false if using ~ rather than abs
+-- if not tmp then
+--     vim.cmd('!curl -fLo ' .. tmp_path .. ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
+-- end
 
-local bundle_path = jwHomePath .. '/zzzresources/software/nvim/vim_pack/bundle'
+local bundle_path = jwHomePath .. '/nvim/vim_pack/bundle'
 vim.cmd('call plug#begin("' .. bundle_path .. '")')
 vim.cmd [[
 Plug 'https://github.com/pocco81/auto-save.nvim.git'
@@ -254,10 +258,9 @@ local function jw_append(source, dst)
 end
 
 
-local jw_mkdir = function(inp_dir)
+local function jw_mkdir(inp_dir)
     if not directory_exists(inp_dir) then
-        local command = string.format("mkdir -p %s", inp_dir)
-        local success = os.execute(command)
+        vim.cmd("!mkdir -p " .. inp_dir)
     end
 end
 
@@ -593,6 +596,8 @@ function OpenOrSwitchToFile(filename)
     end
 
     if not bfound then
+        local dir = filename:match("^(.*)/")
+        jw_mkdir(dir)
         vim.cmd('tabnew ' .. filename)
     end
 end
@@ -758,4 +763,4 @@ vim.api.nvim_set_keymap('n', 'sy', ':lua copy_normal_lines()<CR>', {noremap = tr
 
 
 
-vim.cmd('source ' .. jwHomePath .. '/common_tools/init_nvim.vim')
+vim.cmd('source ~/baidu/project/common_tools/init_nvim.vim')

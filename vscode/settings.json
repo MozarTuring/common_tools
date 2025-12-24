@@ -65,7 +65,9 @@
   }
 ],
 "latex-workshop.latex.recipes": [
-    {"tools": ["latexmk"]},
+    {
+      "name": "latexmk-",
+      "tools": ["latexmk"]},
   {
     "name": "pdflatex ➜ biber ➜ pdflatex×2",
     "tools": ["xelatex", "biber", "xelatex", "xelatex"]
@@ -186,6 +188,12 @@
         "**/node_modules/*/**": false
     },
     "workbench.editorAssociations": {
-      "*.pdf": "default"
-    }
+      "*.copilotmd": "vscode.markdown.preview.editor",
+      "*.pdf": "latex-workshop-pdf-hook"
+    },
+    "extensions.ignoreRecommendations": true,
+    "terminal.integrated.inheritEnv": false,
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.diagnosticMode": "off",
+    "python.analysis.reportGeneralTypeIssues": "none"
 }

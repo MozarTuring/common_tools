@@ -11,10 +11,20 @@ import inspect
 
 
 
-import logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(pathname)s\nLINE%(lineno)d - \n%(message)s\nMSG-END',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+import sys, logging
+
+# 1) Remove any existing handlers (Jupyter often adds one)
+for h in logging.root.handlers[:]:
+    logging.root.removeHandler(h)
+
+# 2) Build a fresh console handler to stdout
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(pathname)s - LINE%(lineno)d - \n%(message)sMSG-END', '%Y-%m-%d %H:%M:%S'))
+
+# 3) Attach to root and set levels
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+root.addHandler(handler)
 jwp = logging.info
 # 这种设置会导致其它所有使用了logging的地方都变成这里设定的格式，而不只是使用 jwp 的地方
 
