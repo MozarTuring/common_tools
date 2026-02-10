@@ -53,5 +53,10 @@
     {
         "key": "cmd+c",
         "command": "-editor.action.clipboardCopyAction"
+    },
+    {
+        "key": "cmd+f",
+        "command": "-actions.find",
+        "when": "editorFocus || editorIsOpen"
     }
 ]

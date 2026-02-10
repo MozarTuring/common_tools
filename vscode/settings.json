@@ -73,7 +73,8 @@
     "tools": ["xelatex", "biber", "xelatex", "xelatex"]
   }
 ],
-    "latex-workshop.view.pdf.viewer": "browser",
+    // "latex-workshop.view.pdf.viewer": "browser",
+    "latex-workshop.view.pdf.viewer": "tab",
     "latex-workshop.view.pdf.autoSync": true,
     "latex-workshop.view.pdf.autoRefresh": true,
     "latex-workshop.latex.clean.enabled": true,
@@ -131,7 +132,7 @@
         "<C-z>": false,
         "<C-l>": false,
         "<C-c>": false,
-        "<C-f>": false,
+        "<C-f>": true,
         "<C-p>": false,
         "<C-a>": false,
         "<C-x>": false,
@@ -175,11 +176,20 @@
                 "j"
             ],
             "after": [
-                "<CR>",
+                "<D>",
                 "<LeftMouse>"
             ]
         }
+        // {
+        //     "before": ["g", "j"],
+        //     "after": [":", "%", "s", "/", "<C-r>", "\"", "/"]
+        // } this setting make crtl+h which sync file to server abnormal
+        // {
+        //     "before": ["<leader>", "j"],
+        //     "after": [":", "%", "s", "/", "<C-r>", "\"", "/"]
+        // } this setting make crtl+h which sync file to server abnormal
     ],
+// "vim.leader": "\\",
     "pasteImage.path": "${currentFileDir}/mdfigures",
     "files.watcherExclude": {
         "**/.git/objects/**": false,

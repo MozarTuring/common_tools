@@ -51,8 +51,17 @@ func! Comment() range
     exec "noh"
     redraw
 endfunc
-vnoremap <silent> # :call Comment()<CR>
-nmap <silent> # :call Comment()<CR>
+vnoremap <silent> ? :call Comment()<CR>
+nmap <silent> ? :call Comment()<CR>
+
+func! TmpReplace(inp)
+    let tmp = a:inp
+    let tmp = substitute(tmp, '"', '\\"', 'g')
+    let tmp = substitute(tmp, ']', '\\]', 'g')
+    let tmp = substitute(tmp, '[', '\\[', 'g')
+    let tmp = substitute(tmp, '/', '\\/', 'g')
+    return tmp
+endfunc
 
 
 func! MyReplace()
@@ -60,9 +69,10 @@ func! MyReplace()
 " not working without gv
     let tmp = @a
     echo tmp
-    let tmp = substitute(tmp, '"', '\\"', 'g')
+    let tmp = TmpReplace(tmp)
     echo tmp
     let tmp_rep = input("substitute with:")
+    let tmp_rep = TmpReplace(tmp_rep)
     let tmp_command = ":%s/". tmp. "/".tmp_rep."/gc"
     echo tmp_command
     exec tmp_command
@@ -187,3 +197,4 @@ func! CompileStop()
 endfunc
 nmap fk :call CompileStop()<CR>
 
+let NERDTreeShowModifiedFlag = 0

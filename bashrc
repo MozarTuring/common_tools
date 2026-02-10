@@ -1,6 +1,5 @@
 
-# Put all the commands here that should run regardless of whether
-# this is an interactive or non-interactive shell.
+# Put all the commands here that should run regardless of whether this is an interactive or non-interactive shell.
 
 
 
@@ -29,4 +28,3 @@ if [ -f ~/.fzf.bash ]; then
 fi
 
 
-source /home/maojingwei/project/common_tools/colab_init.sh
