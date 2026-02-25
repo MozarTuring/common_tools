@@ -82,6 +82,19 @@ endfunc
 vnoremap <C-s> :call MyReplace()<CR>
 " <left> means cursor moves towards left; <C-r>h means use content in h register
 
+func! MyReplaceNormal()
+    let tmp = input("search for:")
+    if strlen(tmp) == 0
+        return
+    endif
+"    let tmp = TmpReplace(tmp)
+    let tmp_rep = input("substitute with:")
+    let tmp_rep = TmpReplace(tmp_rep)
+    let tmp_command = ":%s/". tmp. "/".tmp_rep."/gc"
+    echo tmp_command
+    exec tmp_command
+endfunc
+
 func! GetAbsPath(inp_mode)
     let cur_dir = getcwd()
     let cur_file_path = getreg('%')

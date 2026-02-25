@@ -42,18 +42,20 @@ else
     tar -xzf common_tools.tar.gz
 fi
 
-DIR=~/.config/nvim # if using "~/.config/nvim" if will create under folder named "~" rather than home directory
+DIR=~/.config/nvim
+# if using "~/.config/nvim" if will create under folder named "~" rather than home directory
 if [ -d $DIR ]; then
     rm -rf $DIR
 fi
 mkdir -p $DIR
-ln -s ~/project/common_tools/init_nvim.lua $DIR/init.lua
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
     echo "macOS"
     echo "source ~/project/common_tools/bash_profile" >> ~/.bash_profile
+    ln -s /Users/maojingwei/baidu/project/common_tools/init_nvim_mac.lua $DIR/init.lua
 else
     echo "source ~/project/common_tools/bash_profile" >> ~/.profile
+    ln -s /Users/maojingwei/baidu/project/common_tools/init_nvim_linux.lua $DIR/init.lua
 fi
 exit
 

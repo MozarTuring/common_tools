@@ -1,6 +1,10 @@
 --for windows
 --mklink C:\Users\Mozar\AppData\Local\nvim\init.lua C:\Users\Mozar\BaiduSyncdisk\project\common_tools\init_nvim.lua
 
+-- Disable netrw early, before any plugin loads (prevents duplicate explorer with neo-tree)
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
 local vim_version = vim.version()
 --print(vim_version) it's not a string, although can print
 local function isWindows()
@@ -31,6 +35,45 @@ end
 
 -- 基础设置
 
+-- local tmp_path = jwHomePath .. '/nvim/vim_pack/autoload/plug.vim'
+-- tmp = file_exists(tmp_path) -- will be false if using ~ rather than abs
+-- if not tmp then
+--     vim.cmd('!curl -fLo ' .. tmp_path .. ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
+-- end
+
+local function python_package_exists(pkg)
+	return os.execute("pip show " .. pkg .. " >/dev/null 2>&1") == 0
+end
+
+print("for remote")
+local bundle_path = jwHomePath .. "/jwSoftware/vim_pack/bundle"
+vim.cmd("set runtimepath^=" .. bundle_path .. "/../")
+vim.cmd("set runtimepath+=" .. jwHomePath .. "/../after")
+vim.cmd("let &packpath = &runtimepath")
+print(vim.inspect(vim.opt.runtimepath:get()))
+
+vim.cmd('call plug#begin("' .. bundle_path .. '")')
+vim.cmd(
+	[[ Plug 'https://github.com/pocco81/auto-save.nvim.git', {'commit':'979b6c82f60cfa80f4cf437d77446d0ded0addf0'} ]]
+)
+vim.cmd([[ Plug 'https://github.com/preservim/nerdtree.git', {'commit':'690d061b591525890f1471c6675bcb5bdc8cdff9'} ]])
+vim.cmd([[ Plug 'Vigemus/iron.nvim', {'commit':'0e07ace465edff6c4ed6db9f3b7bf919c40aeffb'} ]])
+vim.cmd([[ Plug 'nvim-lua/plenary.nvim' , {'commit': 'b9fd5226c2f76c951fc8ed5923d85e4de065e509'}]])
+vim.cmd([[ Plug 'nvim-telescope/telescope.nvim', {'commit':'78857db9e8d819d3'} ]])
+
+vim.cmd("call plug#end()")
+-- 设置 Python 文件类型特定的缩进和格式化
+vim.api.nvim_create_autocmd({ "FileType" }, {
+	pattern = "python",
+	command = "setlocal tabstop=4 softtabstop=4 shiftwidth=4 expandtab fileformat=unix",
+})
+
+-- 设置 Python 文件类型的代码折叠
+vim.api.nvim_create_autocmd({ "FileType" }, {
+	pattern = "python",
+	command = "setlocal foldmethod=indent foldlevel=99",
+})
+vim.cmd("let NERDTreeChDirMode=2")
 vim.cmd([[
 set t_Co=256
 
@@ -60,115 +103,9 @@ let python_highlight_all=1
 
 --vim.opt.mouse = 'a'
 vim.opt.mouse = "" -- don't activate vim mouse, then system mouse will be activated on vim and then can use mouse to select text and copy to system clipboard
-
--- local tmp_path = jwHomePath .. '/nvim/vim_pack/autoload/plug.vim'
--- tmp = file_exists(tmp_path) -- will be false if using ~ rather than abs
--- if not tmp then
---     vim.cmd('!curl -fLo ' .. tmp_path .. ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
--- end
-
-local function python_package_exists(pkg)
-	return os.execute("pip show " .. pkg .. " >/dev/null 2>&1") == 0
-end
-
-if vim_version.major == 0 and vim_version.minor == 9 and vim_version.patch == 1 then
-	print("for remote")
-	local bundle_path = jwHomePath .. "/jwSoftware/vim_pack/bundle"
-	vim.cmd("set runtimepath^=" .. bundle_path .. "/../")
-	vim.cmd("set runtimepath+=" .. jwHomePath .. "/../after")
-	vim.cmd("let &packpath = &runtimepath")
-	print(vim.inspect(vim.opt.runtimepath:get()))
-
-	vim.cmd('call plug#begin("' .. bundle_path .. '")')
-	vim.cmd(
-		[[ Plug 'https://github.com/pocco81/auto-save.nvim.git', {'commit':'979b6c82f60cfa80f4cf437d77446d0ded0addf0'} ]]
-	)
-	vim.cmd(
-		[[ Plug 'https://github.com/preservim/nerdtree.git', {'commit':'690d061b591525890f1471c6675bcb5bdc8cdff9'} ]]
-	)
-	vim.cmd([[ Plug 'Vigemus/iron.nvim', {'commit':'0e07ace465edff6c4ed6db9f3b7bf919c40aeffb'} ]])
-	vim.cmd([[ Plug 'nvim-lua/plenary.nvim' , {'commit': 'b9fd5226c2f76c951fc8ed5923d85e4de065e509'}]])
-	vim.cmd([[ Plug 'nvim-telescope/telescope.nvim', {'commit':'78857db9e8d819d3'} ]])
-
-	vim.cmd("call plug#end()")
-	-- 设置 Python 文件类型特定的缩进和格式化
-	vim.api.nvim_create_autocmd({ "FileType" }, {
-		pattern = "python",
-		command = "setlocal tabstop=4 softtabstop=4 shiftwidth=4 expandtab fileformat=unix",
-	})
-
-	-- 设置 Python 文件类型的代码折叠
-	vim.api.nvim_create_autocmd({ "FileType" }, {
-		pattern = "python",
-		command = "setlocal foldmethod=indent foldlevel=99",
-	})
-end
-
-if vim_version.major == 0 and vim_version.minor == 11 and vim_version.patch == 5 then
-	print("mac neovim")
-
-	local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-	if not (vim.uv or vim.loop).fs_stat(lazypath) then
-		local lazyrepo = "https://github.com/folke/lazy.nvim.git"
-		local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
-		if vim.v.shell_error ~= 0 then
-			vim.api.nvim_echo({
-				{ "Failed to clone lazy.nvim:\n", "ErrorMsg" },
-				{ out, "WarningMsg" },
-				{ "\nPress any key to exit..." },
-			}, true, {})
-			vim.fn.getchar()
-			os.exit(1)
-		end
-	end
-	vim.opt.rtp:prepend(lazypath)
-
-	require("lazy").setup({
-		spec = {
-			-- add LazyVim and import its plugins
-			{ "LazyVim/LazyVim", import = "lazyvim.plugins" },
-			-- import/override with your plugins
-			{ import = "plugins" },
-			{ "pocco81/auto-save.nvim" },
-			{ "Vigemus/iron.nvim" },
-			{ "tpope/vim-fugitive" },
-			{ "NeogitOrg/neogit" },
-			{ "iamcco/markdown-preview.nvim" },
-			{ "HakonHarnes/img-clip.nvim" },
-			{ "lervag/vimtex" },
-			{ "numToStr/Comment.nvim" },
-		},
-		defaults = {
-			-- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.
-			-- If you know what you're doing, you can set this to `true` to have all your custom plugins lazy-loaded by default.
-			lazy = false,
-			-- It's recommended to leave version=false for now, since a lot the plugin that support versioning,
-			-- have outdated releases, which may break your Neovim install.
-			version = false, -- always use the latest git commit
-			-- version = "*", -- try installing the latest stable version for plugins that support semver
-		},
-		install = { colorscheme = { "tokyonight", "habamax" } },
-		checker = {
-			enabled = true, -- check for plugin updates periodically
-			notify = false, -- notify on update
-		}, -- automatically check for plugin updates
-		performance = {
-			rtp = {
-				-- disable some rtp plugins
-				disabled_plugins = {
-					"gzip",
-					-- "matchit",
-					-- "matchparen",
-					-- "netrwPlugin",
-					"tarPlugin",
-					"tohtml",
-					"tutor",
-					"zipPlugin",
-				},
-			},
-		},
-	})
-end
+vim.api.nvim_set_keymap("n", "gt", "gT", { noremap = true, silent = true })
+-- 重映射 gy 到 gt
+vim.api.nvim_set_keymap("n", "gy", "gt", { noremap = true, silent = true })
 
 local function jwview(inp)
 	vim.cmd("tabnew")
@@ -228,51 +165,21 @@ iron.setup({
 	ignore_blank_lines = true, -- ignore blank lines when sending visual select lines
 })
 
--- Defer telescope setup until it's loaded by lazy.nvim
-vim.api.nvim_create_autocmd("User", {
-	pattern = "LazyLoad",
-	callback = function(event)
-		if event.data ~= "telescope.nvim" then return end
-		local actions = require("telescope.actions")
-		local action_state = require("telescope.actions.state")
-		require("telescope").setup({
-			defaults = {
-				hidden = true,
-				no_ignore = true,
-				no_ignore_parent = true,
-				file_ignore_patterns = { "__pycache__/", ".git", ".hg", "zzzresources" },
-				mappings = {
-					i = {
-						["<CR>"] = function(prompt_bufnr)
-							local selection = action_state.get_selected_entry(prompt_bufnr)
-							actions.close(prompt_bufnr)
-							local tmp_value = string.sub(selection.value, 1)
-							abs_path = tmp_value
-							vim.cmd("Jwtabnew " .. abs_path)
-						end,
-					},
-				},
-			},
-		})
-	end,
-})
---local builtin = require('telescope.builtin')
-vim.keymap.set(
-	"n",
-	"ff",
-	'<cmd> lua require("telescope.builtin").find_files({hidden=true})<CR>',
-	{ desc = "Telescope find files" }
-)
-vim.keymap.set(
-	"n",
-	"fg",
-	'<cmd> lua require("telescope.builtin").live_grep({hidden=true})<CR>',
-	{ desc = "Telescope find files" }
-)
--- vim.keymap.set('n', 'ff', builtin.find_files, { desc = 'Telescope find files' })
--- --vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
--- --vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
--- --vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
+-- Use snacks.picker (replaces telescope in modern LazyVim)
+vim.keymap.set("n", "ff", function()
+	Snacks.picker.files({
+		hidden = true,
+		ignored = true,
+		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
+	})
+end, { desc = "Find files" })
+vim.keymap.set("n", "fg", function()
+	Snacks.picker.grep({
+		hidden = true,
+		ignored = true,
+		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
+	})
+end, { desc = "Live grep" })
 
 local function setup_auto_refresh(file_path)
 	-- Create an augroup to contain the autocommands
@@ -648,7 +555,6 @@ function myWriteFile()
 	-- Check the directory and execute specific shell commands
 	vim.cmd("silent w")
 	if is_in_inp_dir(file_path, "/home/maojingwei/project/common_tools") then
-		vim.cmd("silent w")
 		-- Execute the command using jwclone
 		--        tmp = "jwclone " .. file_path .. " 42"
 		--        vim.cmd('!' .. tmp)
@@ -816,20 +722,60 @@ vim.opt.endofline = true
 -- vim.cmd('let g:jedi#use_tabs_not_buffers = 1')
 -- vim.cmd('let g:jedi#popup_on_dot = 0')
 
-function MyRefreshFile()
-	-- 执行命令 "e"，通常用于编辑文件，但在这里可能只是刷新当前文件
-	vim.cmd("e")
+local refresh_timer = nil
+local refresh_buf = nil
 
-	-- 执行普通模式命令 "G"，跳转到文件末尾
+local function stop_refresh_timer()
+	if refresh_timer then
+		refresh_timer:stop()
+		refresh_timer:close()
+		refresh_timer = nil
+		refresh_buf = nil
+	end
+end
+
+vim.api.nvim_create_autocmd("BufEnter", {
+	callback = function()
+		if refresh_buf and vim.api.nvim_get_current_buf() ~= refresh_buf then
+			stop_refresh_timer()
+		end
+	end,
+})
+
+function MyRefreshFile()
+	vim.cmd("e")
 	vim.cmd("normal G")
+
+	local cur_buf = vim.api.nvim_get_current_buf()
+	if refresh_timer and refresh_buf == cur_buf then
+		return
+	end
+
+	stop_refresh_timer()
+	vim.opt.autoread = true
+	refresh_buf = cur_buf
+	refresh_timer = vim.loop.new_timer()
+	refresh_timer:start(
+		0,
+		2000,
+		vim.schedule_wrap(function()
+			if not vim.api.nvim_buf_is_valid(refresh_buf) then
+				stop_refresh_timer()
+				return
+			end
+			local buf = vim.api.nvim_get_current_buf()
+			if buf == refresh_buf and vim.bo[buf].buftype == "" then
+				vim.cmd("silent! e")
+				vim.cmd("normal! G")
+			end
+		end)
+	)
 end
 
 function Clswap()
 	-- 执行 shell 命令来删除交换文件
 	vim.cmd("!rm " .. "~/.local/state/nvim/swap/*")
 end
-
-vim.cmd("let NERDTreeChDirMode=2")
 
 vim.api.nvim_set_keymap("n", "s", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "cc", "<Nop>", { noremap = true, silent = true })
@@ -840,6 +786,7 @@ vim.api.nvim_set_keymap("n", "<space>", "<Nop>", { noremap = true, silent = true
 vim.api.nvim_set_keymap("n", "<M-o>", "<Nop>", { noremap = true, silent = true })
 
 --keymaps
+-- NERDTree mapping only for older nvim (0.9.1); overridden to Neotree in 0.11.5 block
 vim.api.nvim_set_keymap("n", ",f", ":NERDTreeFind<CR>", { noremap = true })
 
 -- 保存并退出
@@ -856,12 +803,6 @@ vim.api.nvim_set_keymap("n", "<2-LeftMouse>", ":call CompileRunGcc('r')<CR>", { 
 
 -- 使用 Jedi 跳转到定义
 vim.api.nvim_set_keymap("n", "gj", ":call jedi#goto()<CR>", { noremap = true, silent = true })
-
--- 重映射 gt 到 gT
-vim.api.nvim_set_keymap("n", "gt", "gT", { noremap = true, silent = true })
-
--- 重映射 gy 到 gt
-vim.api.nvim_set_keymap("n", "gy", "gt", { noremap = true, silent = true })
 
 -- 设置键映射，使用 Clswap 函数
 vim.api.nvim_set_keymap("n", "cls", ":lua Clswap()<CR>", { noremap = true })
@@ -885,237 +826,3 @@ vim.api.nvim_set_keymap("n", "sy", ":lua copy_normal_lines()<CR>", { noremap = t
 vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 
-if vim_version.major == 0 and vim_version.minor == 11 and vim_version.patch == 5 then
-	print("mac neovim")
-	--    if not python_package_exists('jedi') then
-	--        print('install jedi')
-	--        os.execute('pip install jedi')
-	--    end
-	--    if not python_package_exists('pynvim') then
-	--        print('install pynvim')
-	--        os.execute('pip install pynvim')
-	--    end
-
-	-- Open preview when entering Normal mode
-	local function cmd_exists(cmd)
-		return vim.fn.exists(":" .. cmd) == 2
-	end
-
-	--vim.cmd([[ function! mkdp#autocmd#clear_buf() abort
-	--  silent! augroup MKDP_REFRESH_INIT
-	--    autocmd! * <buffer>
-	--  augroup END
-	--endfunction
-	--]])
-
-	--require('glow').setup({
-	--  -- your override config
-	--})
-	-- Open Glow immediately on markdown open
-	--
-	vim.cmd([[
-function! OpenMarkdownPreview(url)
-  call system(
-        \ 'open -na "Google Chrome" --args ' .
-        \ '--profile-directory="markdownpreview" ' .
-        \ shellescape(a:url) . ' >/dev/null 2>&1 &'
-        \ )
-endfunction
-
-let g:mkdp_browserfunc = 'OpenMarkdownPreview'
-]])
-
-	-- Tell markdown-preview.nvim to use our browser opener
-	--vim.g.mkdp_browserfunc = "MkdpBrowserStay"
-
-	-- Define the function in Vimscript (simplest + reliable)
-	--vim.cmd([[
-	--function! MkdpBrowserStay(url) abort
-	--  " macOS: open in background (do NOT steal focus)
-	--  call jobstart(['open', '-g', a:url], {'detach': v:true})
-	--endfunction
-	--]])
-
-	vim.cmd([[
-let g:mkdp_auto_start = 0
-let g:mkdp_auto_close = 0
-]])
-
-	vim.api.nvim_create_autocmd("FileType", {
-		pattern = "markdown",
-		callback = function()
-			vim.keymap.set("n", "m", "<cmd>MarkdownPreviewToggle<CR>", { buffer = true, desc = "Markdown Preview" })
-		end,
-	})
-
-	--vim.api.nvim_create_autocmd("BufEnter", {
-	--  pattern = "*.md",
-	--  callback = function()
-	--    if vim.fn.mode() == "n" then
-	--      pcall(vim.cmd, "MarkdownPreview")
-	--    end
-	--  end,
-	--})
-
-	-- Close preview when editing
-	--vim.api.nvim_create_autocmd("InsertEnter", {
-	--  pattern = "*.md",
-	--  callback = function()
-	--    pcall(vim.cmd, "")
-	--  end,
-	--})
-	--
-	---- Re-open preview when back to normal mode
-	--vim.api.nvim_create_autocmd("InsertLeave", {
-	--  pattern = "*.md",
-	--  callback = function()
-	--    pcall(vim.cmd, "MarkdownPreview")
-	--  end,
-	--})
-	--
-
-	require("img-clip").setup({
-		default = {
-			dir_path = "jw_md_imgs",
-			relative_to_current_file = true,
-			prompt_for_file_name = false,
-		},
-	})
-
-	--vim.keymap.set({ "n", "i" }, "<D-v>", function()
-	--  if vim.bo.filetype ~= "markdown" then
-	--    vim.api.nvim_paste(vim.fn.getreg("+"), true, -1)
-	--    return
-	--  end
-	--
-	--  -- check if clipboard contains image (macOS)
-	--  local has_image = vim.fn.system("pngpaste -b >/dev/null 2>&1; echo $?")
-	--  if has_image:match("0") then
-	--    vim.cmd("PasteImage")
-	--  else
-	--    vim.api.nvim_paste(vim.fn.getreg("+"), true, -1)
-	--  end
-	--end, { desc = "Smart Cmd+V" })
-
-	vim.keymap.set({ "n" }, "<leader>v", "<cmd>PasteImage<CR>", { desc = "Smart Cmd+V" })
-
-	require("mason").setup()
-
-	-- 1) nvim-cmp
-	vim.opt.completeopt = { "menu", "menuone", "noselect" }
-
-	local cmp = require("cmp")
-
-	cmp.setup({
-		mapping = cmp.mapping.preset.insert({
-			["<C-Space>"] = cmp.mapping.complete(), -- manually trigger
-			["<CR>"] = cmp.mapping.confirm({ select = true }),
-			["<Tab>"] = cmp.mapping.select_next_item(),
-			["<S-Tab>"] = cmp.mapping.select_prev_item(),
-		}),
-		sources = cmp.config.sources({
-			{ name = "nvim_lsp" },
-			{ name = "buffer" },
-			{ name = "path" },
-		}),
-	})
-
-	-- 2) Hook LSP capabilities into cmp
-	local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-	-- 3) Mason + LSPConfig
-	require("mason").setup()
-	require("mason-lspconfig").setup({
-		ensure_installed = { "pyright", "lua_ls" },
-	})
-
-	vim.lsp.config("pyright", {
-		capabilities = capabilities,
-	})
-
-	vim.lsp.config("lua_ls", {
-		capabilities = capabilities,
-		settings = {
-			Lua = { diagnostics = { globals = { "vim" } } },
-		},
-	})
-
-	vim.diagnostic.config({
-		signs = false,
-	})
-
-	vim.lsp.enable("pyright")
-	vim.lsp.enable("lua_ls")
-
-	vim.keymap.set("n", "gj", vim.lsp.buf.definition, { noremap = true, silent = true })
-
-	require("Comment").setup({
-		operator_mapping = "?",
-		mappings = {
-			basic = false,
-			extra = false,
-		},
-	})
-
-	--local api = require("Comment.api")
-	--
-	--vim.keymap.set("n", "?", api.toggle.linewise.current)
-	--vim.keymap.set("v", "?", function()
-	--  api.toggle.linewise(vim.fn.visualmode())
-	--end)
-
-	require("gitsigns").setup({
-		signs = {
-			add = { text = "┃" },
-			change = { text = "┃" },
-			delete = { text = "_" },
-			topdelete = { text = "‾" },
-			changedelete = { text = "~" },
-			untracked = { text = "┆" },
-		},
-		signs_staged = {
-			add = { text = "┃" },
-			change = { text = "┃" },
-			delete = { text = "_" },
-			topdelete = { text = "‾" },
-			changedelete = { text = "~" },
-			untracked = { text = "┆" },
-		},
-		signs_staged_enable = true,
-		signcolumn = true, -- Toggle with `:Gitsigns toggle_signs`
-		numhl = false, -- Toggle with `:Gitsigns toggle_numhl`
-		linehl = false, -- Toggle with `:Gitsigns toggle_linehl`
-		word_diff = false, -- Toggle with `:Gitsigns toggle_word_diff`
-		watch_gitdir = {
-			follow_files = true,
-		},
-		auto_attach = true,
-		attach_to_untracked = false,
-		current_line_blame = false, -- Toggle with `:Gitsigns toggle_current_line_blame`
-		current_line_blame_opts = {
-			virt_text = true,
-			virt_text_pos = "eol", -- 'eol' | 'overlay' | 'right_align'
-			delay = 1000,
-			ignore_whitespace = false,
-			virt_text_priority = 100,
-			use_focus = true,
-		},
-		current_line_blame_formatter = "<author>, <author_time:%R> - <summary>",
-		sign_priority = 6,
-		update_debounce = 100,
-		status_formatter = nil, -- Use default
-		max_file_length = 40000, -- Disable if file is longer than this (in lines)
-		preview_config = {
-			-- Options passed to nvim_open_win
-			style = "minimal",
-			relative = "cursor",
-			row = 0,
-			col = 1,
-		},
-	})
-
-	vim.keymap.set("n", "<leader>h", require("gitsigns").preview_hunk, { desc = "Preview git hunk" })
-
-	vim.opt.number = true
-	vim.o.clipboard = "unnamedplus"
-end

@@ -8,12 +8,13 @@
         "unpkg.com"
     ],
     "remote.SSH.remotePlatform": {
-        "10.20.14.42": "linux",
-        "10.26.6.81": "linux",
-        "10.20.14.43": "linux",
-        "120.79.52.236": "linux",
-        "120.78.204.43": "linux",
-        "10.20.14.63": "linux"
+      "10.20.14.42": "linux",
+      "10.26.6.81": "linux",
+      "10.20.14.43": "linux",
+      "120.79.52.236": "linux",
+      "120.78.204.43": "linux",
+      "10.20.14.63": "linux",
+      "custodian@raskamir.stellar.research.liu.se": "linux"
     },
     "editor.minimap.enabled": false,
     "explorer.confirmDelete": false,
