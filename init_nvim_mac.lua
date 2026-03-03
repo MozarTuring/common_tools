@@ -67,7 +67,7 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
 	spec = {
 		-- add LazyVim and import its plugins
-		{ "LazyVim/LazyVim", import = "lazyvim.plugins", opts = { autoformat = false } },
+		{ "LazyVim/LazyVim", import = "lazyvim.plugins", opts = { autoformat = false, colorscheme = "vscode" } },
 		-- import/override with your plugins
 		{ import = "plugins" },
 		-- Disable LazyVim's gy LSP keymap so we can use it for buffer cycling
@@ -100,16 +100,20 @@ require("lazy").setup({
 				},
 			},
 		},
-		-- Show total lines in statusline (lualine)
+		-- Show total lines in statusline (lualine), no time, no line:col
 		{
 			"nvim-lualine/lualine.nvim",
 			opts = function(_, opts)
-				-- Add current_line/total_lines to the right side
-				table.insert(opts.sections.lualine_z, {
-					function()
-						return vim.fn.line(".") .. "/" .. vim.fn.line("$")
-					end,
-				})
+				-- Remove line:column (location) from the right side
+				opts.sections.lualine_y = {}
+				-- Replace lualine_z with only line/total (removes default time)
+				opts.sections.lualine_z = {
+					{
+						function()
+							return vim.fn.line(".") .. "/" .. vim.fn.line("$")
+						end,
+					},
+				}
 			end,
 		},
 		-- Customize blink.cmp
@@ -309,6 +313,19 @@ require("lazy").setup({
 			})
 			end,
 		},
+		{
+			"Mofiqul/vscode.nvim",
+			lazy = false,
+			priority = 1000,
+			opts = {
+				style = "light",
+				transparent = false,
+			},
+			config = function(_, opts)
+				require("vscode").setup(opts)
+				vim.cmd.colorscheme("vscode")
+			end,
+		},
 		{ "numToStr/Comment.nvim" },
 	},
 	defaults = {
@@ -320,7 +337,7 @@ require("lazy").setup({
 		version = false, -- always use the latest git commit
 		-- version = "*", -- try installing the latest stable version for plugins that support semver
 	},
-	install = { colorscheme = { "tokyonight", "habamax" } },
+	install = { colorscheme = { "vscode", "tokyonight", "habamax" } },
 	checker = {
 		enabled = true, -- check for plugin updates periodically
 		notify = false, -- notify on update
@@ -1364,6 +1381,7 @@ vim.keymap.set("i", "<D-z>", "<C-o>u", { noremap = true, silent = true, desc = "
 vim.opt.number = true
 vim.opt.wrap = true
 vim.opt.linebreak = true
+vim.opt.breakindent = true
 vim.opt.spell = false
 vim.opt.expandtab = true
 vim.opt.tabstop = 4
