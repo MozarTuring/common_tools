@@ -6,7 +6,6 @@
 -----------------------------------------------------------
 --local SRC_TITLE = "com.microsoft.VSCode"   -- source window/app title substring
 -- local SRC_TITLE = "com.googlecode.iterm2" -- source window/app title substring
-local SRC_TITLE = "net.kovidgoyal.kitty" -- source window/app title substring
 -- local TGT_TITLE = "com.google.Chrome"
 -- target window/app title substring (e.g., "iTerm2" or "Terminal")
 local MOVE_MOUSE_TO_CENTER = false -- set true if you also want to move the cursor to window center
@@ -282,11 +281,60 @@ hs.hotkey.bind({ "ctrl" }, "h", function()
 end)
 
 hs.hotkey.bind({ "ctrl" }, "l", function()
-	share1("com.apple.Terminal", "1")
+    local SRC_TITLE = "net.kovidgoyal.kitty" -- source window/app title substring
+	local sourceApp = hs.application.frontmostApplication()
+	if not sourceApp or sourceApp:bundleID() ~= SRC_TITLE then
+		return
+	end
+	hs.eventtap.keyStrokes("V")
+	usleep(500)
+	hs.eventtap.keyStrokes("y")
+	usleep(1000)
+
+	local clip = hs.pasteboard.getContents() or ""
+	if clip == "" then
+		hs.alert.show("Clipboard is empty")
+		return
+	end
+	hs.osascript.applescript(string.format([[
+		tell application "Terminal"
+			activate
+			do script %q in front window
+		end tell
+	]], clip))
+	usleep(500)
+	sourceApp:activate()
 end)
 
 hs.hotkey.bind({ "ctrl" }, "f", function()
-	share1("com.googlecode.iterm2", "1")
+    local SRC_TITLE = "net.kovidgoyal.kitty" -- source window/app title substring
+	local sourceApp = hs.application.frontmostApplication()
+	if not sourceApp or sourceApp:bundleID() ~= SRC_TITLE then
+		return
+	end
+	hs.eventtap.keyStrokes("V")
+	usleep(500)
+	hs.eventtap.keyStrokes("y")
+	usleep(1000)
+
+
+	local clip = hs.pasteboard.getContents() or ""
+	if clip == "" then
+		hs.alert.show("Clipboard is empty")
+		return
+	end
+	hs.osascript.applescript(string.format([[
+		tell application "iTerm"
+			activate
+			tell current session of current window
+                write text (ASCII character 3)
+                delay 2
+				write text %q
+			end tell
+		end tell
+	]], clip))
+	usleep(500)
+	sourceApp:activate()
 end)
 
 --hs.hotkey.bind({"cmd"}, "l", function()

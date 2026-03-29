@@ -149,64 +149,119 @@ require("lazy").setup({
 		-- Configure snacks.explorer to show hidden/dot files, disable git icons
 		{
 			"folke/snacks.nvim",
-			opts = {
-				notifier = {
-					timeout = 3, -- 10s instead of default 3s
-				},
-				explorer = {
-					replace_netrw = false,
-				},
-				picker = {
-					sources = {
-						files = {
-							win = {
-								input = {
-									keys = {
-										["y"] = function()
-											local pickers = Snacks.picker.get({ source = "files" })
-											if #pickers > 0 then
-												local item = pickers[1]:current()
-												if item and item.file then
-													vim.fn.setreg("+", item.file)
-													vim.notify("Copied: " .. item.file)
-												end
-											end
-										end,
-									},
-								},
-							},
-						},
-						explorer = {
-							hidden = true,
-							ignored = true,
-							git_status = false,
-							git_untracked = false,
-							diagnostics = false,
-							auto_close = true,
-							jump = { close = true },
-							win = {
-								list = {
-									keys = {
-										["y"] = function()
-											local pickers = Snacks.picker.get({ source = "explorer" })
-											if #pickers > 0 then
-												local item = pickers[1]:current()
-												if item and item.file then
-													local name = vim.fn.fnamemodify(item.file, ":t")
-													vim.fn.setreg("+", name)
-													vim.notify("Copied: " .. name)
-												end
-											end
-										end,
-										["p"] = "explorer_close",
-									["r"] = "explorer_update",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			opts = function(_, opts)
+				opts.notifier = opts.notifier or {}
+				opts.notifier.timeout = 3
+
+				opts.explorer = opts.explorer or {}
+				opts.explorer.replace_netrw = false
+
+				opts.picker = opts.picker or {}
+				opts.picker.sources = opts.picker.sources or {}
+
+				opts.picker.sources.files = opts.picker.sources.files or {}
+				opts.picker.sources.files.win = opts.picker.sources.files.win or {}
+				opts.picker.sources.files.win.input = opts.picker.sources.files.win.input or {}
+				opts.picker.sources.files.win.input.keys = opts.picker.sources.files.win.input.keys or {}
+				opts.picker.sources.files.win.input.keys["y"] = function()
+					local pickers = Snacks.picker.get({ source = "files" })
+					if #pickers > 0 then
+						local item = pickers[1]:current()
+						if item and item.file then
+							vim.fn.setreg("+", item.file)
+							vim.notify("Copied: " .. item.file)
+						end
+					end
+				end
+
+				opts.picker.sources.explorer = opts.picker.sources.explorer or {}
+				local exp = opts.picker.sources.explorer
+				exp.hidden = true
+				exp.ignored = true
+				exp.git_status = false
+				exp.git_untracked = false
+				exp.diagnostics = false
+				exp.auto_close = true
+				exp.jump = { close = true }
+				exp.matcher = { fuzzy = false }
+				exp.win = exp.win or {}
+				exp.win.list = exp.win.list or {}
+				exp.win.list.keys = exp.win.list.keys or {}
+				local keys = exp.win.list.keys
+
+				keys["y"] = {
+					function(self)
+						vim.defer_fn(function()
+							local c = vim.fn.getcharstr()
+							local pickers = Snacks.picker.get({ source = "explorer" })
+							if #pickers == 0 then return end
+							local item = pickers[1]:current()
+							if not item or not item.file then return end
+							if c == "y" then
+								local name = vim.fn.fnamemodify(item.file, ":t")
+								vim.fn.setreg("+", name)
+								vim.notify("Copied name: " .. name)
+							elseif c == "b" then
+								local abs_path = vim.fn.fnamemodify(item.file, ":p")
+								vim.fn.setreg("+", abs_path)
+								vim.notify("Copied path: " .. abs_path)
+							end
+						end, 0)
+					end,
+					desc = "yy=copy name, yb=copy abs path",
+				}
+
+				keys["c"] = {
+					function(self)
+						local pickers = Snacks.picker.get({ source = "explorer" })
+						if #pickers == 0 then return end
+						local picker = pickers[1]
+						local item = picker:current()
+						if not item or not item.file then return end
+						local sel = vim.tbl_map(Snacks.picker.util.path, picker:selected())
+						if #sel > 0 then
+							local dir = picker:dir()
+							Snacks.picker.util.copy(sel, dir)
+							picker.list:set_selected()
+							picker:find()
+							return
+						end
+						local fname = vim.fn.fnamemodify(item.file, ":t")
+						local cwd = vim.loop.cwd()
+						Snacks.input({
+							prompt = "Copy " .. fname .. " to (relative to cwd)",
+							completion = "file",
+						}, function(value)
+							if not value or value:find("^%s*$") then return end
+							local uv = vim.uv or vim.loop
+							local to
+							if value:sub(1, 1) == "/" or value:sub(1, 1) == "~" then
+								to = vim.fs.normalize(vim.fn.expand(value))
+							else
+								to = vim.fs.normalize(cwd .. "/" .. value)
+							end
+							local stat = uv.fs_stat(to)
+							if stat and stat.type == "directory" then
+								to = to .. "/" .. fname
+							end
+							if uv.fs_stat(to) then
+								Snacks.notify.warn("File already exists:\n- `" .. to .. "`")
+								return
+							end
+							local to_dir = vim.fs.dirname(to)
+							if not uv.fs_stat(to_dir) then
+								vim.fn.mkdir(to_dir, "p")
+							end
+							Snacks.picker.util.copy_path(item.file, to)
+							picker:find()
+						end)
+					end,
+					desc = "Copy file to destination",
+				}
+
+				keys["p"] = "explorer_close"
+				keys["r"] = "explorer_update"
+			end,
 		},
 		{
 			"stevearc/conform.nvim",
@@ -1020,6 +1075,9 @@ vim.api.nvim_set_keymap("n", "r", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-r>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-g>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-f>", "<Nop>", { noremap = true, silent = true })
+-- Kitty remaps Ctrl+J/K to F13/F14 escape sequences
+vim.keymap.set({ "n", "v" }, "<F13>", "<C-f>", { noremap = true, silent = true, desc = "Page down" })
+vim.keymap.set({ "n", "v" }, "<F14>", "<C-b>", { noremap = true, silent = true, desc = "Page up" })
 
 --keymaps
 -- NERDTree mapping only for older nvim (0.9.1); overridden to Neotree in 0.11.5 block
@@ -1064,6 +1122,7 @@ vim.opt.clipboard = "unnamedplus"
 vim.keymap.set("n", ",f", function()
 	Snacks.explorer()
 end, { noremap = true, desc = "Open file explorer" })
+
 
 --    if not python_package_exists('jedi') then
 --        print('install jedi')
@@ -1121,11 +1180,74 @@ let g:mkdp_auto_start = 0
 let g:mkdp_auto_close = 0
 ]])
 
+local grip_port = 6419
+local grip_bin = "/Users/maojingwei/go/bin/go-grip"
+local grip_root = nil
+
+local function grip_running()
+	return os.execute("curl -s -o /dev/null http://localhost:" .. grip_port) == 0
+end
+
+local function find_grip_root(path)
+	local dir = vim.fn.fnamemodify(path, ":p:h")
+	local prev = nil
+	while dir ~= prev do
+		if vim.fn.filereadable(dir .. "/README.md") == 1 or vim.fn.isdirectory(dir .. "/.git") == 1 then
+			return dir
+		end
+		prev = dir
+		dir = vim.fn.fnamemodify(dir, ":h")
+	end
+	return vim.fn.fnamemodify(path, ":p:h")
+end
+
+local function start_grip(root)
+	if grip_running() and grip_root == root then
+		return
+	end
+	os.execute("pkill -f 'go-grip' 2>/dev/null")
+	vim.wait(500, function() return false end)
+	grip_root = root
+	local cmd = grip_bin
+		.. " -b=false"
+		.. " -p " .. grip_port
+		.. " " .. vim.fn.shellescape(root)
+	vim.fn.jobstart(cmd, { detach = true })
+	local ok = vim.wait(5000, grip_running, 200)
+	if not ok then
+		vim.notify("go-grip failed to start on " .. root, vim.log.levels.ERROR)
+	end
+end
+
+local function open_in_grip()
+	local file = vim.fn.expand("%:p")
+	local root = find_grip_root(file)
+
+	start_grip(root)
+
+	-- go-grip serves from the parent of the path it receives,
+	-- so the URL includes root's basename as a prefix.
+	local serve_root = vim.fn.fnamemodify(root, ":h")
+	local rel = file:sub(#serve_root + 2)
+	local url = "http://localhost:" .. grip_port .. "/" .. rel
+	local app = vim.fn.system(
+		[[osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true']]
+	):gsub("%s+$", "")
+	vim.fn.system(
+		'open -na "Google Chrome" --args --profile-directory="markdownpreview" '
+			.. vim.fn.shellescape(url)
+			.. " >/dev/null 2>&1 &"
+	)
+	vim.defer_fn(function()
+		vim.fn.system([[osascript -e 'tell application "]] .. app .. [[" to activate']])
+	end, 600)
+end
+
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "markdown",
 	callback = function()
 		vim.opt_local.spell = false
-		vim.keymap.set("n", "m", "<cmd>MarkdownPreviewToggle<CR>", { buffer = true, desc = "Markdown Preview" })
+		vim.keymap.set("n", "m", open_in_grip, { buffer = true, desc = "Grip Preview" })
 	end,
 })
 
@@ -1163,20 +1285,6 @@ require("img-clip").setup({
 	},
 })
 
---vim.keymap.set({ "n", "i" }, "<D-v>", function()
---  if vim.bo.filetype ~= "markdown" then
---    vim.api.nvim_paste(vim.fn.getreg("+"), true, -1)
---    return
---  end
---
---  -- check if clipboard contains image (macOS)
---  local has_image = vim.fn.system("pngpaste -b >/dev/null 2>&1; echo $?")
---  if has_image:match("0") then
---    vim.cmd("PasteImage")
---  else
---    vim.api.nvim_paste(vim.fn.getreg("+"), true, -1)
---  end
---end, { desc = "Smart Cmd+V" })
 
 vim.keymap.set({ "n" }, "<leader>v", "<cmd>PasteImage<CR>", { desc = "Smart Cmd+V" })
 

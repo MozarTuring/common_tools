@@ -40,93 +40,161 @@ END {
 '
 }
 
-if [[ "$1" == "slurm" ]]; then
-    export JWM_COMMIT_ID=$2
-    export JWM_RUN_TAG=$4
+if [[ "$1" == "remote"* ]]; then
+    export RUN_PROJ=$2
+    export JWM_COMMIT_ID_L=$3
+    export RUN_ID=$4
+    export RUN_DIR_PRE=$5
+    export SERVER_NAME=$6
+    cd ${RUN_PROJ} &&
+        echo "start run remote.sh" &&
+        { source remote.sh || {
+            echo "ERROR: remote.sh failed, aborting"
+            return 1
+        }; } &&
+        if [[ "$1" == "remote_slurm" ]]; then
+            export JWM_COMMIT_ID=${JWM_COMMIT_ID_L}
+            # export JWM_COMMIT_ID=$(git rev-parse HEAD)
+            # if [ "${JWM_COMMIT_ID_L}" != "${JWM_COMMIT_ID}" ]; then
+            #     echo "error git commit hash differ, local:  ${JWM_COMMIT_ID_L}, remote: ${JWM_COMMIT_ID}"
+            #     return
+            # fi
+            export RUN_DIR="${RUN_DIR_PRE}/${RUN_PROJ}_runs/${RUN_ID}/"
+            mkdir -p ${RUN_DIR}
+            cp -R . ${RUN_DIR}
+            cd ${RUN_DIR}
+            if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
+                export JWM_GPU_TYPE=A40
+                echo "A40 available"
+            elif check_gpu T4 ${JWM_GPU_NUM} >/dev/null; then
+                export JWM_GPU_TYPE=T4
+                echo "T4 available"
+            else
+                echo "no gpu available"
+                return
+            fi
+            echo "GPU_TYPE: $JWM_GPU_TYPE"
+            echo "COMMIT:   $JWM_COMMIT_ID"
+            echo "RUN_DIR:  $RUN_DIR"
 
-    source remote.sh
-    # Run tag: use JWM_RUN_TAG from remote.sh/env, or auto-generate from timestamp.
-    # This allows multiple runs under the same commit.
-    #   runs/<project>/<commit>/<run_tag>/
-    export RUN_ID="${JWM_COMMIT_ID}/${JWM_RUN_TAG}"
-    export RUN_DIR="../runs/${3}/${RUN_ID}/"
+            if (("${JWM_GPU_NUM}" == "0")); then
+                GPU_FLAG=""
+            else
+                GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
+            fi
+            echo ${SERVER_NAME}
+            if [[ "${SERVER_NAME}" == "juwels_cluster" ]]; then
+                GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
+                CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
+            fi
+            sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG} --job-name=${JWM_COMMIT_ID} --output=slurm_out.log --error=slurm_out.log slurm.sh"
+            echo ${sbatch_args}
+            sbatch_output=$(sbatch ${sbatch_args}) || { echo "sbatch failed"; return 1; }
+            echo "$sbatch_output"
+            job_id=$(echo "$sbatch_output" | grep -oP '\d+$')
+            echo "Job ID: $job_id"
 
+            while ! [ -f slurm_out.log ]; do sleep 1; done
 
-    if [ -z "${JWM_GPU_TYPE}" ]; then
-        if check_gpu T4 ${JWM_GPU_NUM}; then
-            export JWM_GPU_TYPE=T4
-        elif check_gpu A40 ${JWM_GPU_NUM}; then
-            export JWM_GPU_TYPE=A40
-        else
-            export JWM_GPU_TYPE=A40
+            echo "=== Showing logs for 2 minutes ==="
+            timeout 120 tail -f slurm_out.log || true
+
+            echo ""
+            echo "=== Stopped live log. Waiting for job $job_id to finish ==="
+            while squeue -j "$job_id" 2>/dev/null | grep -q "$job_id"; do
+                sleep 30
+            done
+
+            echo "=== Job $job_id stopped or finished! ==="
+            tail -n 100 slurm_out.log
+
+            for i in 1 2 3; do
+                printf '\a'
+                sleep 0.3
+            done
+            echo "DONE: Job $job_id completed."
+
+        elif [[ "$1" == "remote_docker" ]]; then
+            echo "done"
+        elif [[ "$1" == "remote_docker_compose" ]]; then
+            while true; do
+                status=$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null)
+
+                if [ $? -ne 0 ]; then
+                    echo "ERROR: Container '$container_name' not found."
+                    break
+                fi
+
+                if [ "$status" = "exited" ] || [ "$status" = "dead" ]; then
+                    echo "ERROR: Container has stopped (status: $status). Check logs:"
+                    break
+                fi
+
+                if [ "$status" = "restarting" ]; then
+                    echo "ERROR: Container is in a restart loop. Check logs:"
+                    break
+                fi
+
+                health=$(docker inspect --format='{{.State.Health.Status}}' "$container_name" 2>/dev/null)
+
+                if [ "$health" = "healthy" ]; then
+                    echo "vLLM is ready!"
+                    break
+                elif [ "$health" = "unhealthy" ]; then
+                    echo "ERROR: Container is unhealthy. Check logs:"
+                    break
+                fi
+
+                echo "Waiting for '${container_name}' to become healthy... (container: $status, health: $health)"
+                sleep 10
+            done
+            docker logs $container_name >tmplogs.jwm
+            echo "logs is ready"
         fi
-    fi
-    echo "GPU_TYPE: $JWM_GPU_TYPE"
-    echo "COMMIT:   $JWM_COMMIT_ID"
-    echo "RUN_TAG:  $JWM_RUN_TAG"
-    echo "RUN_DIR:  $RUN_DIR"
-
-    mkdir -p ${RUN_DIR}
-    cp -R . ${RUN_DIR}
-    cd ${RUN_DIR}
-    sbatch --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM} --job-name="${JWM_COMMIT_ID:0:8}_${JWM_RUN_TAG}" slurm.sh && while ! [ -f slurm_out.log ]; do sleep 1; done && tail -f slurm_out.log
-
 else
+    # if [[ "$3" != "remote_docker" && "$3" != "remote_slurm" && "$3" != "remote_docker_compose" ]]; then
+    #     echo "ERROR: \$3 must be one of 'remote_docker', 'remote_slurm', 'remote_docker_compose', got '$3'"
+    #     return 1 2>/dev/null || true
+    # fi
     cd $2/ &&
+        while IFS= read -r pattern; do
+            grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
+        done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt &&
         git submodule foreach 'git add -A && (git commit -m "v" || true)' &&
-        git add -A && (git commit -m "v" || true) && last_commit=$(git rev-parse HEAD) &&
-        cd .. &&
-        tar --disable-copyfile --exclude='.git' --exclude='.DS_Store' -czf tmp.tar.gz "$2" common_tools/meta_script.sh && scp tmp.tar.gz "$1":~/project_remote_jwm/
-
-    echo ${last_commit}
-    jwm_run_tag="$(date +%Y%m%d_%H%M%S)"
-
-    echo """
-if false; then
-    rsync -av alvis1:~/project_remote_jwm/runs/${2}/${last_commit}/${jwm_run_tag}/ /Users/maojingwei/baidu/project/zzzjwmoutput/${2}/runs/${last_commit}/${jwm_run_tag}
-fi
-""" >>${2}/remote.sh
-
-    osascript - "$2" "${last_commit}" "$3" "${jwm_run_tag}" <<'EOF'
-on run argv
-    set p1 to item 1 of argv
-    set p2 to item 2 of argv
-    set p3 to item 3 of argv
-    set p4 to item 4 of argv
-    tell application "iTerm2"
-        tell current window
-            tell current session
-                write text (ASCII character 3)
-                delay 2
-                write text "cd ~/project_remote_jwm && tar -xzf tmp.tar.gz && cd " & p1 & " && source ../common_tools/meta_script.sh " & p3 & " " & p2 & " " & p1 & " " & p4
-            end tell
-        end tell
-    end tell
-end run
-EOF
-fi
-
-if false; then
-    # remote
-    scancel 5990391
-    exit
-    ssh alvis1
-    ssh custodian2greatrawr
-    nvidia-smi
-    docker ps -a
-    docker stop vllm
-    docker rm vllm
-    du -h --max-depth=1 ~/.cache/huggingface/hub
-    curl http://ferragon.stellar.research.liu.se:8005/v1/models
-    docker logs vllm_qwen3-coder-next-fp8 --tail=3000 >tmplogs.jwm && vim tmplogs.jwm
-    curl http://ferragon.stellar.research.liu.se:8005/v1/models
-    curl http://ferragon.stellar.research.liu.se:8005/v1/chat/completions \
-        -H "Content-Type: application/json" \
-        -d '{
-        "model": "qwen3-coder-next-fp8",
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "Who won the world series in 2020?"}
-        ]
-    }'
+        git add -A &&
+        (
+            _staged=$(git diff --cached --name-only)
+            if [[ -n "$_staged" && "$_staged" != "remote.sh" ]]; then
+                git commit -m "v"
+            fi
+        ) &&
+        last_commit=$(git rev-parse HEAD) &&
+        cd - &&
+        echo ${last_commit} &&
+        run_timestamp="$(date +%Y%m%d_%H%M%S)" &&
+        run_id="${run_timestamp}_${last_commit}" &&
+        if [[ "${1}" == "juwels_cluster" || "${1}" == "juwels_booster" ]]; then
+            run_dir_pre=/p/project1/trustllm-eu/mao4
+        elif [[ ${1} == "custodian"* ]]; then
+            run_dir_pre=/home/custodian/project_remote_jwm
+        elif [[ ${1} == "alvis"* ]]; then
+            run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
+        else
+            exit
+        fi
+    echo ${run_dir_pre} &&
+        rsync -av --exclude-from='common_tools/rsync_exclude.txt' $2/ "$1":${run_dir_pre}/$2/ &&
+        if [[ "${3}" == "sync" ]]; then
+            echo "sync done"
+            return
+        fi &&
+        rsync -av --exclude-from='common_tools/rsync_exclude.txt' common_tools/ "$1":${run_dir_pre}/common_tools/ &&
+        echo """
+ if false; then
+     rsync -av ${1}:${run_dir_pre}/${2}_runs/${run_id}/ /Users/maojingwei/baidu/project/zzzjwmoutput/${2}_runs/${run_id}
+ fi
+ """ >>${2}/remote.sh &&
+        ssh -t "$1" "bash --login -c 'cd ${run_dir_pre} && source common_tools/meta_script.sh $3 $2 ${last_commit} ${run_id} ${run_dir_pre} $1'"
+    for i in 1 2 3; do printf '\a'; sleep 0.3; done
+    echo "DONE: remote task on $1 finished."
 fi
