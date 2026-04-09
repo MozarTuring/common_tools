@@ -1,1 +1,5 @@
 .git
+logs/
+volumes/
+__pycache__/
+.venv/

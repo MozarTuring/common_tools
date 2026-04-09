@@ -330,6 +330,21 @@ require("lazy").setup({
 			},
 		},
 		{ "iamcco/markdown-preview.nvim", build = "cd app && npx --yes yarn install" },
+	-- Enable wrap in all Neogit buffers
+	{
+		"NeogitOrg/neogit",
+		init = function()
+			vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
+				callback = function()
+					local ft = vim.bo.filetype or ""
+					local name = vim.api.nvim_buf_get_name(0)
+					if ft:match("^Neogit") or ft:match("^neogit") or name:match("Neogit") then
+						vim.wo.wrap = true
+					end
+				end,
+			})
+		end,
+	},
 		{ "HakonHarnes/img-clip.nvim" },
 		{
 			"lervag/vimtex",
@@ -339,7 +354,7 @@ require("lazy").setup({
 				vim.g.vimtex_view_skim_activate = 1 -- bring Skim to front on VimtexView
 				vim.g.vimtex_compiler_method = "latexmk"
 				vim.g.vimtex_compiler_latexmk = {
-					aux_dir = "",
+					aux_dir = "latex_compilation",
 					out_dir = "",
 					options = {
 						"-synctex=1", -- enable synctex for inverse sync (pdf -> tex)
@@ -353,7 +368,26 @@ require("lazy").setup({
 				pattern = "VimtexEventCompileSuccess",
 				callback = function()
 					vim.cmd("VimtexView")
-					-- Dismiss the "Compilation completed" message after 2 seconds
+
+					local tex_file = vim.fn.expand("%:p")
+					local tex_dir = vim.fn.fnamemodify(tex_file, ":h")
+					local base_name = vim.fn.fnamemodify(tex_file, ":t:r")
+					local synctex = tex_dir .. "/" .. base_name .. ".synctex.gz"
+					if vim.fn.filereadable(synctex) == 1 then
+						local dest = tex_dir .. "/latex_compilation"
+						vim.fn.mkdir(dest, "p")
+						os.rename(synctex, dest .. "/" .. base_name .. ".synctex.gz")
+					end
+
+					-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
+					local handle = io.popen('ls "' .. tex_dir .. '"/pdflatex*.fls 2>/dev/null')
+					if handle then
+						for f in handle:lines() do
+							os.remove(f)
+						end
+						handle:close()
+					end
+
 					vim.defer_fn(function()
 						vim.cmd("echo ''")
 					end, 2000)
@@ -488,8 +522,16 @@ vim.keymap.set("n", "fg", function()
 		hidden = true,
 		ignored = true,
 		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
+		args = { "--fixed-strings" },
 	})
-end, { desc = "Live grep" })
+end, { desc = "Live grep (literal)" })
+vim.keymap.set("n", "fG", function()
+	Snacks.picker.grep({
+		hidden = true,
+		ignored = true,
+		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
+	})
+end, { desc = "Live grep (regex)" })
 
 local function setup_auto_refresh(file_path)
 	-- Create an augroup to contain the autocommands
@@ -941,7 +983,9 @@ function OpenOrSwitchToFile(filename)
 	if not bfound then
 		local dir = filename:match("^(.*)/")
 		jw_mkdir(dir)
-		vim.cmd("tabnew " .. filename)
+		local bufnr = vim.fn.bufadd(filename)
+		vim.bo[bufnr].buflisted = true
+		vim.cmd("buffer " .. bufnr)
 	end
 end
 
@@ -1054,8 +1098,8 @@ vim.api.nvim_set_keymap("n", "D", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "E", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "F", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "H", "<Nop>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "J", "<Nop>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "K", "<Nop>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "J", "<C-f>", { noremap = true, silent = true, desc = "Page down" })
+vim.api.nvim_set_keymap("n", "K", "<C-b>", { noremap = true, silent = true, desc = "Page up" })
 vim.api.nvim_set_keymap("n", "L", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "M", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "Q", "<Nop>", { noremap = true, silent = true })
@@ -1075,9 +1119,6 @@ vim.api.nvim_set_keymap("n", "r", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-r>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-g>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-f>", "<Nop>", { noremap = true, silent = true })
--- Kitty remaps Ctrl+J/K to F13/F14 escape sequences
-vim.keymap.set({ "n", "v" }, "<F13>", "<C-f>", { noremap = true, silent = true, desc = "Page down" })
-vim.keymap.set({ "n", "v" }, "<F14>", "<C-b>", { noremap = true, silent = true, desc = "Page up" })
 
 --keymaps
 -- NERDTree mapping only for older nvim (0.9.1); overridden to Neotree in 0.11.5 block
@@ -1109,8 +1150,7 @@ vim.api.nvim_set_keymap("n", "fl", "<cmd>lua OpenLog()<CR>", { noremap = true, s
 
 --vim.api.nvim_set_keymap('n', 'ee', '<cmd>lua jw_iron_restart()<CR>', { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap("n", "cp", "<cmd>lua CopyFilePathToClipboard()<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "cp", "<cmd>lua CopyFilePathToClipboard()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "yb", "<cmd>lua CopyFilePathToClipboard()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", ";w", "<cmd>lua myWriteFile()<CR>", { noremap = true, silent = true })
 
 vim.api.nvim_set_keymap("v", "sy", ":lua copy_visual_lines()<CR>", { noremap = true, silent = true }) -- here <cmd> not work in windows
@@ -1150,19 +1190,6 @@ end
 --})
 -- Open Glow immediately on markdown open
 --
-vim.cmd([[
-function! OpenMarkdownPreview(url)
-  let l:app = trim(system('osascript -e ''tell application "System Events" to get name of first application process whose frontmost is true'''))
-  call system(
-        \ 'open -na "Google Chrome" --args ' .
-        \ '--profile-directory="markdownpreview" ' .
-        \ shellescape(a:url) . ' >/dev/null 2>&1 &'
-        \ )
-  call timer_start(600, {-> system('osascript -e ''tell application "' . l:app . '" to activate''')})
-endfunction
-
-let g:mkdp_browserfunc = 'OpenMarkdownPreview'
-]])
 
 -- Tell markdown-preview.nvim to use our browser opener
 --vim.g.mkdp_browserfunc = "MkdpBrowserStay"
@@ -1234,7 +1261,7 @@ local function open_in_grip()
 		[[osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true']]
 	):gsub("%s+$", "")
 	vim.fn.system(
-		'open -na "Google Chrome" --args --profile-directory="markdownpreview" '
+		'open -a "Safari" '
 			.. vim.fn.shellescape(url)
 			.. " >/dev/null 2>&1 &"
 	)
@@ -1397,6 +1424,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			if vim.api.nvim_buf_is_valid(buf) then
 				vim.keymap.set("n", "gy", "<cmd>BufferLineCycleNext<CR>", { buffer = buf, noremap = true, silent = true })
 				vim.keymap.set("n", "gt", "<cmd>BufferLineCyclePrev<CR>", { buffer = buf, noremap = true, silent = true })
+				vim.keymap.set("n", "K", "<C-b>", { buffer = buf, noremap = true, silent = true, desc = "Page up" })
 			end
 		end, 500)
 	end,
@@ -1587,6 +1615,17 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 		end
 	end,
 })
+
+vim.keymap.set("n", "fj", function()
+	local log = vim.fn.expand("~/hammerspoon_cmd.log")
+	OpenOrSwitchToFile(log)
+	vim.cmd("edit!")
+	vim.cmd("normal! G")
+end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
+
+vim.defer_fn(function()
+	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
+end, 500)
 
 -- brew install --cask font-jetbrains-mono-nerd-font
 -- terminal should also use JetBrainsMono Nerd Font (or JetBrainsMono NF)

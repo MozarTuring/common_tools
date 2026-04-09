@@ -1,6 +1,8 @@
 -- rm ~/.hammerspoon/init.lua;ln -s /Users/maojingwei/Library/CloudStorage/OneDrive-Personal/project/common_tools/hamperspoon.lua ~/.hammerspoon/init.lua
 -- Translation of your AHK script to Hammerspoon (Lua)
 
+require("hs.ipc")
+
 ------------------------------------------------------------
 -- CONFIG: update these to match your setup
 -----------------------------------------------------------
@@ -281,7 +283,7 @@ hs.hotkey.bind({ "ctrl" }, "h", function()
 end)
 
 hs.hotkey.bind({ "ctrl" }, "l", function()
-    local SRC_TITLE = "net.kovidgoyal.kitty" -- source window/app title substring
+	local SRC_TITLE = "net.kovidgoyal.kitty"
 	local sourceApp = hs.application.frontmostApplication()
 	if not sourceApp or sourceApp:bundleID() ~= SRC_TITLE then
 		return
@@ -296,14 +298,19 @@ hs.hotkey.bind({ "ctrl" }, "l", function()
 		hs.alert.show("Clipboard is empty")
 		return
 	end
-	hs.osascript.applescript(string.format([[
-		tell application "Terminal"
-			activate
-			do script %q in front window
-		end tell
-	]], clip))
+
+	local logFile = os.getenv("HOME") .. "/hammerspoon_cmd.log"
+	local cmd = clip:gsub("%s+$", "")
+	cmd = cmd:gsub("curl ", "curl -s ")
+	cmd = cmd:gsub("&& ", "&& echo && ")
+
+	local shellScript = string.format(
+		'exec > %q 2>&1; echo "--- [$(date)] ---"; set -x; %s',
+		logFile, cmd
+	)
+	hs.task.new("/bin/bash", nil, { "-c", shellScript }):start()
 	usleep(500)
-	sourceApp:activate()
+	hs.eventtap.keyStrokes("fj")
 end)
 
 hs.hotkey.bind({ "ctrl" }, "f", function()
