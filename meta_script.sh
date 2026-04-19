@@ -1,5 +1,4 @@
 set -e
-cd /Users/maojingwei/baidu/project/
 sync_and_commit_repo() {
     local repo_path="$1"
     cd "$repo_path"
@@ -257,6 +256,7 @@ else
     #     echo "ERROR: \$3 must be one of 'remote_docker', 'remote_slurm', 'remote_docker_compose', got '$3'"
     #     return 1 2>/dev/null || true
     # fi
+    cd /Users/maojingwei/baidu/project/
     export SERVER_NAME="$1"
     if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" ]]; then
         export run_dir_pre=/p/project1/trustllm-eu/mao4
