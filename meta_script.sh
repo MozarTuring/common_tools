@@ -261,7 +261,7 @@ else
     if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" ]]; then
         export run_dir_pre=/p/project1/trustllm-eu/mao4
     elif [[ ${SERVER_NAME} == "ferragon" || ${SERVER_NAME} == "greatrawr" ]]; then
-        export run_dir_pre=/home/custodian/project_remote_jwm
+        export run_dir_pre=/home/jinma/project_remote_jwm
     elif [[ ${SERVER_NAME} == "alvis"* ]]; then
         export run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
     elif [[ ${SERVER_NAME} == "berzelius"* ]]; then
