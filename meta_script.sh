@@ -272,7 +272,6 @@ else
         sync_and_commit_repo "common_tools" &&
         sync_and_commit_repo "$2" &&
         echo ${last_commit} &&
-        return 0
     local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}" &&
         if [[ "$3" == "remote_slurm" ]]; then
             run_timestamp="$(date +%Y%m%d_%H%M%S)" &&
@@ -289,7 +288,7 @@ else
     local nohup_log="${local_dir}/nohup_monitor.log"
 
     echo "Running remote setup... (output: $nohup_log)"
-    ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools/meta_script.sh $3 ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $1" 2>&1 | tee "$nohup_log" &&
+    ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_master/meta_script.sh $3 ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $1" 2>&1 | tee "$nohup_log" &&
         remote_job_id=$(ssh "$1" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
 
     if [ -n "${remote_job_id}" ]; then
