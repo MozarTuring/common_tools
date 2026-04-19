@@ -1,5 +1,3 @@
-set -e
-
 sync_and_commit_repo() {
     local repo_path="$1"
     cd "$repo_path" &&
