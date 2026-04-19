@@ -279,7 +279,7 @@ else
                 run_id="${run_timestamp}_${last_commit}" &&
                 local_dir="${local_dir}/${run_id}"
         fi &&
-        mkdir -p "$local_dir" || { echo "FAILED: sync/commit/setup failed"; return 1; }
+        mkdir -p "$local_dir"
     if [[ "$3" == "remote_docker_compose" ]]; then
         local ports_before="${local_dir}/ports_before.txt"
         ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
