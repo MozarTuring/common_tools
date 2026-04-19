@@ -10,7 +10,7 @@ sync_and_commit_repo() {
     git add -A
     (
         _staged=$(git diff --cached --name-only)
-        _non_config=$(echo "$_staged" | grep -v "^jwm_configs/")
+        _non_config=$(echo "$_staged" | grep -v "^jwm_configs/" || true)
         if [[ -n "$_staged" && -n "$_non_config" ]]; then
             git commit -m "v"
         fi
