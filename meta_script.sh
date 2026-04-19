@@ -281,12 +281,12 @@ else
         fi &&
         mkdir -p "$local_dir"
     if [[ "$3" == "remote_docker_compose" ]]; then
-        local ports_before="${local_dir}/ports_before.txt"
+        ports_before="${local_dir}/ports_before.txt"
         ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     fi
 
     # --- launch job and get remote_job_id ---
-    local nohup_log="${local_dir}/nohup_monitor.log"
+    nohup_log="${local_dir}/nohup_monitor.log"
 
     echo "Running remote setup... (output: $nohup_log)"
     ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_master/meta_script.sh $3 ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $1" 2>&1 | tee "$nohup_log"
@@ -297,11 +297,11 @@ else
         echo "local dir: ${local_dir}"
 
         if [[ "$3" == "remote_slurm" ]]; then
-            local monitor_args=(slurm "$1" "$remote_job_id" "$run_dir_remote" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
+            monitor_args=(slurm "$1" "$remote_job_id" "$run_dir_remote" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
         elif [[ "$3" == "remote_docker" ]]; then
-            local monitor_args=(docker "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
+            monitor_args=(docker "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
         else
-            local monitor_args=(pid "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
+            monitor_args=(pid "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
             if [[ "$3" == "remote_docker_compose" ]]; then
                 monitor_args+=(port_forward "$ports_before")
             fi
@@ -309,7 +309,7 @@ else
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
         nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
-        local monitor_pid=$!
+        monitor_pid=$!
         echo "Background monitor PID: $monitor_pid"
 
         if [[ -f "$2/jwm_configs/local.sh" ]]; then
