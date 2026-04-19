@@ -23,7 +23,9 @@ sync_and_commit_repo() {
             run_dir_remote="${run_dir_pre}/${_remote_proj}" &&
             rsync -av --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
     fi
+    local _sync_rc=$?
     cd - >/dev/null
+    return $_sync_rc
 }
 
 check_gpu() {
