@@ -2,28 +2,28 @@ set -e
 cd /Users/maojingwei/baidu/project/
 sync_and_commit_repo() {
     local repo_path="$1"
-    cd "$repo_path" &&
-        while IFS= read -r pattern; do
-            grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
-        done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt &&
-        git submodule foreach 'git add -A && (git commit -m "v" || true)' &&
-        git add -A &&
-        (
-            _staged=$(git diff --cached --name-only)
-            _non_config=$(echo "$_staged" | grep -v "^jwm_configs/")
-            if [[ -n "$_staged" && -n "$_non_config" ]]; then
-                git commit -m "v"
-            fi
-        ) &&
-        last_commit=$(git rev-parse HEAD)
+    cd "$repo_path"
+    while IFS= read -r pattern; do
+        grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
+    done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt
+    git submodule foreach 'git add -A && (git commit -m "v" || true)'
+    git add -A
+    (
+        _staged=$(git diff --cached --name-only)
+        _non_config=$(echo "$_staged" | grep -v "^jwm_configs/")
+        if [[ -n "$_staged" && -n "$_non_config" ]]; then
+            git commit -m "v"
+        fi
+    )
+    last_commit=$(git rev-parse HEAD)
     if [[ -n "$SERVER_NAME" ]]; then
-        _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null) &&
-            _remote_proj="${repo_path}_${_git_branch}"
-        echo "remote dir: ${_remote_proj}" &&
-            echo "${run_dir_pre}" &&
-            { [[ -f "jwm_configs/local.sh" ]] && source "jwm_configs/local.sh" pre || true; } &&
-            run_dir_remote="${run_dir_pre}/${_remote_proj}" &&
-            rsync -av --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
+        _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
+        _remote_proj="${repo_path}_${_git_branch}"
+        echo "remote dir: ${_remote_proj}"
+        echo "${run_dir_pre}"
+        { [[ -f "jwm_configs/local.sh" ]] && source "jwm_configs/local.sh" pre || true; }
+        run_dir_remote="${run_dir_pre}/${_remote_proj}"
+        rsync -av --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
     fi
     local _sync_rc=$?
     cd - >/dev/null
@@ -74,8 +74,8 @@ END {
 
 if [[ "$1" == "remote"* ]]; then
     echo "$1, $2, $3, $4"
-    cd "$4"/"$2" &&
-        rm "remote_job_id.txt" 2>/dev/null || true
+    cd "$4"/"$2"
+    rm "remote_job_id.txt" 2>/dev/null || true
     echo """
 set -e
 
@@ -269,17 +269,17 @@ else
     else
         return 0
     fi
-    ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true &&
-        sync_and_commit_repo "common_tools" &&
-        sync_and_commit_repo "$2" &&
-        echo ${last_commit} &&
-        local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}" &&
-        if [[ "$3" == "remote_slurm" ]]; then
-            run_timestamp="$(date +%Y%m%d_%H%M%S)" &&
-                run_id="${run_timestamp}_${last_commit}" &&
-                local_dir="${local_dir}/${run_id}"
-        fi &&
-        mkdir -p "$local_dir"
+    ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
+    sync_and_commit_repo "common_tools"
+    sync_and_commit_repo "$2"
+    echo ${last_commit}
+    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
+    if [[ "$3" == "remote_slurm" ]]; then
+        run_timestamp="$(date +%Y%m%d_%H%M%S)"
+        run_id="${run_timestamp}_${last_commit}"
+        local_dir="${local_dir}/${run_id}"
+    fi
+    mkdir -p "$local_dir"
     if [[ "$3" == "remote_docker_compose" ]]; then
         ports_before="${local_dir}/ports_before.txt"
         ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
