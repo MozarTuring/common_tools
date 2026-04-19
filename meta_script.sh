@@ -1,3 +1,5 @@
+set -e
+
 sync_and_commit_repo() {
     local repo_path="$1"
     cd "$repo_path" &&
@@ -13,8 +15,17 @@ sync_and_commit_repo() {
                 git commit -m "v"
             fi
         ) &&
-        git rev-parse HEAD &&
-        cd -
+        last_commit=$(git rev-parse HEAD)
+    if [[ -n "$SERVER_NAME" ]]; then
+        _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null) &&
+            _remote_proj="${repo_path}_${_git_branch}"
+        echo "remote dir: ${_remote_proj}" &&
+            echo "${run_dir_pre}" &&
+            { [[ -f "jwm_configs/local.sh" ]] && source "jwm_configs/local.sh" pre || true; } &&
+            run_dir_remote="${run_dir_pre}/${_remote_proj}" &&
+            rsync -av --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
+    fi
+    cd - >/dev/null
 }
 
 check_gpu() {
@@ -245,54 +256,38 @@ else
     #     echo "ERROR: \$3 must be one of 'remote_docker', 'remote_slurm', 'remote_docker_compose', got '$3'"
     #     return 1 2>/dev/null || true
     # fi
-    last_commit=$(sync_and_commit_repo "common_tools") &&
-    echo ${last_commit}
-    last_commit=$(sync_and_commit_repo "$2") &&
-    echo ${last_commit}
-exit
+    export SERVER_NAME="$1"
+    if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" ]]; then
+        export run_dir_pre=/p/project1/trustllm-eu/mao4
+    elif [[ ${SERVER_NAME} == "ferragon" || ${SERVER_NAME} == "greatrawr" ]]; then
+        export run_dir_pre=/home/custodian/project_remote_jwm
+    elif [[ ${SERVER_NAME} == "alvis"* ]]; then
+        export run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
+    elif [[ ${SERVER_NAME} == "berzelius"* ]]; then
+        export run_dir_pre=/home/x_jinma/project_remote_jwm
+    else
+        return 0
+    fi
+    ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true &&
+        sync_and_commit_repo "common_tools" &&
+        sync_and_commit_repo "$2" &&
         echo ${last_commit} &&
-        run_timestamp="$(date +%Y%m%d_%H%M%S)" &&
-        run_id="${run_timestamp}_${last_commit}" &&
-        if [[ "${1}" == "juwels_cluster" || "${1}" == "juwels_booster" ]]; then
-            run_dir_pre=/p/project1/trustllm-eu/mao4
-        elif [[ ${1} == "ferragon" || ${1} == "greatrawr" ]]; then
-            run_dir_pre=/home/custodian/project_remote_jwm
-        elif [[ ${1} == "alvis"* ]]; then
-            run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
-        elif [[ ${1} == "berzelius"* ]]; then
-            run_dir_pre=/home/x_jinma/project_remote_jwm
-        else
-            return 0
-        fi
-    # Remote dir is always <project>_<branch> so it's clear which branch is running.
-    # e.g. gpu_commander on main -> gpu_commander_main, on dev -> gpu_commander_dev
-    _git_branch=$(git -C $2 rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)
-    _remote_proj="${2}_${_git_branch}"
-    echo "Branch: ${_git_branch} → remote dir: ${_remote_proj}" &&
-        echo ${run_dir_pre} &&
-        ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true &&
-        { [[ -f "$2/jwm_configs/local.sh" ]] && source "$2/jwm_configs/local.sh" pre "$1" || true; } &&
-        run_dir_remote="${run_dir_pre}/${_remote_proj}" &&
-        local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}" &&
+        return 0
+    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}" &&
         if [[ "$3" == "remote_slurm" ]]; then
-            local_dir="${local_dir}/${run_id}"
-            ssh "$1" "mkdir -p ${run_dir_remote}"
+            run_timestamp="$(date +%Y%m%d_%H%M%S)" &&
+                run_id="${run_timestamp}_${last_commit}" &&
+                local_dir="${local_dir}/${run_id}"
         fi &&
-        rsync -av --exclude-from='common_tools/rsync_exclude.txt' $2/ "$1":${run_dir_remote}/ &&
-        if [[ "${3}" == "sync" ]]; then
-            echo "sync done"
-            return
-        fi &&
-        rsync -av --exclude-from='common_tools/rsync_exclude.txt' common_tools/ "$1":${run_dir_pre}/common_tools/ &&
         mkdir -p "$local_dir"
-    local nohup_log="${local_dir}/nohup_monitor.log"
-
     if [[ "$3" == "remote_docker_compose" ]]; then
         local ports_before="${local_dir}/ports_before.txt"
         ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     fi
 
     # --- launch job and get remote_job_id ---
+    local nohup_log="${local_dir}/nohup_monitor.log"
+
     echo "Running remote setup... (output: $nohup_log)"
     ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools/meta_script.sh $3 ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $1" 2>&1 | tee "$nohup_log" &&
         remote_job_id=$(ssh "$1" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)

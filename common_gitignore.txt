@@ -1,1 +1,2 @@
 **/zzzjwmresources
+.DS_Store
