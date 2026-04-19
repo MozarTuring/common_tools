@@ -47,6 +47,7 @@ if [[ "$1" == "remote"* ]]; then
     export RUN_DIR_PRE=$5
     export SERVER_NAME=$6
     cd ${RUN_DIR_PRE}/${RUN_PROJ} &&
+        rm "${RUN_DIR_PRE}/${RUN_PROJ}/remote_job_id.txt" 2>/dev/null || true
         echo "start run remote.sh" &&
         { source jwm_configs/remote.sh || {
             echo "ERROR: remote.sh failed, aborting"
@@ -81,7 +82,7 @@ if [[ "$1" == "remote"* ]]; then
                 GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
                 CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
             fi
-            sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG} --job-name=${JWM_COMMIT_ID} --output=slurm_out.log --error=slurm_out.log --open-mode=append slurm.sh"
+            sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG} --job-name=${JWM_COMMIT_ID} --output=nohup_remote.log --error=nohup_remote.log --open-mode=append slurm.sh"
             echo ${sbatch_args}
             SBATCH_OUT=$(sbatch ${sbatch_args}) || {
                 return 1 2>/dev/null
@@ -97,9 +98,10 @@ if [[ "$1" == "remote"* ]]; then
             echo "$JWM_CONTAINER_ID" >"${RUN_DIR_PRE}/${RUN_PROJ}/remote_job_id.txt"
             echo "docker_container_started"
         elif [[ "$1" == "remote_docker_compose" ]]; then
-            _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
-            _arch_rebuilt=false
+            trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
+            _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            _has_rebuilt=false
 
             while true; do
                 mapfile -t _containers < <(docker compose -f "${_compose_dir}/docker-compose.yml" ps -a --format '{{.Name}}' 2>/dev/null)
@@ -148,12 +150,12 @@ if [[ "$1" == "remote"* ]]; then
                         echo "ERROR: Container '${_failed_container}' failed to start: ${_cfailed_error}"
                         break
                     fi
-                    _cfailed_logs=$(docker logs --since "$_docker_since" --tail 80 "$_failed_container" 2>&1)
-                    if ! $_arch_rebuilt && echo "$_cfailed_logs" | grep -q "No supported CUDA architectures found"; then
-                        echo "CUDA arch error detected in '${_failed_container}' — rebuilding image..."
+                    _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
+                    if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
+                        echo "Recoverable error detected in '${_failed_container}' — rebuilding image..."
                         docker rm -f "$_failed_container" 2>/dev/null || true
-                        docker compose -f "${_compose_dir}/docker-compose.yml" up --build -d
-                        _arch_rebuilt=true
+                        docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
+                        _has_rebuilt=true
                         _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
                         sleep 5
                         continue
@@ -163,53 +165,77 @@ if [[ "$1" == "remote"* ]]; then
                     break
                 fi
 
+                if ! $_any_failed; then
+                    for _cname in "${_containers[@]}"; do
+                        _crestart=$(docker inspect --format='{{.RestartCount}}' "$_cname" 2>/dev/null) || _crestart=0
+                        if [[ "$_crestart" -ge 3 ]]; then
+                            _any_failed=true
+                            _failed_container="$_cname"
+                            echo "Container '${_cname}' has restarted ${_crestart} times — treating as failed."
+                            _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
+                            if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
+                                echo "Recoverable error detected in '${_failed_container}' — rebuilding image..."
+                                docker rm -f "$_failed_container" 2>/dev/null || true
+                                docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
+                                _has_rebuilt=true
+                                _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                                sleep 5
+                                break
+                            fi
+                            echo "ERROR: Container '${_failed_container}' is crash-looping. Logs:"
+                            echo "$_cfailed_logs"
+                            break 2
+                        fi
+                    done
+                    if $_any_failed; then continue; fi
+                fi
+
                 if $_all_healthy; then
                     echo ""
                     echo "All services are ready!"
+                    _after_hook="${RUN_DIR_PRE}/${RUN_PROJ}/jwm_configs/remote_after.sh"
+                    if [[ -f "$_after_hook" ]]; then
+                        source "$_after_hook"
+                    fi
                     break
                 fi
 
                 echo "Waiting for all services to become healthy..."
                 sleep 10
             done
+
         fi
 else
     # if [[ "$3" != "remote_docker" && "$3" != "remote_slurm" && "$3" != "remote_docker_compose" ]]; then
     #     echo "ERROR: \$3 must be one of 'remote_docker', 'remote_slurm', 'remote_docker_compose', got '$3'"
     #     return 1 2>/dev/null || true
     # fi
-    if [[ "$1" == "localmachine" ]]; then
-        last_commit="local"
-    else
-        cd $2/ &&
-            while IFS= read -r pattern; do
-                grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
-            done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt &&
-            git submodule foreach 'git add -A && (git commit -m "v" || true)' &&
-            git add -A &&
-            (
-                _staged=$(git diff --cached --name-only)
-                _non_config=$(echo "$_staged" | grep -v "^jwm_configs/")
-                if [[ -n "$_staged" && -n "$_non_config" ]]; then
-                    git commit -m "v"
-                fi
-            ) &&
-            last_commit=$(git rev-parse HEAD) &&
-            cd - &&
-            echo ${last_commit}
-    fi &&
+    cd $2/ &&
+        while IFS= read -r pattern; do
+            grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
+        done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt &&
+        git submodule foreach 'git add -A && (git commit -m "v" || true)' &&
+        git add -A &&
+        (
+            _staged=$(git diff --cached --name-only)
+            _non_config=$(echo "$_staged" | grep -v "^jwm_configs/")
+            if [[ -n "$_staged" && -n "$_non_config" ]]; then
+                git commit -m "v"
+            fi
+        ) &&
+        last_commit=$(git rev-parse HEAD) &&
+        cd - &&
+        echo ${last_commit} &&
         run_timestamp="$(date +%Y%m%d_%H%M%S)" &&
         run_id="${run_timestamp}_${last_commit}" &&
         if [[ "${1}" == "juwels_cluster" || "${1}" == "juwels_booster" ]]; then
             run_dir_pre=/p/project1/trustllm-eu/mao4
-        elif [[ ${1} == "custodian"* ]]; then
+        elif [[ ${1} == "ferragon" || ${1} == "greatrawr" ]]; then
             run_dir_pre=/home/custodian/project_remote_jwm
         elif [[ ${1} == "alvis"* ]]; then
             run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
-        elif [[ "${1}" == "localmachine" ]]; then
-            run_dir_pre=$(pwd)
         else
-            exit
+            return 0
         fi
     # Remote dir is always <project>_<branch> so it's clear which branch is running.
     # e.g. gpu_commander on main -> gpu_commander_main, on dev -> gpu_commander_dev
@@ -217,81 +243,58 @@ else
     _remote_proj="${2}_${_git_branch}"
     echo "Branch: ${_git_branch} → remote dir: ${_remote_proj}" &&
     echo ${run_dir_pre} &&
-        { [[ "$1" == "localmachine" ]] || ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true; } &&
+        ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true &&
         { [[ -f "$2/jwm_configs/local.sh" ]] && source "$2/jwm_configs/local.sh" pre "$1" || true; } &&
-    if [[ "$1" == "localmachine" ]]; then
-        # No rsync — project is already local; point run_dir_remote at the source dir
-        run_dir_remote="${run_dir_pre}/$2"
-        local_dir="${run_dir_pre}/zzzjwmoutput/${_remote_proj}"
-    elif [[ "$3" == "remote_slurm" ]]; then
-        run_dir_remote="${run_dir_pre}/${_remote_proj}_runs/${run_id}"
-        local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}_runs/${run_id}"
-        ssh "$1" "mkdir -p ${run_dir_pre}/${_remote_proj}_runs"
+    if [[ "$3" == "remote_slurm" ]]; then
+        run_dir_remote="${run_dir_pre}/${_remote_proj}/${run_id}"
+        local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}/${run_id}"
+        ssh "$1" "mkdir -p ${run_dir_pre}/${_remote_proj}"
     else
         run_dir_remote="${run_dir_pre}/${_remote_proj}"
         local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
     fi &&
-    if [[ "$1" != "localmachine" ]]; then
-        rsync -av --exclude-from='common_tools/rsync_exclude.txt' $2/ "$1":${run_dir_remote}/ &&
-        if [[ "${3}" == "sync" ]]; then
-            echo "sync done"
-            return
-        fi &&
-        rsync -av --exclude-from='common_tools/rsync_exclude.txt' common_tools/ "$1":${run_dir_pre}/common_tools/
+    rsync -av --exclude-from='common_tools/rsync_exclude.txt' $2/ "$1":${run_dir_remote}/ &&
+    if [[ "${3}" == "sync" ]]; then
+        echo "sync done"
+        return
     fi &&
+    rsync -av --exclude-from='common_tools/rsync_exclude.txt' common_tools/ "$1":${run_dir_pre}/common_tools/ &&
     mkdir -p "$local_dir"
     local nohup_log="${local_dir}/nohup_monitor.log"
 
-    if [[ "$3" == "remote_slurm" ]]; then
-        log_file="${run_dir_remote}/slurm_out.log"
-        local_log="${local_dir}/slurm_out.log"
-        echo "Running remote setup + sbatch..."
-        if ! ssh "$1" "bash --login ${run_dir_pre}/common_tools/meta_script.sh $3 ${_remote_proj}_runs/${run_id} ${last_commit} ${run_id} ${run_dir_pre} $1"; then
-            echo "FAILED: remote setup/sbatch on $1 failed."
-        else
-            remote_job_id=$(ssh "$1" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
-            if [[ -z "$remote_job_id" ]]; then
-                echo "FAILED: could not read remote_job_id.txt from ${run_dir_remote}."
-            else
-                echo ${local_dir}
-                echo "Launching background monitor for job $remote_job_id (log: $nohup_log)"
-                nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh slurm "$1" "$remote_job_id" "$log_file" "$local_log" "$run_dir_pre" "$run_id" "${_remote_proj}" >"$nohup_log" 2>&1 &
-                echo "Background monitor PID: $!"
-            fi
-        fi
+    if [[ "$3" == "remote_docker_compose" ]]; then
+        local ports_before="${local_dir}/ports_before.txt"
+        ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
+    fi
+
+    # --- launch job and get remote_job_id ---
+    remote_job_id=""
+    echo "Running remote setup..."
+    if ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools/meta_script.sh $3 ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_id} ${run_dir_pre} $1"; then
+        remote_job_id=$(ssh "$1" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
     else
-        remote_nohup_log="${run_dir_remote}/nohup_remote.log"
-        remote_pid_file="${run_dir_remote}/remote_job.pid"
-        local_log="${local_dir}/nohup_remote.log"
+        echo "FAILED: remote setup on $1 failed."
+    fi
 
-        if [[ "$3" == "remote_docker_compose" ]]; then
-            local ports_before="${local_dir}/ports_before.txt"
-            if [[ "$1" == "localmachine" ]]; then
-                ss -tlnp 2>/dev/null | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
-            else
-                ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
+    # --- start monitor ---
+    if [[ -z "$remote_job_id" ]]; then
+        echo "FAILED: could not get remote job ID."
+    else
+        echo "Remote job ID: $remote_job_id"
+        echo ${local_dir}
+
+        if [[ "$3" == "remote_slurm" ]]; then
+            local monitor_args=(slurm "$1" "$remote_job_id" "$run_dir_remote" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
+        elif [[ "$3" == "remote_docker" ]]; then
+            local monitor_args=(docker "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
+        else
+            local monitor_args=(pid "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
+            if [[ "$3" == "remote_docker_compose" ]]; then
+                monitor_args+=(port_forward "$ports_before")
             fi
         fi
 
-        echo "Launching task as background job..."
-        if [[ "$1" == "localmachine" ]]; then
-            mkdir -p "${run_dir_remote}"
-            nohup bash --login -c "cd ${run_dir_pre} && source common_tools/meta_script.sh $3 $2 ${last_commit} ${run_id} ${run_dir_pre} localmachine" >"${remote_nohup_log}" 2>&1 &
-            echo $! >"${remote_pid_file}"
-            remote_pid=$(cat "${remote_pid_file}")
-        else
-            ssh "$1" "mkdir -p ${run_dir_remote} && nohup bash --login ${run_dir_pre}/common_tools/meta_script.sh $3 ${_remote_proj} ${last_commit} ${run_id} ${run_dir_pre} $1 >${remote_nohup_log} 2>&1 & echo \$! >${remote_pid_file}" &&
-                remote_pid=$(ssh "$1" "cat ${remote_pid_file} 2>/dev/null")
-        fi
-        echo "Job PID: ${remote_pid}"
-        echo "Local log: ${local_log}"
-
-        local monitor_args=(pid "$1" "$remote_pid" "$remote_nohup_log" "$local_log")
-        if [[ "$3" == "remote_docker_compose" ]]; then
-            monitor_args+=(port_forward "$ports_before")
-        fi
-        echo ${local_dir}
-        echo "Launching background monitor for PID $remote_pid (log: $nohup_log)"
+        echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
         nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >"$nohup_log" 2>&1 &
         echo "Background monitor PID: $!"
     fi
@@ -301,3 +304,5 @@ else
         source "$2/jwm_configs/local.sh" after "$1"
     fi
 fi
+
+echo "datetime_seconds: $(date +%Y%m%d_%H%M%S)"
