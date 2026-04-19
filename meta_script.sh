@@ -76,7 +76,7 @@ if [[ "$1" == "remote"* ]]; then
     export RUN_DIR_PRE="$4"
     export RUN_PROJ="$2"
     export JWM_COMMIT_ID_L="$3"
-    export SERVER_NAME="$5"
+    export SERVER_NAME="${5##*@}"
     cd "$4"/"$2"
     rm "remote_job_id.txt" 2>/dev/null || true
     echo """
@@ -322,6 +322,11 @@ else
         else
             echo "No new ports detected from this run."
         fi
+        exit 0
+    fi
+
+    if [[ "$3" == "remote_" ]]; then
+        echo "local dir: ${local_dir}"
         exit 0
     fi
 
