@@ -111,7 +111,6 @@ EOF
         else
             GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
         fi
-        echo ${SERVER_NAME}
         if [[ "${SERVER_NAME}" == "juwels_cluster" ]]; then
             GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
             CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
@@ -130,7 +129,6 @@ SBATCH_OUT=$(sbatch ${sbatch_args} slurm.sh) || {
 EOF
 
         echo "start run remote.sh"
-        exit
         source jwm_configs/remote.sh
         SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         echo "$SLURM_JOB_ID" >"remote_job_id.txt"
