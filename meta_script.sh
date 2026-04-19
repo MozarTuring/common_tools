@@ -241,7 +241,9 @@ EOF
                 echo "All services are ready!"
                 _after_hook="jwm_configs/remote_after.sh"
                 if [[ -f "$_after_hook" ]]; then
-                    return $_sync_rc
+                    export RUN_DIR_PRE="$4"
+                    export RUN_PROJ="$2"
+                    export SERVER_NAME="$5"
                     source "$_after_hook"
                 fi
                 break
@@ -293,6 +295,34 @@ else
 
     echo "Running remote setup... (output: $nohup_log)"
     ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_master/meta_script.sh $3 ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $1" 2>&1 | tee "$nohup_log"
+
+    if [[ "$3" == "remote_docker_compose" ]]; then
+        echo "local dir: ${local_dir}"
+        pkill -f "ssh.*ControlPath=none.*-N.*$1" 2>/dev/null && echo "Killed existing SSH tunnel to $1" || true
+        ports_after=$(
+            ssh "$1" "ss -tlnp 2>/dev/null" \
+            | { grep -oE '0\.0\.0\.0:[0-9]+' || true; } \
+            | awk -F: '$2 >= 1024 {print $2}' \
+            | sort -un
+        )
+        ports=()
+        while IFS= read -r p; do
+            [[ -n "$p" ]] && ports+=("$p")
+        done < <(comm -23 <(echo "$ports_after") <(cat "$ports_before" 2>/dev/null || true))
+        if [[ ${#ports[@]} -gt 0 ]]; then
+            ssh_args=(-o ControlPath=none -N -f)
+            for p in "${ports[@]}"; do
+                ssh_args+=(-L "${p}:localhost:${p}")
+            done
+            echo "New ports from this run: ${ports[*]}"
+            echo "ssh ${ssh_args[*]} $1"
+            ssh "${ssh_args[@]}" "$1" || echo "WARNING: SSH tunnel failed (port conflict?)"
+        else
+            echo "No new ports detected from this run."
+        fi
+        exit 0
+    fi
+
     remote_job_id=$(ssh "$1" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
 
     if [ -n "${remote_job_id}" ]; then
