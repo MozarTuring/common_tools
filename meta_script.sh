@@ -73,6 +73,10 @@ END {
 
 if [[ "$1" == "remote"* ]]; then
     echo "$1, $2, $3, $4"
+    export RUN_DIR_PRE="$4"
+    export RUN_PROJ="$2"
+    export JWM_COMMIT_ID_L="$3"
+    export SERVER_NAME="$5"
     cd "$4"/"$2"
     rm "remote_job_id.txt" 2>/dev/null || true
     echo """
@@ -242,9 +246,6 @@ EOF
                 echo "All services are ready!"
                 _after_hook="jwm_configs/remote_after.sh"
                 if [[ -f "$_after_hook" ]]; then
-                    export RUN_DIR_PRE="$4"
-                    export RUN_PROJ="$2"
-                    export SERVER_NAME="$5"
                     source "$_after_hook"
                 fi
                 break
