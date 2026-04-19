@@ -144,6 +144,7 @@ EOF
         echo "docker_container_started"
     elif [[ "$1" == "remote_docker_compose" ]]; then
         source jwm_configs/remote.sh
+        cd - >/dev/null
         _compose_dir="${COMPOSE_DIR:-${4}/${2}}"
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
         _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
