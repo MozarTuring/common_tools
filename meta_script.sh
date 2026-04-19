@@ -132,7 +132,7 @@ SBATCH_OUT=$(sbatch ${sbatch_args} slurm.sh) || {
 EOF
 
         echo "start run remote.sh"
-        return 0
+        exit
         source jwm_configs/remote.sh
         SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         echo "$SLURM_JOB_ID" >"remote_job_id.txt"
