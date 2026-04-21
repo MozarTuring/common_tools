@@ -140,10 +140,10 @@ SBATCH_OUT=$(sbatch ${sbatch_args} ${JWM_SLURM_FILE}) || {
 EOF
 
         echo "start run remote.sh"
-        exit
         source jwm_configs/remote.sh
         SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-        echo ${PWD}
+        echo "${PWD}, ${SLURM_JOB_ID}"
+        exit
         echo "$SLURM_JOB_ID" >${remote_job_id_file}
 
     elif [[ "$1" == "remote_" ]]; then
