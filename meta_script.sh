@@ -97,8 +97,11 @@ EOF
 sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --signal=TERM@90 -A berzelius-2026-50 --partition=berzelius"
 EOF
 
+        elif [[ "${5}" == "jusuf" ]]; then
+            cat >>jwm_configs/remote.sh <<'EOF'
+sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch"
+EOF
         else
-
             cat >>jwm_configs/remote.sh <<'EOF'
         if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
             export JWM_GPU_TYPE=A40
@@ -130,13 +133,14 @@ EOF
         cat >>jwm_configs/remote.sh <<'EOF'
 
 echo ${sbatch_args}
-SBATCH_OUT=$(sbatch ${sbatch_args} slurm.sh) || {
+SBATCH_OUT=$(sbatch ${sbatch_args} ${JWM_SLURM_FILE}) || {
     return 1 2>/dev/null
     exit 1
 }
 EOF
 
         echo "start run remote.sh"
+        exit
         source jwm_configs/remote.sh
         SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         echo ${PWD}
