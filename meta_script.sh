@@ -91,6 +91,7 @@ set -e
         cat >>jwm_configs/remote.sh <<'EOF'
 
 if [[ -z ${JWM_SLURM_FILE} || -z ${JWM_RUN_TIME} || -z ${JWM_NODES_NUM} ]]; then
+    echo "not defined"
     exit
 fi
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=slurm-%j.out --error=slurm-%j.out"&&
