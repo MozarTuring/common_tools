@@ -144,7 +144,6 @@ EOF
         source jwm_configs/remote.sh
         SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         echo "${PWD}, ${SLURM_JOB_ID}"
-        exit
         echo "$SLURM_JOB_ID" >${remote_job_id_file}
 
     elif [[ "$1" == "remote_" ]]; then
