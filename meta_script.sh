@@ -100,7 +100,7 @@ EOF
 
         elif [[ "${5}" == "jusuf" ]]; then
             cat >>jwm_configs/remote.sh <<'EOF'
-sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch"
+sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
 EOF
         else
             cat >>jwm_configs/remote.sh <<'EOF'
