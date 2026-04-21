@@ -138,6 +138,7 @@ EOF
         echo "start run remote.sh"
         source jwm_configs/remote.sh
         SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
+        echo ${PWD}
         echo "$SLURM_JOB_ID" >"remote_job_id.txt"
 
     elif [[ "$1" == "remote_" ]]; then
