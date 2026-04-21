@@ -259,8 +259,42 @@ require("lazy").setup({
 					desc = "Copy file to destination",
 				}
 
-				keys["p"] = "explorer_close"
-				keys["r"] = "explorer_update"
+			keys["<cr>"] = {
+				function()
+					local pickers = Snacks.picker.get({ source = "explorer" })
+					if #pickers == 0 then return end
+					local picker = pickers[1]
+					local item = picker:current()
+					if not item or not item.file then return end
+					if vim.fn.isdirectory(item.file) == 1 then
+						picker:action("confirm")
+						return
+					end
+					local file = item.file
+					picker:close()
+					local origin_buf = vim.api.nvim_get_current_buf()
+					vim.cmd("edit " .. vim.fn.fnameescape(file))
+					vim.schedule(function()
+						local ok, bl = pcall(require, "bufferline")
+						if not ok then return end
+						local elems = bl.get_elements().elements
+						local origin_pos = nil
+						for i, e in ipairs(elems) do
+							if e.id == origin_buf then
+								origin_pos = i
+								break
+							end
+						end
+						if origin_pos then
+							bl.move_to(origin_pos + 1)
+						end
+					end)
+				end,
+				desc = "Open file to the right in bufferline",
+			}
+
+			keys["p"] = "explorer_close"
+			keys["r"] = "explorer_update"
 			end,
 		},
 		{

@@ -12,6 +12,7 @@ sync_and_commit_repo() {
         _non_config=$(echo "$_staged" | grep -v "^jwm_configs/" || true)
         if [[ -n "$_staged" && -n "$_non_config" ]]; then
             git commit -m "v"
+            git push
         fi
     )
     last_commit=$(git rev-parse HEAD)
