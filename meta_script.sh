@@ -78,7 +78,8 @@ if [[ "$1" == "remote"* ]]; then
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
     cd "$4"/"$2"
-    rm "remote_job_id.txt" 2>/dev/null || true
+    remote_job_id_file=${RUN_DIR_PRE}/${RUN_PROJ}/"remote_job_id.txt"
+    rm ${remote_job_id_file} 2>/dev/null || true
     echo """
 set -e
 
@@ -139,7 +140,7 @@ EOF
         source jwm_configs/remote.sh
         SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         echo ${PWD}
-        echo "$SLURM_JOB_ID" >"remote_job_id.txt"
+        echo "$SLURM_JOB_ID" >${remote_job_id_file}
 
     elif [[ "$1" == "remote_" ]]; then
         source jwm_configs/remote.sh
