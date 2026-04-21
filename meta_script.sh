@@ -133,7 +133,7 @@ EOF
         fi
         cat >>jwm_configs/remote.sh <<'EOF'
 
-echo ${sbatch_args}
+echo ${sbatch_args} ${JWM_SLURM_FILE}
 SBATCH_OUT=$(sbatch ${sbatch_args} ${JWM_SLURM_FILE}) || {
     return 1 2>/dev/null
     exit 1
