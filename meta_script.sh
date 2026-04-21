@@ -263,7 +263,7 @@ else
     # fi
     cd /Users/maojingwei/baidu/project/
     export SERVER_NAME="$1"
-    if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" ]]; then
+    if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" || "${SERVER_NAME}" == "jusuf" ]]; then
         export run_dir_pre=/p/project1/trustllm-eu/mao4
     elif [[ ${SERVER_NAME} == "custodian@"* ]]; then
         export run_dir_pre=/home/custodian/project_remote_jwm
