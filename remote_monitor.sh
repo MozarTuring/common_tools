@@ -30,6 +30,15 @@ mkdir -p "$local_dir"
 # Next line number to fetch from the remote log (1-based).
 _next_line=1
 
+# Auto-detect SLURM array jobs: ArrayJobId appears in scontrol for any array task.
+is_array=false
+if [[ "$mode" == "slurm" ]]; then
+    if ssh "$host" "scontrol show job ${job_id} 2>/dev/null" | grep -q "ArrayJobId="; then
+        is_array=true
+        echo "SLURM array job detected (id ${job_id}); skipping incremental log tail."
+    fi
+fi
+
 get_remote_log_path() {
     if [[ "$mode" == "slurm" ]]; then
         echo "${remote_dir}/slurm-${job_id}.out"
@@ -38,6 +47,12 @@ get_remote_log_path() {
     else
         echo "${remote_dir}/nohup.out"
     fi
+}
+
+print_array_summary() {
+    ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" \
+        | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}' \
+        || true
 }
 
 fetch_new_log_content() {
@@ -140,12 +155,20 @@ while true; do
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
-    fetch_new_log_content 2>/dev/null || echo "WARNING: failed to fetch remote log, will retry next cycle"
+    if $is_array; then
+        print_array_summary
+    else
+        fetch_new_log_content 2>/dev/null || echo "WARNING: failed to fetch remote log, will retry next cycle"
+    fi
 
     if ! is_job_running; then
         wait_for_ssh
         sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
-        fetch_new_log_content 2>/dev/null || true
+        if $is_array; then
+            print_array_summary
+        else
+            fetch_new_log_content 2>/dev/null || true
+        fi
 
         if $port_forward; then
             pkill -f "ssh.*ControlPath=none.*-N.*${host}" 2>/dev/null && echo "Killed existing SSH tunnel to ${host}" || true

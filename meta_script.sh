@@ -90,11 +90,12 @@ set -e
         touch ".slurm_submit_marker"
         cat >>jwm_configs/remote.sh <<'EOF'
 
+if [[ -z "${SBATCH_OUT:-}" ]]; then
 if [[ -z ${JWM_SLURM_FILE} || -z ${JWM_RUN_TIME} || -z ${JWM_NODES_NUM} ]]; then
     echo "not defined"
     exit
 fi
-sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=slurm-%j.out --error=slurm-%j.out ${JWM_ARRAY:-}"&&
+sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=slurm-%j.out --error=slurm-%j.out"&&
 EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
         if [[ "${5}" == "berzeliusAmpere" ]]; then
@@ -142,6 +143,7 @@ SBATCH_OUT=$(sbatch ${sbatch_args} ${JWM_SLURM_FILE}) || {
     return 1 2>/dev/null
     exit 1
 }
+fi
 EOF
 
         echo "start run remote.sh"
@@ -368,7 +370,14 @@ else
         fi
 
         echo "datetime_seconds: $(date +%Y%m%d_%H%M%S)"
-        tail -f "$nohup_log"
+        tail -f "$nohup_log" &
+        tail_pid=$!
+        while kill -0 "$monitor_pid" 2>/dev/null; do
+            sleep 1
+        done
+        kill "$tail_pid" 2>/dev/null
+        wait "$tail_pid" 2>/dev/null
+        echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
     else
         echo "FAILED: remote setup on $1 failed."
     fi
