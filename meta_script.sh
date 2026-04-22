@@ -78,6 +78,7 @@ if [[ "$1" == "remote"* ]]; then
     export RUN_PROJ="$2"
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
+    _manual_file="${6:-remote_manual.sh}"
     cd "$4"/"$2"
     remote_job_id_file=${RUN_DIR_PRE}/${RUN_PROJ}/"remote_job_id.txt"
     rm ${remote_job_id_file} 2>/dev/null || true
@@ -85,7 +86,8 @@ if [[ "$1" == "remote"* ]]; then
 set -e
 
 """ >jwm_configs/remote.sh
-    cat jwm_configs/remote_manual.sh >>jwm_configs/remote.sh
+    cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
+
     if [[ "$1" == "remote_slurm" ]]; then
         touch ".slurm_submit_marker"
         cat >>jwm_configs/remote.sh <<'EOF'
@@ -275,6 +277,14 @@ else
     # fi
     cd /Users/maojingwei/baidu/project/
     export SERVER_NAME="$1"
+    _manual_file="$3"
+    case "$3" in
+        remote_docker_compose*) _mode="remote_docker_compose" ;;
+        remote_docker*)         _mode="remote_docker" ;;
+        remote_slurm*)          _mode="remote_slurm" ;;
+        remote_*)               _mode="remote_" ;;
+        *)                      _mode="$3" ;;
+    esac
     if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" || "${SERVER_NAME}" == "jusuf" ]]; then
         export run_dir_pre=/p/project1/trustllm-eu/mao4
     elif [[ ${SERVER_NAME} == "custodian@"* ]]; then
@@ -293,13 +303,13 @@ else
     sync_and_commit_repo "$2"
     echo ${last_commit}
     local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
-    if [[ "$3" == "remote_slurm" ]]; then
+    if [[ "$_mode" == "remote_slurm" ]]; then
         run_timestamp="$(date +%Y%m%d_%H%M%S)"
         run_id="${run_timestamp}_${last_commit}"
         local_dir="${local_dir}/${run_id}"
     fi
     mkdir -p "$local_dir"
-    if [[ "$3" == "remote_docker_compose" ]]; then
+    if [[ "$_mode" == "remote_docker_compose" ]]; then
         ports_before="${local_dir}/ports_before.txt"
         ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     fi
@@ -308,9 +318,9 @@ else
     nohup_log="${local_dir}/nohup_monitor.log"
 
     echo "Running remote setup... (output: $nohup_log)"
-    ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_master/meta_script.sh $3 ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $1" 2>&1 | tee "$nohup_log"
+    ssh "$1" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_master/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $1 ${_manual_file}" 2>&1 | tee "$nohup_log"
 
-    if [[ "$3" == "remote_docker_compose" ]]; then
+    if [[ "$_mode" == "remote_docker_compose" ]]; then
         echo "local dir: ${local_dir}"
         pkill -f "ssh.*ControlPath=none.*-N.*$1" 2>/dev/null && echo "Killed existing SSH tunnel to $1" || true
         ports_after=$(
@@ -337,7 +347,7 @@ else
         exit 0
     fi
 
-    if [[ "$3" == "remote_" ]]; then
+    if [[ "$_mode" == "remote_" ]]; then
         echo "local dir: ${local_dir}"
         exit 0
     fi
@@ -348,13 +358,13 @@ else
         echo "Remote job ID: $remote_job_id"
         echo "local dir: ${local_dir}"
 
-        if [[ "$3" == "remote_slurm" ]]; then
+        if [[ "$_mode" == "remote_slurm" ]]; then
             monitor_args=(slurm "$1" "$remote_job_id" "$run_dir_remote" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
-        elif [[ "$3" == "remote_docker" ]]; then
+        elif [[ "$_mode" == "remote_docker" ]]; then
             monitor_args=(docker "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
         else
             monitor_args=(pid "$1" "$remote_job_id" "$run_dir_remote" "$local_dir")
-            if [[ "$3" == "remote_docker_compose" ]]; then
+            if [[ "$_mode" == "remote_docker_compose" ]]; then
                 monitor_args+=(port_forward "$ports_before")
             fi
         fi

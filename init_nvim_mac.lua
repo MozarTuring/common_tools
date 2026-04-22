@@ -1657,6 +1657,31 @@ vim.keymap.set("n", "fj", function()
 	vim.cmd("normal! G")
 end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
 
+-- <F5> inside a jwm_configs/remote_*_<cluster>.sh file:
+-- build `bash meta_script.sh <cluster> <project> <filename>` and copy to clipboard.
+vim.api.nvim_create_autocmd({ "BufEnter", "BufNewFile" }, {
+	pattern = "*/jwm_configs/remote_*.sh",
+	callback = function(ev)
+		local filepath = vim.api.nvim_buf_get_name(ev.buf)
+		if filepath == "" then return end
+		local filename = vim.fn.fnamemodify(filepath, ":t")
+		local base = filename:gsub("%.sh$", "")
+		local cluster = base:match("_([^_]+)$")
+		if not cluster then return end
+		local project = vim.fn.fnamemodify(filepath, ":h:h:t")
+		local cmd = string.format(
+			"bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh %s %s %s",
+			cluster, project, filename
+		)
+		vim.keymap.set("n", "<F5>", function()
+			vim.fn.setreg("+", cmd)
+			vim.cmd("belowright 15split | enew | setlocal nobuflisted bufhidden=wipe")
+			vim.fn.termopen(cmd)
+			vim.cmd("startinsert")
+		end, { buffer = ev.buf, noremap = true, silent = true, desc = "Run meta_script in terminal split" })
+	end,
+})
+
 vim.defer_fn(function()
 	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
 end, 500)
