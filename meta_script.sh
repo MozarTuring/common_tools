@@ -301,10 +301,10 @@ else
     fi
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
 
-    { [[ -f "jwm_configs/local.sh" ]] && source "jwm_configs/local.sh" pre || true; }
-
     sync_and_commit_repo "common_tools"
     sync_and_commit_repo "$2"
+    { [[ -f "$2/jwm_configs/local.sh" ]] && source "$2/jwm_configs/local.sh" pre || true; }
+
     echo ${last_commit}
     local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
     if [[ "$_mode" == "remote_slurm" ]]; then
