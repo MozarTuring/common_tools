@@ -1687,12 +1687,12 @@ tell application "Terminal"
 	activate
 	if (count of windows) is 0 then
 		do script "%s"
-	else if busy of selected tab of front window then
-		do script "%s"
-	else
+	else if not busy of selected tab of front window then
+		tell application "System Events" to keystroke "c" using control down
+		delay 0.5
 		do script "%s" in selected tab of front window
 	end if
-end tell]], escaped, escaped, escaped)
+end tell]], escaped, escaped)
 			vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 			vim.notify("Running in Terminal.app: " .. cmd)
 		end, { buffer = ev.buf, noremap = true, silent = true, desc = "Run meta_script in external Terminal" })
