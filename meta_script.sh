@@ -301,8 +301,11 @@ else
     fi
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
 
+
     sync_and_commit_repo "common_tools"
     sync_and_commit_repo "$2"
+
+    # can only run after var run_dir_remote is created
     { [[ -f "$2/jwm_configs/local.sh" ]] && source "$2/jwm_configs/local.sh" pre || true; }
 
     echo ${last_commit}
