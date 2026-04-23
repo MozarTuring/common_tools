@@ -1589,7 +1589,13 @@ vim.defer_fn(function()
 	-- Disable F after flash.nvim has loaded (flash overrides f/F/t/T)
 	vim.keymap.set("n", "F", "<Nop>", { noremap = true, silent = true })
 	-- ; prefixed keymaps (must be deferred, flash.nvim overrides ; otherwise)
-	vim.keymap.set("n", ";q", ":bd<CR>", { noremap = true, silent = true, desc = "Close current buffer" })
+	vim.keymap.set("n", ";q", function()
+		if vim.bo.buftype == "terminal" then
+			vim.cmd("bd!")
+		else
+			vim.cmd("bd")
+		end
+	end, { noremap = true, silent = true, desc = "Close current buffer" })
 	vim.keymap.set("n", ";a", ":qall<CR>", { noremap = true, silent = true, desc = "Quit all" })
 	vim.keymap.set("n", ";e", ":lua MyRefreshFile()<CR>", { noremap = true, silent = true, desc = "Refresh file" })
 	vim.keymap.set("n", ";w", "<cmd>lua myWriteFile()<CR>", { noremap = true, silent = true, desc = "Save file" })
@@ -1696,6 +1702,56 @@ end tell]], escaped, escaped, escaped)
 vim.defer_fn(function()
 	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
 end, 500)
+
+local function get_or_create_terminal()
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "terminal" then
+			local chan = vim.bo[buf].channel
+			if chan and chan > 0 then
+				return buf, chan
+			end
+		end
+	end
+	local cur_tab = vim.api.nvim_get_current_tabpage()
+	vim.cmd("tabnew | terminal")
+	local buf = vim.api.nvim_get_current_buf()
+	local chan = vim.bo[buf].channel
+	return buf, chan
+end
+
+local function send_to_terminal(text)
+	local buf, chan = get_or_create_terminal()
+	if not chan or chan <= 0 then
+		vim.notify("No terminal channel", vim.log.levels.ERROR)
+		return
+	end
+	vim.fn.chansend(chan, text .. "\n")
+	for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+		for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+			if vim.api.nvim_win_get_buf(win) == buf then
+				vim.api.nvim_set_current_tabpage(tab)
+				vim.api.nvim_set_current_win(win)
+				return
+			end
+		end
+	end
+	vim.cmd("tabnew")
+	vim.api.nvim_win_set_buf(0, buf)
+end
+
+vim.keymap.set("n", "<leader>r", function()
+	send_to_terminal(vim.fn.getline("."))
+end, { noremap = true, silent = true, desc = "Run current line in terminal" })
+
+vim.keymap.set("v", "<leader>r", function()
+	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+	vim.schedule(function()
+		local start_line = vim.fn.line("'<")
+		local end_line = vim.fn.line("'>")
+		local lines = vim.fn.getline(start_line, end_line)
+		send_to_terminal(table.concat(lines, "\n"))
+	end)
+end, { noremap = true, silent = true, desc = "Run selected lines in terminal" })
 
 -- brew install --cask font-jetbrains-mono-nerd-font
 -- terminal should also use JetBrainsMono Nerd Font (or JetBrainsMono NF)
