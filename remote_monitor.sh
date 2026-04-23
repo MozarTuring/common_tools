@@ -43,7 +43,7 @@ get_remote_log_path() {
     if [[ "$mode" == "slurm" ]]; then
         echo "${remote_dir}/slurm-${job_id}.out"
     elif [[ "$mode" == "docker" ]]; then
-        echo ""
+        echo "${remote_dir}/slurm_out.log"
     else
         echo "${remote_dir}/nohup.out"
     fi
@@ -56,33 +56,20 @@ print_array_summary() {
 }
 
 fetch_new_log_content() {
-    if [[ "$mode" == "docker" ]]; then
-        local total_lines
-        total_lines=$(ssh "$host" "docker logs ${job_id} 2>&1 | wc -l" 2>/dev/null) || return 0
-        total_lines=$(echo "$total_lines" | tr -d '[:space:]')
-        [[ -z "$total_lines" || "$total_lines" -lt "$_next_line" ]] && return 0
-        local new_content
-        new_content=$(ssh "$host" "docker logs ${job_id} 2>&1 | sed -n '${_next_line},${total_lines}p'" 2>/dev/null) || return 0
-        if [[ -n "$new_content" ]]; then
-            echo "$new_content"
-        fi
-        _next_line=$(( total_lines + 1 ))
-    else
-        local rlog
-        rlog=$(get_remote_log_path)
-        local local_log="${local_dir}/${rlog#${remote_dir}/}"
-        [[ ! -f "$local_log" ]] && return 0
-        local total_lines
-        total_lines=$(wc -l < "$local_log" 2>/dev/null) || return 0
-        total_lines=$(echo "$total_lines" | tr -d '[:space:]')
-        [[ -z "$total_lines" || "$total_lines" -lt "$_next_line" ]] && return 0
-        local new_content
-        new_content=$(sed -n "${_next_line},${total_lines}p" "$local_log" 2>/dev/null) || return 0
-        if [[ -n "$new_content" ]]; then
-            echo "$new_content"
-        fi
-        _next_line=$(( total_lines + 1 ))
+    local rlog
+    rlog=$(get_remote_log_path)
+    local local_log="${local_dir}/${rlog#${remote_dir}/}"
+    [[ ! -f "$local_log" ]] && return 0
+    local total_lines
+    total_lines=$(wc -l < "$local_log" 2>/dev/null) || return 0
+    total_lines=$(echo "$total_lines" | tr -d '[:space:]')
+    [[ -z "$total_lines" || "$total_lines" -lt "$_next_line" ]] && return 0
+    local new_content
+    new_content=$(sed -n "${_next_line},${total_lines}p" "$local_log" 2>/dev/null) || return 0
+    if [[ -n "$new_content" ]]; then
+        echo "$new_content"
     fi
+    _next_line=$(( total_lines + 1 ))
 }
 
 wait_for_ssh() {
