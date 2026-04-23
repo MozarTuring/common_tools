@@ -21,7 +21,6 @@ sync_and_commit_repo() {
         _remote_proj="${repo_path}_${_git_branch}"
         echo "remote dir: ${_remote_proj}"
         echo "${run_dir_pre}"
-        { [[ -f "jwm_configs/local.sh" ]] && source "jwm_configs/local.sh" pre || true; }
         run_dir_remote="${run_dir_pre}/${_remote_proj}"
         rsync -av --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
     fi
@@ -281,11 +280,11 @@ else
     export SERVER_NAME="$1"
     _manual_file="$3"
     case "$3" in
-        remote_docker_compose*) _mode="remote_docker_compose" ;;
-        remote_docker*)         _mode="remote_docker" ;;
-        remote_slurm*)          _mode="remote_slurm" ;;
-        remote_*)               _mode="remote_" ;;
-        *)                      _mode="$3" ;;
+    remote_docker_compose*) _mode="remote_docker_compose" ;;
+    remote_docker*) _mode="remote_docker" ;;
+    remote_slurm*) _mode="remote_slurm" ;;
+    remote_*) _mode="remote_" ;;
+    *) _mode="$3" ;;
     esac
     if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" || "${SERVER_NAME}" == "jusuf" ]]; then
         export run_dir_pre=/p/project1/trustllm-eu/mao4
@@ -301,6 +300,9 @@ else
         return 0
     fi
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
+
+    { [[ -f "jwm_configs/local.sh" ]] && source "jwm_configs/local.sh" pre || true; }
+
     sync_and_commit_repo "common_tools"
     sync_and_commit_repo "$2"
     echo ${last_commit}
@@ -326,10 +328,10 @@ else
         echo "local dir: ${local_dir}"
         pkill -f "ssh.*ControlPath=none.*-N.*$1" 2>/dev/null && echo "Killed existing SSH tunnel to $1" || true
         ports_after=$(
-            ssh "$1" "ss -tlnp 2>/dev/null" \
-            | { grep -oE '0\.0\.0\.0:[0-9]+' || true; } \
-            | awk -F: '$2 >= 1024 {print $2}' \
-            | sort -un
+            ssh "$1" "ss -tlnp 2>/dev/null" |
+                { grep -oE '0\.0\.0\.0:[0-9]+' || true; } |
+                awk -F: '$2 >= 1024 {print $2}' |
+                sort -un
         )
         ports=()
         while IFS= read -r p; do
