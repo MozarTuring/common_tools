@@ -13,7 +13,7 @@ local function isWindows()
 	local uname = vim.loop.os_uname()
 	return uname.sysname == "Windows" or uname.sysname == "Windows_NT"
 end
---is_win = isWindows()
+is_win = isWindows()
 
 if is_win then
 	jwHomePath = "C:/Users/Mozar/BaiduSyncdisk/project"
@@ -1675,10 +1675,19 @@ vim.api.nvim_create_autocmd({ "BufEnter", "BufNewFile" }, {
 		)
 		vim.keymap.set("n", "<F5>", function()
 			vim.fn.setreg("+", cmd)
-			vim.fn.jobstart({
-				"osascript", "-e",
-				'tell application "Terminal" to do script "' .. cmd:gsub('"', '\\"') .. '"',
-			}, { detach = true })
+			local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+			local script = string.format([[
+tell application "Terminal"
+	activate
+	if (count of windows) is 0 then
+		do script "%s"
+	else if busy of selected tab of front window then
+		do script "%s"
+	else
+		do script "%s" in selected tab of front window
+	end if
+end tell]], escaped, escaped, escaped)
+			vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 			vim.notify("Running in Terminal.app: " .. cmd)
 		end, { buffer = ev.buf, noremap = true, silent = true, desc = "Run meta_script in external Terminal" })
 	end,
