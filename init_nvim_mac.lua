@@ -1675,10 +1675,12 @@ vim.api.nvim_create_autocmd({ "BufEnter", "BufNewFile" }, {
 		)
 		vim.keymap.set("n", "<F5>", function()
 			vim.fn.setreg("+", cmd)
-			vim.cmd("belowright 15split | enew | setlocal nobuflisted bufhidden=wipe")
-			vim.fn.termopen(cmd)
-			vim.cmd("startinsert")
-		end, { buffer = ev.buf, noremap = true, silent = true, desc = "Run meta_script in terminal split" })
+			vim.fn.jobstart({
+				"osascript", "-e",
+				'tell application "Terminal" to do script "' .. cmd:gsub('"', '\\"') .. '"',
+			}, { detach = true })
+			vim.notify("Running in Terminal.app: " .. cmd)
+		end, { buffer = ev.buf, noremap = true, silent = true, desc = "Run meta_script in external Terminal" })
 	end,
 })
 

@@ -85,6 +85,8 @@ if [[ "$1" == "remote"* ]]; then
     echo """
 set -e
 
+export PYTHONUNBUFFERED=1
+
 """ >jwm_configs/remote.sh
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
 
