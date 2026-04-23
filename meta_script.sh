@@ -83,7 +83,7 @@ if [[ "$1" == "remote"* ]]; then
     rm ${remote_job_id_file} 2>/dev/null || true
     echo """
 set -e
-
+export JWM_DATA_DIR=\${RUN_DIR_PRE}/remote_data/\${RUN_PROJ}
 export PYTHONUNBUFFERED=1
 
 """ >jwm_configs/remote.sh
