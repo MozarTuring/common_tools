@@ -159,6 +159,7 @@ EOF
         source jwm_configs/remote.sh
         echo "remote.sh completed — agent deployed"
     elif [[ "$1" == "remote_docker" ]]; then
+        source jwm_configs/remote.sh
         echo "$JWM_CONTAINER_ID" >"remote_job_id.txt"
         echo "docker_container_started"
     elif [[ "$1" == "remote_docker_compose" ]]; then
