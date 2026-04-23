@@ -394,7 +394,7 @@ else
             sleep 1
         done
         kill "$tail_pid" 2>/dev/null
-        wait "$tail_pid" 2>/dev/null
+        wait "$tail_pid" 2>/dev/null || true
         echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
     else
         echo "FAILED: remote setup on $1 failed."
