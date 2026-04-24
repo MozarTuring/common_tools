@@ -81,6 +81,9 @@ if [[ "$1" == "remote"* ]]; then
     cd "$4"/"$2"
     remote_job_id_file=${RUN_DIR_PRE}/${RUN_PROJ}/"remote_job_id.txt"
     rm ${remote_job_id_file} 2>/dev/null || true
+    export HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN:-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}"
+    export HF_TOKEN="${HF_TOKEN:-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}"
+
     echo """
 set -e
 export JWM_DATA_DIR=\${RUN_DIR_PRE}/remote_data/\${RUN_PROJ}
@@ -301,7 +304,6 @@ else
         return 0
     fi
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
-
 
     sync_and_commit_repo "common_tools"
     sync_and_commit_repo "$2"
