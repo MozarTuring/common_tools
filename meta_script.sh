@@ -307,7 +307,7 @@ else
     sync_and_commit_repo "$2"
 
     # can only run after var run_dir_remote is created
-    { [[ -f "$2/jwm_configs/local.sh" ]] && source "$2/jwm_configs/local.sh" pre || true; }
+    { [[ -f "$2/jwm_configs/local_pre.sh" ]] && source "$2/jwm_configs/local_pre.sh" || true; }
 
     echo ${last_commit}
     local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
@@ -382,9 +382,8 @@ else
         monitor_pid=$!
         echo "Background monitor PID: $monitor_pid"
 
-        if [[ -f "$2/jwm_configs/local.sh" ]]; then
-            echo "Running $2/jwm_configs/local.sh after hook..."
-            source "$2/jwm_configs/local.sh" after "$1"
+        if [[ -f "$2/jwm_configs/local_after.sh" ]]; then
+            source "$2/jwm_configs/local_after.sh" "$1"
         fi
 
         echo "datetime_seconds: $(date +%Y%m%d_%H%M%S)"
