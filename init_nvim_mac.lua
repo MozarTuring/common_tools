@@ -1691,8 +1691,10 @@ tell application "Terminal"
 		tell application "System Events" to keystroke "c" using control down
 		delay 0.5
 		do script "%s" in selected tab of front window
+	else
+		do script "%s"
 	end if
-end tell]], escaped, escaped)
+end tell]], escaped, escaped, escaped)
 			vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 			vim.notify("Running in Terminal.app: " .. cmd)
 		end, { buffer = ev.buf, noremap = true, silent = true, desc = "Run meta_script in external Terminal" })
