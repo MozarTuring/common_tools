@@ -99,28 +99,18 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
     _project_dir=$(dirname "$(dirname "$_abspath")")
     _project_name=$(basename "$_project_dir")
     _stem="${_filename%.sh}"
-    if [[ "$_stem" == remote_docker_compose_* ]]; then
-        _server="${_stem#remote_docker_compose_}"
-    elif [[ "$_stem" == remote_docker_* ]]; then
-        _server="${_stem#remote_docker_}"
-    elif [[ "$_stem" == remote_slurm_* ]]; then
-        _server="${_stem#remote_slurm_}"
-    elif [[ "$_stem" == remote_* ]]; then
-        _server="${_stem#remote_}"
-    else
-        echo "ERROR: cannot parse mode from filename '$_filename'"
-        exit 1
-    fi
+    _server="${_stem%%_*}"
+    _rest="${_stem#*_}"
+    _mode="${_rest%%_*}"
+
+    case "$_mode" in
+        remoteslurm|remotedocker|remotedockercompose|remote) ;;
+        *) echo "ERROR: unknown mode '$_mode' from filename '$_filename'"; exit 1 ;;
+    esac
 
     export SERVER_NAME="$_server"
     _manual_file="$_filename"
-    case "$_filename" in
-    remote_docker_compose*) _mode="remote_docker_compose" ;;
-    remote_docker*) _mode="remote_docker" ;;
-    remote_slurm*) _mode="remote_slurm" ;;
-    remote_*) _mode="remote_" ;;
-    esac
-    if [[ "${SERVER_NAME}" == "juwels_cluster" || "${SERVER_NAME}" == "juwels_booster" || "${SERVER_NAME}" == "jusuf" ]]; then
+    if [[ "${SERVER_NAME}" == "juwels" || "${SERVER_NAME}" == "jusuf" ]]; then
         export run_dir_pre=/p/project1/trustllm-eu/mao4
     elif [[ ${SERVER_NAME} == "custodian@"* ]]; then
         export run_dir_pre=/home/custodian/project_remote_jwm
@@ -145,13 +135,13 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
 
     echo ${last_commit}
     local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
-    if [[ "$_mode" == "remote_slurm" ]]; then
+    if [[ "$_mode" == "remoteslurm" ]]; then
         run_timestamp="$(date +%Y%m%d_%H%M%S)"
         run_id="${run_timestamp}_${last_commit}"
         local_dir="${local_dir}/${run_id}"
     fi
     mkdir -p "$local_dir"
-    if [[ "$_mode" == "remote_docker_compose" ]]; then
+    if [[ "$_mode" == "remotedockercompose" ]]; then
         ports_before="${local_dir}/ports_before.txt"
         ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     fi
@@ -161,7 +151,7 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
     echo "Running remote setup... (output: $nohup_log)"
     ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_master/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file}" 2>&1 | tee "$nohup_log"
 
-    if [[ "$_mode" == "remote_docker_compose" ]]; then
+    if [[ "$_mode" == "remotedockercompose" ]]; then
         echo "local dir: ${local_dir}"
         pkill -f "ssh.*ControlPath=none.*-N.*$SERVER_NAME" 2>/dev/null && echo "Killed existing SSH tunnel to $SERVER_NAME" || true
         ports_after=$(
@@ -188,7 +178,7 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
         exit 0
     fi
 
-    if [[ "$_mode" == "remote_" ]]; then
+    if [[ "$_mode" == "remote" ]]; then
         echo "local dir: ${local_dir}"
         exit 0
     fi
@@ -199,13 +189,13 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
         echo "Remote job ID: $remote_job_id"
         echo "local dir: ${local_dir}"
 
-        if [[ "$_mode" == "remote_slurm" ]]; then
+        if [[ "$_mode" == "remoteslurm" ]]; then
             monitor_args=(slurm "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
-        elif [[ "$_mode" == "remote_docker" ]]; then
+        elif [[ "$_mode" == "remotedocker" ]]; then
             monitor_args=(docker "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir")
         else
             monitor_args=(pid "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir")
-            if [[ "$_mode" == "remote_docker_compose" ]]; then
+            if [[ "$_mode" == "remotedockercompose" ]]; then
                 monitor_args+=(port_forward "$ports_before")
             fi
         fi
@@ -232,7 +222,7 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
         echo "FAILED: remote setup on $SERVER_NAME failed."
     fi
 
-elif [[ "$1" == "remote_slurm" ]]; then
+elif [[ "$1" == "remoteslurm" ]]; then
     _remote_setup "$@"
     touch ".slurm_submit_marker"
     cat >>jwm_configs/remote.sh <<'EOF'
@@ -275,7 +265,7 @@ EOF
         else
             GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
         fi
-        if [[ "${SERVER_NAME}" == "juwels_cluster" ]]; then
+        if [[ "${SERVER_NAME}" == "juwelscluster" ]]; then
             GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
             CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
         fi
@@ -299,7 +289,7 @@ EOF
     echo "${PWD}, ${SLURM_JOB_ID}"
     echo "$SLURM_JOB_ID" >${remote_job_id_file}
 
-elif [[ "$1" == "remote_docker_compose" ]]; then
+elif [[ "$1" == "remotedockercompose" ]]; then
     _remote_setup "$@"
     source jwm_configs/remote.sh
     cd - >/dev/null
@@ -409,20 +399,20 @@ elif [[ "$1" == "remote_docker_compose" ]]; then
         sleep 10
     done
 
-elif [[ "$1" == "remote_docker" ]]; then
+elif [[ "$1" == "remotedocker" ]]; then
     _remote_setup "$@"
     source jwm_configs/remote.sh
     echo "$JWM_CONTAINER_ID" >"remote_job_id.txt"
     echo "docker_container_started"
 
-elif [[ "$1" == "remote_" ]]; then
+elif [[ "$1" == "remote" ]]; then
     _remote_setup "$@"
     source jwm_configs/remote.sh
     echo "remote.sh completed — agent deployed"
 
 else
     echo "ERROR: unrecognized arguments. Usage:"
-    echo "  meta_script.sh /path/to/project/jwm_configs/remote_<mode>_<server>.sh"
+    echo "  meta_script.sh /path/to/project/jwm_configs/<server>_<mode>.sh"
     echo "  (remote-side call is handled internally)"
     exit 1
 fi
