@@ -139,15 +139,22 @@ if [[ "$mode" == "slurm" ]]; then
     echo "Waiting for slurm job to start running (job ID: $job_id)..."
     while true; do
         sleep 10
-        job_state=$(ssh "$host" "squeue --job=${job_id} --noheader -o '%T' 2>/dev/null" 2>/dev/null | head -1)
-        if [[ "$job_state" == "RUNNING" ]]; then
-            echo "Job is now RUNNING."
-            break
-        elif [[ -z "$job_state" ]]; then
+        all_states=$(ssh "$host" "squeue --job=${job_id} --noheader -o '%T' 2>/dev/null" 2>/dev/null)
+        if [[ -z "$all_states" ]]; then
             echo "Job no longer in queue (may have finished or failed instantly)."
             break
+        elif echo "$all_states" | grep -q "RUNNING"; then
+            echo "Job is now RUNNING."
+            if $is_array; then
+                echo "$all_states" | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}'
+            fi
+            break
         fi
-        echo "$(date '+%H:%M:%S') - job state: $job_state"
+        if $is_array; then
+            echo "$(date '+%H:%M:%S') - $(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')"
+        else
+            echo "$(date '+%H:%M:%S') - job state: $(echo "$all_states" | head -1)"
+        fi
     done
 fi
 
