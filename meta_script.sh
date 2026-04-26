@@ -404,6 +404,8 @@ elif [[ "$1" == "remotedocker" ]]; then
     _remote_setup "$@"
     source jwm_configs/remote.sh
     echo "$JWM_CONTAINER_ID" >"remote_job_id.txt"
+    nohup bash -c "while docker inspect $JWM_CONTAINER_ID >/dev/null 2>&1; do docker logs $JWM_CONTAINER_ID >slurm_out.log 2>&1; sleep 5; done" >/dev/null 2>&1 &
+    disown
     echo "docker_container_started"
 
 elif [[ "$1" == "remote" ]]; then
