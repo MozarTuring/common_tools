@@ -55,6 +55,38 @@ print_array_summary() {
         || true
 }
 
+merge_array_logs() {
+    local merged="${local_dir}/slurm_out.log"
+    local state_file="${local_dir}/.array_log_state"
+    touch "$state_file" "$merged"
+    local had_new=false
+    for f in $(ls "${local_dir}"/slurm-${job_id}_*.out 2>/dev/null | sort -t_ -k2 -n); do
+        local fname
+        fname=$(basename "$f")
+        local prev_lines
+        prev_lines=$(grep "^${fname} " "$state_file" 2>/dev/null | awk '{print $2}')
+        prev_lines=${prev_lines:-0}
+        local cur_lines
+        cur_lines=$(wc -l < "$f" | tr -d '[:space:]')
+        if [[ "$cur_lines" -gt "$prev_lines" ]]; then
+            local new_start=$((prev_lines + 1))
+            local new_content
+            new_content=$(sed -n "${new_start},${cur_lines}p" "$f")
+            if [[ -n "$new_content" ]]; then
+                echo "$new_content" >>"$merged"
+                echo "$new_content"
+                had_new=true
+            fi
+            if grep -q "^${fname} " "$state_file" 2>/dev/null; then
+                sed -i '' "s/^${fname} .*/${fname} ${cur_lines}/" "$state_file"
+            else
+                echo "${fname} ${cur_lines}" >>"$state_file"
+            fi
+        fi
+    done
+    $had_new
+}
+
 fetch_new_log_content() {
     local rlog
     rlog=$(get_remote_log_path)
@@ -144,6 +176,7 @@ while true; do
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     if $is_array; then
         print_array_summary
+        merge_array_logs 2>/dev/null || true
     else
         fetch_new_log_content 2>/dev/null || echo "WARNING: failed to fetch remote log, will retry next cycle"
     fi
@@ -153,6 +186,7 @@ while true; do
         sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
         if $is_array; then
             print_array_summary
+            merge_array_logs 2>/dev/null || true
         else
             fetch_new_log_content 2>/dev/null || true
         fi
