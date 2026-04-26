@@ -27,81 +27,43 @@ fi
 
 mkdir -p "$local_dir"
 
-# Next line number to fetch from the remote log (1-based).
-_next_line=1
-
-# Auto-detect SLURM array jobs: ArrayJobId appears in scontrol for any array task.
-is_array=false
-if [[ "$mode" == "slurm" ]]; then
-    if ssh "$host" "scontrol show job ${job_id} 2>/dev/null" | grep -q "ArrayJobId="; then
-        is_array=true
-        echo "SLURM array job detected (id ${job_id}); skipping incremental log tail."
-    fi
-fi
-
-get_remote_log_path() {
-    if [[ "$mode" == "slurm" ]]; then
-        echo "${remote_dir}/slurm-${job_id}.out"
-    elif [[ "$mode" == "docker" ]]; then
-        echo "${remote_dir}/slurm_out.log"
-    else
-        echo "${remote_dir}/nohup.out"
-    fi
-}
-
-print_array_summary() {
+print_slurm_summary() {
     ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" \
         | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}' \
         || true
 }
 
-merge_array_logs() {
-    local merged="${local_dir}/slurm_out.log"
-    local state_file="${local_dir}/.array_log_state"
-    touch "$state_file" "$merged"
-    local had_new=false
-    for f in $(ls "${local_dir}"/slurm-${job_id}_*.out 2>/dev/null | sort -t_ -k2 -n); do
+_log_state_file=""
+fetch_new_content() {
+    [[ -z "$_log_state_file" ]] && _log_state_file="${local_dir}/.log_state" && touch "$_log_state_file"
+    local files=()
+    if [[ -e "${local_dir}/slurm-${job_id}_1.out" ]]; then
+        files=("${local_dir}/slurm-${job_id}_1.out")
+    else
+        for f in "${local_dir}"/slurm-${job_id}*.out "${local_dir}"/slurm_out.log "${local_dir}"/nohup.out; do
+            [[ -e "$f" ]] && files+=("$f")
+        done
+    fi
+    [[ ${#files[@]} -eq 0 ]] && return 0
+    for f in "${files[@]}"; do
         local fname
         fname=$(basename "$f")
         local prev_lines
-        prev_lines=$(grep "^${fname} " "$state_file" 2>/dev/null | awk '{print $2}')
+        prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
         prev_lines=${prev_lines:-0}
         local cur_lines
         cur_lines=$(wc -l < "$f" | tr -d '[:space:]')
+        [[ "$cur_lines" -lt "$prev_lines" ]] && prev_lines=0
         if [[ "$cur_lines" -gt "$prev_lines" ]]; then
             local new_start=$((prev_lines + 1))
-            local new_content
-            new_content=$(sed -n "${new_start},${cur_lines}p" "$f")
-            if [[ -n "$new_content" ]]; then
-                echo "$new_content" >>"$merged"
-                echo "$new_content"
-                had_new=true
-            fi
-            if grep -q "^${fname} " "$state_file" 2>/dev/null; then
-                sed -i '' "s/^${fname} .*/${fname} ${cur_lines}/" "$state_file"
+            sed -n "${new_start},${cur_lines}p" "$f"
+            if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
+                sed -i '' "s/^${fname} .*/${fname} ${cur_lines}/" "$_log_state_file"
             else
-                echo "${fname} ${cur_lines}" >>"$state_file"
+                echo "${fname} ${cur_lines}" >>"$_log_state_file"
             fi
         fi
     done
-    $had_new
-}
-
-fetch_new_log_content() {
-    local rlog
-    rlog=$(get_remote_log_path)
-    local local_log="${local_dir}/${rlog#${remote_dir}/}"
-    [[ ! -f "$local_log" ]] && return 0
-    local total_lines
-    total_lines=$(wc -l < "$local_log" 2>/dev/null) || return 0
-    total_lines=$(echo "$total_lines" | tr -d '[:space:]')
-    [[ -z "$total_lines" || "$total_lines" -lt "$_next_line" ]] && return 0
-    local new_content
-    new_content=$(sed -n "${_next_line},${total_lines}p" "$local_log" 2>/dev/null) || return 0
-    if [[ -n "$new_content" ]]; then
-        echo "$new_content"
-    fi
-    _next_line=$(( total_lines + 1 ))
 }
 
 wait_for_ssh() {
@@ -145,16 +107,10 @@ if [[ "$mode" == "slurm" ]]; then
             break
         elif echo "$all_states" | grep -q "RUNNING"; then
             echo "Job is now RUNNING."
-            if $is_array; then
-                echo "$all_states" | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}'
-            fi
+            echo "$all_states" | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}'
             break
         fi
-        if $is_array; then
-            echo "$(date '+%H:%M:%S') - $(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')"
-        else
-            echo "$(date '+%H:%M:%S') - job state: $(echo "$all_states" | head -1)"
-        fi
+        echo "$(date '+%H:%M:%S') - $(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')"
     done
 fi
 
@@ -181,22 +137,14 @@ while true; do
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
-    if $is_array; then
-        print_array_summary
-        merge_array_logs 2>/dev/null || true
-    else
-        fetch_new_log_content 2>/dev/null || echo "WARNING: failed to fetch remote log, will retry next cycle"
-    fi
+    [[ "$mode" == "slurm" ]] && print_slurm_summary
+    fetch_new_content 2>/dev/null || true
 
     if ! is_job_running; then
         wait_for_ssh
         sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
-        if $is_array; then
-            print_array_summary
-            merge_array_logs 2>/dev/null || true
-        else
-            fetch_new_log_content 2>/dev/null || true
-        fi
+        [[ "$mode" == "slurm" ]] && print_slurm_summary
+        fetch_new_content 2>/dev/null || true
 
         if $port_forward; then
             pkill -f "ssh.*ControlPath=none.*-N.*${host}" 2>/dev/null && echo "Killed existing SSH tunnel to ${host}" || true
