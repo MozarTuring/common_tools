@@ -79,6 +79,7 @@ _remote_setup() {
     export SERVER_NAME="${5##*@}"
     _manual_file="${6:-remote_manual.sh}"
     cd "$4"/"$2"
+    rm slurm-*.out
     remote_job_id_file=${RUN_DIR_PRE}/${RUN_PROJ}/"remote_job_id.txt"
     rm ${remote_job_id_file} 2>/dev/null || true
     export HUGGING_FACE_HUB_TOKEN="${HUGGING_FACE_HUB_TOKEN:-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}"
