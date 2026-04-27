@@ -1686,16 +1686,25 @@ local function run_in_terminal_app(cmd)
 	local script = string.format([[
 tell application "Terminal"
 	activate
-	if (count of windows) is 0 then
-		do script "%s"
-	else if not busy of selected tab of front window then
-		tell application "System Events" to keystroke "c" using control down
-		delay 0.5
-		do script "%s" in selected tab of front window
+	set idleTab to missing value
+	repeat with w in windows
+		repeat with t in tabs of w
+			if busy of t is false then
+				set idleTab to t
+				set frontWindow to w
+				exit repeat
+			end if
+		end repeat
+		if idleTab is not missing value then exit repeat
+	end repeat
+	if idleTab is not missing value then
+		set selected tab of frontWindow to idleTab
+		set index of frontWindow to 1
+		do script "%s" in idleTab
 	else
 		do script "%s"
 	end if
-end tell]], escaped, escaped, escaped)
+end tell]], escaped, escaped)
 	vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 end
 
