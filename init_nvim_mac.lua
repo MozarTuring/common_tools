@@ -1723,7 +1723,7 @@ end tell]], escaped, escaped)
 tell application "Terminal"
 	activate
 	set idleTab to missing value
-	set shells to {"bash", "zsh", "fish", "sh", "login"}
+	set shells to {"bash", "zsh", "fish", "sh", "login", "-bash", "-zsh", "-fish", "-sh"}
 	repeat with w in windows
 		repeat with t in tabs of w
 			if busy of t is false then

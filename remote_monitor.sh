@@ -76,16 +76,15 @@ wait_for_ssh() {
 is_job_running() {
     local output rc
     if [[ "$mode" == "slurm" ]]; then
-        output=$(ssh "$host" "squeue --job=${job_id} --noheader 2>/dev/null" 2>/dev/null)
+        output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue --job=${job_id} --noheader 2>/dev/null" 2>/dev/null)
         rc=$?
     elif [[ "$mode" == "docker" ]]; then
-        output=$(ssh "$host" "docker inspect -f '{{.State.Running}}' ${job_id} 2>/dev/null" 2>/dev/null)
+        output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "docker inspect -f '{{.State.Running}}' ${job_id} 2>/dev/null" 2>/dev/null)
         rc=$?
     else
-        ssh "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
+        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
         return $?
     fi
-    # SSH failure (255) or other connection errors: assume still running, don't exit loop.
     if [[ $rc -ne 0 && $rc -ne 1 ]]; then
         return 0
     fi
@@ -101,7 +100,13 @@ if [[ "$mode" == "slurm" ]]; then
     echo "Waiting for slurm job to start running (job ID: $job_id)..."
     while true; do
         sleep 10
-        all_states=$(ssh "$host" "squeue --job=${job_id} --noheader -o '%T' 2>/dev/null" 2>/dev/null)
+        all_states=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue --job=${job_id} --noheader -o '%T' 2>/dev/null" 2>/dev/null)
+        _ssh_rc=$?
+        if [[ $_ssh_rc -eq 255 ]]; then
+            echo "$(date '+%H:%M:%S') - SSH connection lost, retrying..."
+            wait_for_ssh
+            continue
+        fi
         if [[ -z "$all_states" ]]; then
             echo "Job no longer in queue (may have finished or failed instantly)."
             break
