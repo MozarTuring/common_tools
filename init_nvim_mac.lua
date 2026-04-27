@@ -1732,7 +1732,7 @@ tell application "Terminal"
 				repeat with p in procList
 					set isShell to false
 					repeat with s in shells
-						if p is equal to contents of s then
+						if (contents of p) is equal to (contents of s) then
 							set isShell to true
 							exit repeat
 						end if
