@@ -1194,6 +1194,42 @@ vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
+	local ok, tree = pcall(require, "snacks.explorer.tree")
+	if ok and not tree._jw_mtime_patched then
+		tree._jw_mtime_patched = true
+		local mt = getmetatable(tree)
+		local uv = vim.uv or vim.loop
+		mt.walk = function(self, node, fn, wopts)
+			local abort = fn(node)
+			if abort ~= nil then
+				return abort
+			end
+			local children = vim.tbl_values(node.children)
+			table.sort(children, function(a, b)
+				if a.dir ~= b.dir then
+					return a.dir
+				end
+				local sa = uv.fs_stat(a.path)
+				local sb = uv.fs_stat(b.path)
+				local ma = sa and sa.mtime and sa.mtime.sec or 0
+				local mb = sb and sb.mtime and sb.mtime.sec or 0
+				return ma > mb
+			end)
+			for c, child in ipairs(children) do
+				child.last = c == #children
+				abort = false
+				if child.dir and (child.open or (wopts and wopts.all)) then
+					abort = self:walk(child, fn, wopts)
+				else
+					abort = fn(child)
+				end
+				if abort then
+					return true
+				end
+			end
+			return false
+		end
+	end
 	Snacks.explorer()
 end, { noremap = true, desc = "Open file explorer" })
 
@@ -1645,6 +1681,43 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 	end,
 })
 
+local function run_in_terminal_app(cmd)
+	local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+	local script = string.format([[
+tell application "Terminal"
+	activate
+	if (count of windows) is 0 then
+		do script "%s"
+	else if not busy of selected tab of front window then
+		tell application "System Events" to keystroke "c" using control down
+		delay 0.5
+		do script "%s" in selected tab of front window
+	else
+		do script "%s"
+	end if
+end tell]], escaped, escaped, escaped)
+	vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+end
+
+local claude_sessions_dir = "/Users/maojingwei/baidu/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+vim.api.nvim_create_autocmd("BufReadPost", {
+	pattern = "*.jsonl",
+	once = false,
+	callback = function(ev)
+		if vim.b[ev.buf]._claude_resumed then
+			return
+		end
+		local file = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(ev.buf), ":p")
+		local dir = vim.fn.fnamemodify(file, ":h")
+		if dir ~= claude_sessions_dir then
+			return
+		end
+		vim.b[ev.buf]._claude_resumed = true
+		local session_id = vim.fn.fnamemodify(file, ":t:r")
+		run_in_terminal_app("claude --resume " .. session_id)
+	end,
+})
+
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 	callback = function()
 		local bufname = vim.api.nvim_buf_get_name(0)
@@ -1670,21 +1743,7 @@ vim.keymap.set("n", "<F5>", function()
 		return
 	end
 	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh " .. vim.fn.shellescape(filepath)
-	local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
-	local script = string.format([[
-tell application "Terminal"
-	activate
-	if (count of windows) is 0 then
-		do script "%s"
-	else if not busy of selected tab of front window then
-		tell application "System Events" to keystroke "c" using control down
-		delay 0.5
-		do script "%s" in selected tab of front window
-	else
-		do script "%s"
-	end if
-end tell]], escaped, escaped, escaped)
-	vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+	run_in_terminal_app(cmd)
 	vim.notify("Running in Terminal.app: " .. cmd)
 end, { noremap = true, silent = true, desc = "Run meta_script on current file in Terminal" })
 
