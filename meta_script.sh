@@ -236,7 +236,7 @@ fi
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=slurm-%j.out --error=slurm-%j.out"&&
 EOF
     # EOF has to be at the start of a line, without anything before it, not even white characters
-    if [[ "${5}" == "berzeliusAmpere" ]]; then
+    if [[ "${5}" == "berzeliusampere" ]]; then
         cat >>jwm_configs/remote.sh <<'EOF'
 sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --signal=TERM@90 -A berzelius-2026-50 --partition=berzelius"
 EOF
