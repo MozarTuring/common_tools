@@ -1681,18 +1681,72 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 	end,
 })
 
-local function run_in_terminal_app(cmd)
-	local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
-	local script = string.format([[
+local function run_in_terminal_app(cmd, app)
+	app = app or "terminal"
+	if app == "kitty" then
+		local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+		local script = string.format([[
+tell application "System Events"
+	set found to false
+	if exists process "kitty" then
+		tell process "kitty"
+			repeat with w in windows
+				set wName to name of w
+				if wName ends with "zsh" or wName ends with "bash" or wName ends with "fish" or wName ends with "sh" then
+					perform action "AXRaise" of w
+					set frontmost to true
+					delay 0.3
+					keystroke "%s"
+					key code 36
+					set found to true
+					exit repeat
+				end if
+			end repeat
+		end tell
+	end if
+	if not found then
+		tell application "kitty" to activate
+		delay 0.5
+		tell process "kitty"
+			set frontmost to true
+			keystroke "n" using command down
+			delay 0.5
+			keystroke "%s"
+			key code 36
+		end tell
+	end if
+end tell]], escaped, escaped)
+		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+	else
+		local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+		local script = string.format([[
 tell application "Terminal"
 	activate
 	set idleTab to missing value
+	set shells to {"bash", "zsh", "fish", "sh", "login"}
 	repeat with w in windows
 		repeat with t in tabs of w
 			if busy of t is false then
-				set idleTab to t
-				set frontWindow to w
-				exit repeat
+				set procList to processes of t
+				set allShell to true
+				repeat with p in procList
+					set isShell to false
+					repeat with s in shells
+						if p is equal to contents of s then
+							set isShell to true
+							exit repeat
+						end if
+					end repeat
+					if not isShell then
+						set allShell to false
+						exit repeat
+					end if
+				end repeat
+				if allShell then
+					set idleTab to t
+					set frontWindow to w
+					exit repeat
+				end if
 			end if
 		end repeat
 		if idleTab is not missing value then exit repeat
@@ -1705,7 +1759,8 @@ tell application "Terminal"
 		do script "%s"
 	end if
 end tell]], escaped, escaped)
-	vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+	end
 end
 
 local claude_sessions_dir = "/Users/maojingwei/baidu/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
@@ -1723,7 +1778,7 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 		end
 		vim.b[ev.buf]._claude_resumed = true
 		local session_id = vim.fn.fnamemodify(file, ":t:r")
-		run_in_terminal_app("claude --resume " .. session_id)
+		run_in_terminal_app("claude --resume " .. session_id, "kitty")
 	end,
 })
 
