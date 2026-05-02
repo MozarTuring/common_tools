@@ -307,6 +307,8 @@ sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TAS
 EOF
 
         elif [[ "${5}" == "jusuf" ]]; then
+            sinfo -o "%P %m %c %l %N" -p batch
+
             cat >>jwm_configs/remote.sh <<'EOF'
 sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
 EOF
