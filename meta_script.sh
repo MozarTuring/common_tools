@@ -150,7 +150,7 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
     _server=$(tail -1 "$_abspath" | sed 's/^[[:space:]]*#[[:space:]]*//')
 
     case "$_mode" in
-    remoteslurm | remotedocker | remotedockercompose | remote) ;;
+    remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
     *)
         echo "ERROR: unknown mode '$_mode' from filename '$_filename'"
         exit 1
@@ -230,7 +230,7 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
         exit 0
     fi
 
-    if [[ "$_mode" == "remote" ]]; then
+    if [[ "$_mode" == "remotenone" ]]; then
         echo "local dir: ${local_dir}"
         exit 0
     fi
@@ -466,9 +466,8 @@ EOF
         disown
         echo "docker_container_started"
 
-    elif [[ "$1" == "remote" ]]; then
+    elif [[ "$1" == "remotenone" ]]; then
         source jwm_configs/remote.sh
-        echo "remote.sh completed — agent deployed"
     fi
 else
     echo "ERROR: unrecognized arguments. Usage:"
