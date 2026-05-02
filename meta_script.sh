@@ -136,7 +136,7 @@ export PYTHONUNBUFFERED=1
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
 }
 
-if [[ $# -eq 1 && "$1" != "remote"* ]]; then
+if [[ $# -lt 3 && $# -gt 0 ]]; then
     _coord_port=9800 && ssh -o ControlPath=none -f -N -L ${_coord_port}:localhost:${_coord_port} -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes ferragon || echo "Port ${_coord_port} tunnel already active"
 
     _abspath="$1"
@@ -146,6 +146,9 @@ if [[ $# -eq 1 && "$1" != "remote"* ]]; then
     _stem="${_filename%.sh}"
     _mode="${_stem%%_*}"
     _server=$(tail -1 "$_abspath" | sed 's/^[[:space:]]*#[[:space:]]*//')
+    if [[ $# -eq 2 ]];then
+        _server=$2
+    fi
 
     case "$_mode" in
     remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
