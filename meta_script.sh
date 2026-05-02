@@ -100,9 +100,8 @@ _remote_setup() {
         tmpcache=/home/${tmpuser}/.cache/huggingface
         if [[ ! -L ${tmpcache} ]]; then
             echo "create link ${tmpcache}"
-            rm -rf ${tmpcache} || { docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && ln -s /data/docker ${tmpcache} && echo "hard remove, check" ;}
+            false || { docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && ln -s /data/docker ${tmpcache} && echo "hard remove, check" ;}
             # if using () here, will create a subshell, and exit only exit subshell
-            echo "${tmpcache} removed"
         fi
 
         mkdir -p /data/docker
@@ -110,7 +109,7 @@ _remote_setup() {
         tmpcache=/home/${tmpuser}/.local/share/docker
         if [[ ! -L ${tmpcache} ]]; then
             echo "create link ${tmpcache}"
-            rm -rf ${tmpcache} || { systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && ln -s /data/docker ${tmpcache} && systemctl --user restart docker && echo "hard remove, check" ; }
+            systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && ln -s /data/docker ${tmpcache} && systemctl --user restart docker && echo "hard remove, check"
         fi
     fi
     _manual_file="${6}"
