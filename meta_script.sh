@@ -14,7 +14,7 @@ sync_and_commit_repo() {
             git commit -m "v" > /dev/null
             git show-ref --verify --quiet refs/heads/jingwei && echo "Branch jingwei already exists, skipping rename." || (git branch -m jingwei && echo "Branch renamed to jingwei")
             tmpbranch=$(git branch --show-current)
-            git push origin -u ${tmpbranch}
+            git push origin -u ${tmpbranch} > /dev/null
         fi
     )
     last_commit=$(git rev-parse HEAD)
