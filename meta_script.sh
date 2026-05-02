@@ -1,5 +1,4 @@
 set -e
-_coord_port=9800 && ssh -o ControlPath=none -f -N -L ${_coord_port}:localhost:${_coord_port} -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes ferragon || echo "Port ${_coord_port} tunnel already active"
 sync_and_commit_repo() {
     local repo_path="$1"
     cd "$repo_path"
@@ -131,6 +130,8 @@ export PYTHONUNBUFFERED=1
 }
 
 if [[ $# -eq 1 && "$1" != "remote"* ]]; then
+    _coord_port=9800 && ssh -o ControlPath=none -f -N -L ${_coord_port}:localhost:${_coord_port} -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes ferragon || echo "Port ${_coord_port} tunnel already active"
+
     _abspath="$1"
     _filename=$(basename "$_abspath")
     _project_dir=$(dirname "$(dirname "$_abspath")")
@@ -271,7 +272,7 @@ elif [[ "$1" == "remote"* ]]; then
         # Show your specific QOS association
         sacctmgr show assoc where user=$USER format=User,Account,QOS
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
-        sacctmgr show qos <qos_name >format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
+        sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
         rm slurm-*.out || echo "no slurm-*.out"
         cat >>jwm_configs/remote.sh <<'EOF'
 
