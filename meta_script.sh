@@ -84,7 +84,6 @@ _remote_setup() {
     source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
     export RUN_PROJ="$2"
     export RUN_PROJ_DATA="${RUN_PROJ%_*}"
-    echo "RUN_PROJ_DATA: ${RUN_PROJ_DATA}"
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
     if [[ -d /data && $1 == "remotedocker"* ]]; then
@@ -468,6 +467,8 @@ EOF
     elif [[ "$1" == "remotenone" ]]; then
         source jwm_configs/remote.sh
     fi
+    echo "JWM_DATA_DIR: ${JWM_DATA_DIR}"
+
 else
     echo "ERROR: unrecognized arguments. Usage:"
     echo "  meta_script.sh /path/to/project/jwm_configs/<mode>.sh  (last line of file: # <server>)"
