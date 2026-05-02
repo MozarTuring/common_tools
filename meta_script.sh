@@ -99,17 +99,17 @@ _remote_setup() {
         mkdir -p /home/${tmpuser}/.cache
         tmpcache=/home/${tmpuser}/.cache/huggingface
         if [[ -d ${tmpcache} ]]; then
-            rm -rf ${tmpcache} || { docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && echo "hard remove, check" && exit 1; }
+            rm -rf ${tmpcache} || { docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && echo "hard remove, check" ;}
             # if using () here, will create a subshell, and exit only exit subshell
             echo "${tmpcache} removed"
+            ln -s /data/huggingface_cache ${tmpcache}
         fi
-        ln -s /data/huggingface_cache ${tmpcache}
 
         mkdir -p /data/docker
         mkdir -p /home/${tmpuser}/.local/share
         tmpcache=/home/${tmpuser}/.local/share/docker
         if [[ -d ${tmpcache} ]]; then
-            rm -rf ${tmpcache} || { systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && systemctl --user restart docker && echo "hard remove, check" && exit 1; }
+            rm -rf ${tmpcache} || { systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && systemctl --user restart docker && echo "hard remove, check" ; }
             echo "${tmpcache} removed"
         fi
         ln -s /data/docker ${tmpcache}
