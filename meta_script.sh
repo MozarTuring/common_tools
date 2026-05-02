@@ -2,6 +2,8 @@ set -e
 sync_and_commit_repo() {
     local repo_path="$1"
     cd "$repo_path"
+    git show-ref --verify --quiet refs/heads/jingwei && echo "Branch jingwei already exists, skipping rename." || (git branch -m jingwei && echo "Branch renamed to jingwei")
+
     while IFS= read -r pattern; do
         grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
     done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt
@@ -12,7 +14,6 @@ sync_and_commit_repo() {
         _non_config=$(echo "$_staged" | grep -v "^jwm_configs/" || true)
         if [[ -n "$_staged" && -n "$_non_config" ]]; then
             git commit -m "v" >/dev/null
-            git show-ref --verify --quiet refs/heads/jingwei && echo "Branch jingwei already exists, skipping rename." || (git branch -m jingwei && echo "Branch renamed to jingwei")
             tmpbranch=$(git branch --show-current)
             git push origin -u ${tmpbranch} >/dev/null
         fi
