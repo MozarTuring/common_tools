@@ -32,9 +32,9 @@ sync_and_commit_repo() {
 }
 
 if false; then
-sudo chmod -R a+rwX /data/huggingface_cache
-sudo setfacl -R -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
-sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
+    sudo chmod -R a+rwX /data/huggingface_cache
+    sudo setfacl -R -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
+    sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
 fi
 
 check_gpu() {
@@ -91,20 +91,24 @@ _remote_setup() {
     if [[ -d /data && $1 == "remotedocker"* ]]; then
         # failure inside the if block will just not stop, regardless of set -e
         mkdir -p /data/huggingface_cache
-        mkdir -p /home/jinma/.cache
-        tmpcache=/home/jinma/.cache/huggingface
+        if [[ ${SERVER_NAME} == "custodian@"* ]]; then
+            tmpuser=custodian
+        else
+            tmpuser=jinma
+        fi
+        mkdir -p /home/${tmpuser}/.cache
+        tmpcache=/home/${tmpuser}/.cache/huggingface
         if [[ -d ${tmpcache} ]]; then
             rm -rf ${tmpcache} || (docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && echo "hard remove, check" && exit)
             echo "${tmpcache} removed"
         fi
         ln -s /data/huggingface_cache ${tmpcache}
-    fi
-    if [[ -d /home/jinma && -d /data && $1 == "remotedocker"* ]]; then
+
         mkdir -p /data/docker
-        mkdir -p /home/jinma/.local/share
-        tmpcache=/home/jinma/.local/share/docker
+        mkdir -p /home/${tmpuser}/.local/share
+        tmpcache=/home/${tmpuser}/.local/share/docker
         if [[ -d ${tmpcache} ]]; then
-            rm -rf ${tmpcache} || (systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && systemctl --user restart docker && echo "hard remove" && exit)
+            rm -rf ${tmpcache} || (systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && systemctl --user restart docker && echo "hard remove, check" && exit)
             echo "${tmpcache} removed"
         fi
         ln -s /data/docker ${tmpcache}
