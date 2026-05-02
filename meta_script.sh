@@ -6,12 +6,12 @@ sync_and_commit_repo() {
         grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
     done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt
     git submodule foreach 'git add -A && (git commit -m "v" || true)'
-    git add -A
+    git add -A > /dev/null
     (
         _staged=$(git diff --cached --name-only)
         _non_config=$(echo "$_staged" | grep -v "^jwm_configs/" || true)
         if [[ -n "$_staged" && -n "$_non_config" ]]; then
-            git commit -m "v"
+            git commit -m "v" > /dev/null
             git show-ref --verify --quiet refs/heads/jingwei && echo "Branch jingwei already exists, skipping rename." || (git branch -m jingwei && echo "Branch renamed to jingwei")
             tmpbranch=$(git branch --show-current)
             git push origin -u ${tmpbranch}
@@ -21,10 +21,9 @@ sync_and_commit_repo() {
     if [[ -n "$SERVER_NAME" ]]; then
         _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
         _remote_proj="${repo_path}_${_git_branch}"
-        echo "remote dir: ${_remote_proj}"
-        echo "${run_dir_pre}"
+        echo "remote dir: ${run_dir_remote}/${_remote_proj}"
         run_dir_remote="${run_dir_pre}/${_remote_proj}"
-        rsync -av --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
+        rsync -a --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
     fi
     local _sync_rc=$?
     cd - >/dev/null
