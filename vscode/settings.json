@@ -206,5 +206,7 @@
     "terminal.integrated.inheritEnv": false,
     "python.analysis.typeCheckingMode": "off",
     "python.analysis.diagnosticMode": "off",
-    "python.analysis.reportGeneralTypeIssues": "none"
+    "python.analysis.reportGeneralTypeIssues": "none",
+    "chat.disableAIFeatures": true,
+    "workbench.editor.enablePreview": false
 }

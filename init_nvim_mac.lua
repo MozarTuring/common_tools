@@ -13,7 +13,7 @@ local function isWindows()
 	local uname = vim.loop.os_uname()
 	return uname.sysname == "Windows" or uname.sysname == "Windows_NT"
 end
---is_win = isWindows()
+is_win = isWindows()
 
 if is_win then
 	jwHomePath = "C:/Users/Mozar/BaiduSyncdisk/project"
@@ -110,7 +110,7 @@ require("lazy").setup({
 				opts.sections.lualine_z = {
 					{
 						function()
-							return vim.fn.line(".") .. "/" .. vim.fn.line("$")
+							return vim.fn.line(".") .. ":" .. vim.fn.col(".") .. "/" .. vim.fn.line("$")
 						end,
 					},
 				}
@@ -259,8 +259,42 @@ require("lazy").setup({
 					desc = "Copy file to destination",
 				}
 
-				keys["p"] = "explorer_close"
-				keys["r"] = "explorer_update"
+			keys["<cr>"] = {
+				function()
+					local pickers = Snacks.picker.get({ source = "explorer" })
+					if #pickers == 0 then return end
+					local picker = pickers[1]
+					local item = picker:current()
+					if not item or not item.file then return end
+					if vim.fn.isdirectory(item.file) == 1 then
+						picker:action("confirm")
+						return
+					end
+					local file = item.file
+					picker:close()
+					local origin_buf = vim.api.nvim_get_current_buf()
+					vim.cmd("edit " .. vim.fn.fnameescape(file))
+					vim.schedule(function()
+						local ok, bl = pcall(require, "bufferline")
+						if not ok then return end
+						local elems = bl.get_elements().elements
+						local origin_pos = nil
+						for i, e in ipairs(elems) do
+							if e.id == origin_buf then
+								origin_pos = i
+								break
+							end
+						end
+						if origin_pos then
+							bl.move_to(origin_pos + 1)
+						end
+					end)
+				end,
+				desc = "Open file to the right in bufferline",
+			}
+
+			keys["p"] = "explorer_close"
+			keys["r"] = "explorer_update"
 			end,
 		},
 		{
@@ -1068,7 +1102,7 @@ end
 --     return "Line " .. row .. ":" .. "Col " .. col
 -- end
 --vim.opt.statusline = "%f %h%m%r%=%{v:lua.CursorPosition()} %l/%L %c"
-vim.opt.statusline = "%l/%L %f %h%m%r"
+vim.opt.statusline = "%l:%c/%L %f %h%m%r"
 vim.opt.endofline = true
 -- vim.cmd('let g:jedi#show_call_signatures = "0"')
 -- vim.cmd('let g:jedi#use_tabs_not_buffers = 1')
@@ -1100,6 +1134,8 @@ vim.api.nvim_set_keymap("n", "F", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "H", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "J", "<C-f>", { noremap = true, silent = true, desc = "Page down" })
 vim.api.nvim_set_keymap("n", "K", "<C-b>", { noremap = true, silent = true, desc = "Page up" })
+vim.api.nvim_set_keymap("x", "J", "<C-f>", { noremap = true, silent = true, desc = "Page down" })
+vim.api.nvim_set_keymap("x", "K", "<C-b>", { noremap = true, silent = true, desc = "Page up" })
 vim.api.nvim_set_keymap("n", "L", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "M", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "Q", "<Nop>", { noremap = true, silent = true })
@@ -1160,6 +1196,42 @@ vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
+	local ok, tree = pcall(require, "snacks.explorer.tree")
+	if ok and not tree._jw_mtime_patched then
+		tree._jw_mtime_patched = true
+		local mt = getmetatable(tree)
+		local uv = vim.uv or vim.loop
+		mt.walk = function(self, node, fn, wopts)
+			local abort = fn(node)
+			if abort ~= nil then
+				return abort
+			end
+			local children = vim.tbl_values(node.children)
+			table.sort(children, function(a, b)
+				if a.dir ~= b.dir then
+					return a.dir
+				end
+				local sa = uv.fs_stat(a.path)
+				local sb = uv.fs_stat(b.path)
+				local ma = sa and sa.mtime and sa.mtime.sec or 0
+				local mb = sb and sb.mtime and sb.mtime.sec or 0
+				return ma > mb
+			end)
+			for c, child in ipairs(children) do
+				child.last = c == #children
+				abort = false
+				if child.dir and (child.open or (wopts and wopts.all)) then
+					abort = self:walk(child, fn, wopts)
+				else
+					abort = fn(child)
+				end
+				if abort then
+					return true
+				end
+			end
+			return false
+		end
+	end
 	Snacks.explorer()
 end, { noremap = true, desc = "Open file explorer" })
 
@@ -1555,7 +1627,13 @@ vim.defer_fn(function()
 	-- Disable F after flash.nvim has loaded (flash overrides f/F/t/T)
 	vim.keymap.set("n", "F", "<Nop>", { noremap = true, silent = true })
 	-- ; prefixed keymaps (must be deferred, flash.nvim overrides ; otherwise)
-	vim.keymap.set("n", ";q", ":bd<CR>", { noremap = true, silent = true, desc = "Close current buffer" })
+	vim.keymap.set("n", ";q", function()
+		if vim.bo.buftype == "terminal" then
+			vim.cmd("bd!")
+		else
+			vim.cmd("bd")
+		end
+	end, { noremap = true, silent = true, desc = "Close current buffer" })
 	vim.keymap.set("n", ";a", ":qall<CR>", { noremap = true, silent = true, desc = "Quit all" })
 	vim.keymap.set("n", ";e", ":lua MyRefreshFile()<CR>", { noremap = true, silent = true, desc = "Refresh file" })
 	vim.keymap.set("n", ";w", "<cmd>lua myWriteFile()<CR>", { noremap = true, silent = true, desc = "Save file" })
@@ -1605,14 +1683,192 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 	end,
 })
 
-vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
-	callback = function()
-		local bufname = vim.api.nvim_buf_get_name(0)
-		if bufname ~= "" and vim.bo.buftype == "" and not vim.bo.filetype:match("^Snacks") then
-			if vim.fn.filereadable(bufname) == 0 then
-				vim.notify("File no longer exists on disk: " .. vim.fn.fnamemodify(bufname, ":."), vim.log.levels.WARN)
+local function run_in_terminal_app(cmd, app, auto_run)
+	app = app or "terminal"
+	if auto_run == nil then auto_run = true end
+	local enter_key = auto_run and "\n\t\t\tkey code 36" or ""
+	if app == "kitty" then
+		local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+		local script = string.format([[
+tell application "System Events"
+	set found to false
+	if exists process "kitty" then
+		tell process "kitty"
+			repeat with w in windows
+				set wName to name of w
+				if wName ends with "zsh" or wName ends with "bash" or wName ends with "fish" or wName ends with "sh" then
+					perform action "AXRaise" of w
+					set frontmost to true
+					delay 0.3
+					keystroke "%s"]] .. enter_key .. [[
+
+					set found to true
+					exit repeat
+				end if
+			end repeat
+		end tell
+	end if
+	if not found then
+		tell application "kitty" to activate
+		delay 0.5
+		tell process "kitty"
+			set frontmost to true
+			keystroke "n" using command down
+			delay 0.5
+			keystroke "%s"]] .. enter_key .. [[
+
+		end tell
+	end if
+end tell]], escaped, escaped)
+		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+	else
+		local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+		local run_action
+		if auto_run then
+			run_action = string.format([[
+		do script "%s" in idleTab
+	else
+		do script "%s"]], escaped, escaped)
+		else
+			run_action = string.format([[
+		set prevClip to the clipboard
+		set the clipboard to "%s"
+		tell application "System Events"
+			keystroke "v" using command down
+		end tell
+		delay 0.1
+		set the clipboard to prevClip
+	else
+		do script ""
+		delay 0.3
+		set prevClip to the clipboard
+		set the clipboard to "%s"
+		tell application "System Events"
+			keystroke "v" using command down
+		end tell
+		delay 0.1
+		set the clipboard to prevClip]], escaped, escaped)
+		end
+		local script = string.format([[
+tell application "Terminal"
+	activate
+	set idleTab to missing value
+	set shells to {"bash", "zsh", "fish", "sh", "login", "-bash", "-zsh", "-fish", "-sh"}
+	repeat with w in windows
+		repeat with t in tabs of w
+			if busy of t is false then
+				set procList to processes of t
+				set allShell to true
+				repeat with p in procList
+					set isShell to false
+					repeat with s in shells
+						if (contents of p) is equal to (contents of s) then
+							set isShell to true
+							exit repeat
+						end if
+					end repeat
+					if not isShell then
+						set allShell to false
+						exit repeat
+					end if
+				end repeat
+				if allShell then
+					set idleTab to t
+					set frontWindow to w
+					exit repeat
+				end if
+			end if
+		end repeat
+		if idleTab is not missing value then exit repeat
+	end repeat
+	if idleTab is not missing value then
+		set selected tab of frontWindow to idleTab
+		set index of frontWindow to 1
+		%s
+	end if
+end tell]], run_action)
+		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+	end
+end
+
+local claude_sessions_dir = "/Users/maojingwei/baidu/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+vim.api.nvim_create_autocmd("BufReadPost", {
+	pattern = "*.jsonl",
+	once = false,
+	callback = function(ev)
+		if vim.b[ev.buf]._claude_resumed then
+			return
+		end
+		local file = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(ev.buf), ":p")
+		local dir = vim.fn.fnamemodify(file, ":h")
+		if dir ~= claude_sessions_dir then
+			return
+		end
+		vim.b[ev.buf]._claude_resumed = true
+		local session_id = vim.fn.fnamemodify(file, ":t:r")
+		run_in_terminal_app("claude --resume " .. session_id, "kitty")
+	end,
+})
+
+local _jw_prompted_deleted = {}
+
+local function prompt_close_deleted_buf()
+	local buf = vim.api.nvim_get_current_buf()
+	if not vim.api.nvim_buf_is_valid(buf) or not vim.bo[buf].buflisted or vim.bo[buf].buftype ~= "" then
+		return
+	end
+	local name = vim.api.nvim_buf_get_name(buf)
+	local ft = vim.bo[buf].filetype or ""
+	if name == "" or ft:match("^Snacks") or ft:match("^Neogit") or name:match("^fugitive://") then
+		return
+	end
+	if vim.fn.filereadable(name) == 1 then
+		_jw_prompted_deleted[buf] = nil
+		return
+	end
+	if _jw_prompted_deleted[buf] then
+		return
+	end
+	_jw_prompted_deleted[buf] = true
+
+	local short = vim.fn.fnamemodify(name, ":.")
+	vim.ui.select({ "Yes", "No" }, { prompt = "File deleted: " .. short .. " — close buffer?" }, function(choice)
+		if choice ~= "Yes" then return end
+		if not vim.api.nvim_buf_is_valid(buf) then return end
+		local wins = {}
+		for _, win in ipairs(vim.api.nvim_list_wins()) do
+			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
+				table.insert(wins, win)
 			end
 		end
+		for _, win in ipairs(wins) do
+			if not vim.api.nvim_win_is_valid(win) then goto continue end
+			local alt = vim.fn.bufnr("#")
+			if alt > 0 and alt ~= buf and vim.api.nvim_buf_is_valid(alt) and vim.bo[alt].buflisted then
+				vim.api.nvim_win_set_buf(win, alt)
+			else
+				local found = false
+				for _, b in ipairs(vim.api.nvim_list_bufs()) do
+					if b ~= buf and vim.api.nvim_buf_is_valid(b) and vim.bo[b].buflisted then
+						vim.api.nvim_win_set_buf(win, b)
+						found = true
+						break
+					end
+				end
+				if not found then
+					vim.api.nvim_win_set_buf(win, vim.api.nvim_create_buf(true, false))
+				end
+			end
+			::continue::
+		end
+		pcall(vim.api.nvim_buf_delete, buf, { force = true })
+		_jw_prompted_deleted[buf] = nil
+	end)
+end
+
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
+	callback = function()
+		vim.schedule(prompt_close_deleted_buf)
 	end,
 })
 
@@ -1623,9 +1879,70 @@ vim.keymap.set("n", "fj", function()
 	vim.cmd("normal! G")
 end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
 
+vim.keymap.set("n", "<F5>", function()
+	local filepath = vim.fn.expand("%:p")
+	if filepath == "" then
+		vim.notify("No file to run", vim.log.levels.WARN)
+		return
+	end
+	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh " .. vim.fn.shellescape(filepath)
+	run_in_terminal_app(cmd, nil, false)
+	vim.notify("Command staged in Terminal.app (press Enter to run)")
+end, { noremap = true, silent = true, desc = "Run meta_script on current file in Terminal" })
+
 vim.defer_fn(function()
 	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
 end, 500)
+
+local function get_or_create_terminal()
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == "terminal" then
+			local chan = vim.bo[buf].channel
+			if chan and chan > 0 then
+				return buf, chan
+			end
+		end
+	end
+	local cur_tab = vim.api.nvim_get_current_tabpage()
+	vim.cmd("tabnew | terminal")
+	local buf = vim.api.nvim_get_current_buf()
+	local chan = vim.bo[buf].channel
+	return buf, chan
+end
+
+local function send_to_terminal(text)
+	local buf, chan = get_or_create_terminal()
+	if not chan or chan <= 0 then
+		vim.notify("No terminal channel", vim.log.levels.ERROR)
+		return
+	end
+	vim.fn.chansend(chan, text .. "\n")
+	for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+		for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+			if vim.api.nvim_win_get_buf(win) == buf then
+				vim.api.nvim_set_current_tabpage(tab)
+				vim.api.nvim_set_current_win(win)
+				return
+			end
+		end
+	end
+	vim.cmd("tabnew")
+	vim.api.nvim_win_set_buf(0, buf)
+end
+
+vim.keymap.set("n", "<leader>r", function()
+	send_to_terminal(vim.fn.getline("."))
+end, { noremap = true, silent = true, desc = "Run current line in terminal" })
+
+vim.keymap.set("v", "<leader>r", function()
+	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+	vim.schedule(function()
+		local start_line = vim.fn.line("'<")
+		local end_line = vim.fn.line("'>")
+		local lines = vim.fn.getline(start_line, end_line)
+		send_to_terminal(table.concat(lines, "\n"))
+	end)
+end, { noremap = true, silent = true, desc = "Run selected lines in terminal" })
 
 -- brew install --cask font-jetbrains-mono-nerd-font
 -- terminal should also use JetBrainsMono Nerd Font (or JetBrainsMono NF)

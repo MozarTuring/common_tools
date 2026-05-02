@@ -1,3 +1,37 @@
+set -e
+_coord_port=9800 && ssh -o ControlPath=none -f -N -L ${_coord_port}:localhost:${_coord_port} -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes ferragon || echo "Port ${_coord_port} tunnel already active"
+sync_and_commit_repo() {
+    local repo_path="$1"
+    cd "$repo_path"
+    while IFS= read -r pattern; do
+        grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
+    done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt
+    git submodule foreach 'git add -A && (git commit -m "v" || true)'
+    git add -A
+    (
+        _staged=$(git diff --cached --name-only)
+        _non_config=$(echo "$_staged" | grep -v "^jwm_configs/" || true)
+        if [[ -n "$_staged" && -n "$_non_config" ]]; then
+            git commit -m "v"
+            git show-ref --verify --quiet refs/heads/jingwei && echo "Branch jingwei already exists, skipping rename." || (git branch -m jingwei && echo "Branch renamed to jingwei")
+            tmpbranch=$(git branch --show-current)
+            git push origin -u ${tmpbranch}
+        fi
+    )
+    last_commit=$(git rev-parse HEAD)
+    if [[ -n "$SERVER_NAME" ]]; then
+        _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
+        _remote_proj="${repo_path}_${_git_branch}"
+        echo "remote dir: ${_remote_proj}"
+        echo "${run_dir_pre}"
+        run_dir_remote="${run_dir_pre}/${_remote_proj}"
+        rsync -av --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
+    fi
+    local _sync_rc=$?
+    cd - >/dev/null
+    return $_sync_rc
+}
+
 check_gpu() {
     local GPU_TYPE="${1:-}"
     local REQ_FREE="${2:-}"
@@ -40,264 +74,395 @@ END {
 '
 }
 
-if [[ "$1" == "remote"* ]]; then
-    export RUN_PROJ=$2
-    export JWM_COMMIT_ID_L=$3
-    export RUN_ID=$4
-    export RUN_DIR_PRE=$5
-    export SERVER_NAME=$6
-    cd ${RUN_DIR_PRE}/${RUN_PROJ} &&
-        echo "start run remote.sh" &&
-        { source jwm_configs/remote.sh || {
-            echo "ERROR: remote.sh failed, aborting"
-            return 1 2>/dev/null
+_remote_setup() {
+    echo "$1, $2, $3, $4"
+    export RUN_DIR_PRE="$4"
+    source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
+    export RUN_PROJ="$2"
+    export RUN_PROJ_DATA="${RUN_PROJ%_*}"
+    echo "RUN_PROJ_DATA: ${RUN_PROJ_DATA}"
+    export JWM_COMMIT_ID_L="$3"
+    export SERVER_NAME="${5##*@}"
+    if [[ -d /home/jinma && -d /data && $1 == "remotedocker"* ]]; then
+        # failure inside the if block will just not stop, regardless of set -e
+        mkdir -p /data/huggingface_cache
+        mkdir -p /home/jinma/.cache
+        tmpcache=/home/jinma/.cache/huggingface
+        if [[ -d ${tmpcache} ]]; then
+            rm -rf ${tmpcache} || (docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && echo "hard remove, check" && exit)
+            echo "${tmpcache} removed"
+        fi
+        ln -s /data/huggingface_cache ${tmpcache}
+    fi
+    if [[ -d /home/jinma && -d /data && $1 == "remotedocker"* ]]; then
+        mkdir -p /data/docker
+        mkdir -p /home/jinma/.local/share
+        tmpcache=/home/jinma/.local/share/docker
+        if [[ -d ${tmpcache} ]]; then
+            rm -rf ${tmpcache} || (systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && systemctl --user restart docker && echo "hard remove" && exit)
+            echo "${tmpcache} removed"
+        fi
+        ln -s /data/docker ${tmpcache}
+    fi
+    _manual_file="${6}"
+    cd "$4"/"$2"
+    remote_job_id_file=${RUN_DIR_PRE}/${RUN_PROJ}/"remote_job_id.txt"
+    rm ${remote_job_id_file} 2>/dev/null || true
+    export RUN_BACKGROUND_JWM=1
+    echo """
+export RUN_DIR_PRE=${RUN_DIR_PRE}
+export RUN_PROJ_DATA=${RUN_PROJ_DATA}
+export HF_TOKEN=${HF_TOKEN}
+"""
+    touch ".submit_marker"
+
+    echo """
+set -e
+# uncomment the following to define them based on your running preference
+# export RUN_DIR_PRE=
+# export RUN_PROJ_DATA=
+# export HF_TOKEN=
+
+export JWM_DATA_DIR=\${RUN_DIR_PRE}/remote_data/\${RUN_PROJ_DATA}
+export PYTHONUNBUFFERED=1
+
+""" >jwm_configs/remote.sh
+    cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
+}
+
+if [[ $# -eq 1 && "$1" != "remote"* ]]; then
+    _abspath="$1"
+    _filename=$(basename "$_abspath")
+    _project_dir=$(dirname "$(dirname "$_abspath")")
+    _project_name=$(basename "$_project_dir")
+    _stem="${_filename%.sh}"
+    _mode="${_stem%%_*}"
+    _server=$(tail -1 "$_abspath" | sed 's/^[[:space:]]*#[[:space:]]*//')
+
+    case "$_mode" in
+    remoteslurm | remotedocker | remotedockercompose | remote) ;;
+    *)
+        echo "ERROR: unknown mode '$_mode' from filename '$_filename'"
+        exit 1
+        ;;
+    esac
+
+    if [[ -z "$_server" ]]; then
+        echo "ERROR: last line of '$_abspath' must contain the server name (e.g. '# myserver')"
+        exit 1
+    fi
+    export SERVER_NAME="$_server"
+    _manual_file="$_filename"
+    if [[ "${SERVER_NAME}" == "juwels" || "${SERVER_NAME}" == "jusuf" ]]; then
+        export run_dir_pre=/p/project1/trustllm-eu/mao4
+    elif [[ ${SERVER_NAME} == "custodian@"* ]]; then
+        export run_dir_pre=/home/custodian/project_remote_jwm
+    elif [[ ${SERVER_NAME} == "ferragon" || ${SERVER_NAME} == "greatrawr" || ${SERVER_NAME} == "balawar" ]]; then
+        export run_dir_pre=/home/jinma/project_remote_jwm
+
+    elif [[ ${SERVER_NAME} == "alvis"* ]]; then
+        export run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
+    elif [[ ${SERVER_NAME} == "berzelius"* ]]; then
+        export run_dir_pre=/home/x_jinma/project_remote_jwm
+    else
+        echo "ERROR: unknown server '$SERVER_NAME'"
+        exit 1
+    fi
+
+    cd /Users/maojingwei/baidu/project/
+    ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
+
+    sync_and_commit_repo "common_tools"
+    sync_and_commit_repo "$_project_name"
+
+    { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
+
+    echo ${last_commit}
+    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
+    if [[ "$_mode" == "remoteslurm" || "$_mode" == "remotedocker" ]]; then
+        run_timestamp="$(date +%Y%m%d_%H%M%S)"
+        run_id="${run_timestamp}_${last_commit}"
+        local_dir="${local_dir}/${run_id}"
+    fi
+    mkdir -p "$local_dir"
+    #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
+    # fi
+
+    nohup_log="${local_dir}/nohup_monitor.log"
+
+    echo "Running remote setup... (output: $nohup_log)"
+    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file}" 2>&1 | tee "$nohup_log"
+
+    if [[ "$_mode" == "remotedockercompose" ]]; then
+        # echo "local dir: ${local_dir}"
+        # pkill -f "ssh.*ControlPath=none.*-N.*$SERVER_NAME" 2>/dev/null && echo "Killed existing SSH tunnel to $SERVER_NAME" || true
+        # ports_after=$(
+        #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" |
+        #         { grep -oE '0\.0\.0\.0:[0-9]+' || true; } |
+        #         awk -F: '$2 >= 1024 {print $2}' |
+        #         sort -un
+        # )
+        # ports=()
+        # while IFS= read -r p; do
+        #     [[ -n "$p" ]] && ports+=("$p")
+        # done < <(comm -23 <(echo "$ports_after") <(cat "$ports_before" 2>/dev/null || true))
+        # if [[ ${#ports[@]} -gt 0 ]]; then
+        #     ssh_args=(-o ControlPath=none -N -f)
+        #     for p in "${ports[@]}"; do
+        #         ssh_args+=(-L "${p}:localhost:${p}")
+        #     done
+        #     echo "New ports from this run: ${ports[*]}"
+        #     echo "ssh ${ssh_args[*]} $SERVER_NAME"
+        #     ssh "${ssh_args[@]}" "$SERVER_NAME"
+        # else
+        #     echo "No new ports detected from this run."
+        # fi
+        exit 0
+    fi
+
+    if [[ "$_mode" == "remote" ]]; then
+        echo "local dir: ${local_dir}"
+        exit 0
+    fi
+
+    remote_job_id=$(ssh "$SERVER_NAME" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
+
+    if [ -n "${remote_job_id}" ]; then
+        echo "Remote job ID: $remote_job_id"
+        echo "local dir: ${local_dir}"
+
+        if [[ "$_mode" == "remoteslurm" ]]; then
+            monitor_args=(slurm "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
+        elif [[ "$_mode" == "remotedocker" ]]; then
+            monitor_args=(docker "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir")
+        else
+            monitor_args=(pid "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir")
+            if [[ "$_mode" == "remotedockercompose" ]]; then
+                monitor_args+=(port_forward "$ports_before")
+            fi
+        fi
+
+        echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
+        nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
+        monitor_pid=$!
+        echo "Background monitor PID: $monitor_pid"
+
+        if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
+            source "$_project_name/jwm_configs/local_after.sh" "$SERVER_NAME"
+        fi
+
+        echo "datetime_seconds: $(date +%Y%m%d_%H%M%S)"
+        tail -f "$nohup_log" &
+        tail_pid=$!
+        while kill -0 "$monitor_pid" 2>/dev/null; do
+            sleep 1
+        done
+        kill "$tail_pid" 2>/dev/null
+        wait "$tail_pid" 2>/dev/null || true
+        echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
+    else
+        echo "FAILED: remote setup on $SERVER_NAME failed."
+    fi
+elif [[ "$1" == "remote"* ]]; then
+    _remote_setup "$@"
+    if [[ "$1" == "remoteslurm" ]]; then
+        # Show all QOS policies and their limits
+        sacctmgr show qos format=Name,MaxWall
+        # Show your specific QOS association
+        sacctmgr show assoc where user=$USER format=User,Account,QOS
+        # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
+        sacctmgr show qos <qos_name >format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
+        rm slurm-*.out || echo "no slurm-*.out"
+        cat >>jwm_configs/remote.sh <<'EOF'
+
+if [[ -z "${SBATCH_OUT:-}" ]]; then
+if [[ -z ${JWM_SLURM_FILE} || -z ${JWM_RUN_TIME} || -z ${JWM_NODES_NUM} ]]; then
+    echo "not defined"
+    exit
+fi
+sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=slurm-%j.out --error=slurm-%j.out"&&
+EOF
+        # EOF has to be at the start of a line, without anything before it, not even white characters
+        if [[ "${5}" == "berzeliusampere" ]]; then
+            cat >>jwm_configs/remote.sh <<'EOF'
+sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --signal=TERM@90 -A berzelius-2026-50 --partition=berzelius"
+EOF
+
+        elif [[ "${5}" == "jusuf" ]]; then
+            cat >>jwm_configs/remote.sh <<'EOF'
+sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
+EOF
+        else
+            cat >>jwm_configs/remote.sh <<'EOF'
+        if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
+            export JWM_GPU_TYPE=A40
+            echo "A40 available"
+        elif check_gpu T4 ${JWM_GPU_NUM} >/dev/null; then
+            export JWM_GPU_TYPE=T4
+            echo "T4 available"
+        else
+            echo "no gpu available"
+            return 2>/dev/null
             exit 1
-        }; } &&
-        if [[ "$1" == "remote_slurm" ]]; then
-            export RUN_DIR="${RUN_DIR_PRE}/${RUN_PROJ}/" &&
-                export JWM_COMMIT_ID=${JWM_COMMIT_ID_L} &&
-            if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
-                export JWM_GPU_TYPE=A40
-                echo "A40 available"
-            elif check_gpu T4 ${JWM_GPU_NUM} >/dev/null; then
-                export JWM_GPU_TYPE=T4
-                echo "T4 available"
-            else
-                echo "no gpu available"
-                return 2>/dev/null
-                exit 1
-            fi
-            echo "GPU_TYPE: $JWM_GPU_TYPE"
-            echo "COMMIT:   $JWM_COMMIT_ID"
-            echo "RUN_DIR:  $RUN_DIR"
+        fi
+        echo "GPU_TYPE: $JWM_GPU_TYPE"
+        echo "COMMIT:   $JWM_COMMIT_ID"
 
-            if (("${JWM_GPU_NUM}" == "0")); then
-                GPU_FLAG="--constraint=NOGPU"
-            else
-                GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
-            fi
-            echo ${SERVER_NAME}
-            if [[ "${SERVER_NAME}" == "juwels_cluster" ]]; then
-                GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
-                CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
-            fi
-            sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG} --job-name=${JWM_COMMIT_ID} --output=slurm_out.log --error=slurm_out.log --open-mode=append slurm.sh"
-            echo ${sbatch_args}
-            SBATCH_OUT=$(sbatch ${sbatch_args}) || {
-                return 1 2>/dev/null
-                exit 1
-            }
-            echo "${SBATCH_OUT}"
-            SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-            echo "$SLURM_JOB_ID" >"${RUN_DIR}/remote_job_id.txt"
+        if (("${JWM_GPU_NUM}" == "0")); then
+            GPU_FLAG="--constraint=NOGPU"
+        else
+            GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
+        fi
+        if [[ "${SERVER_NAME}" == "juwelscluster" ]]; then
+            GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
+            CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
+        fi
+        sbatch_args="${sbatch_args} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG}"
+EOF
 
-        elif [[ "$1" == "remote_" ]]; then
-            echo "remote.sh completed — agent deployed"
-        elif [[ "$1" == "remote_docker" ]]; then
-            echo "$JWM_CONTAINER_ID" >"${RUN_DIR_PRE}/${RUN_PROJ}/remote_job_id.txt"
-            echo "docker_container_started"
-        elif [[ "$1" == "remote_docker_compose" ]]; then
-            _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-            _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
-            _arch_rebuilt=false
+        fi
+        cat >>jwm_configs/remote.sh <<'EOF'
 
-            while true; do
-                mapfile -t _containers < <(docker compose -f "${_compose_dir}/docker-compose.yml" ps -a --format '{{.Name}}' 2>/dev/null)
-                if [ ${#_containers[@]} -eq 0 ]; then
-                    echo "ERROR: No containers found for compose project in ${_compose_dir}."
-                    break
+echo ${sbatch_args} ${JWM_SLURM_FILE}
+SBATCH_OUT=$(sbatch ${sbatch_args} ${JWM_SLURM_FILE}) || {
+    return 1 2>/dev/null
+    exit 1
+}
+fi
+EOF
+
+        echo "start run remote.sh"
+        source jwm_configs/remote.sh
+        SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
+        echo "${PWD}, ${SLURM_JOB_ID}"
+        echo "$SLURM_JOB_ID" >${remote_job_id_file}
+
+    elif [[ "$1" == "remotedockercompose" ]]; then
+        echo "start run remote.sh"
+        source jwm_configs/remote.sh
+        cd - >/dev/null
+        _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
+        trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
+        _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        _has_rebuilt=false
+
+        while true; do
+            mapfile -t _containers < <(docker compose -f "${_compose_dir}/docker-compose.yml" ps -a --format '{{.Name}}' 2>/dev/null)
+            if [ ${#_containers[@]} -eq 0 ]; then
+                echo "ERROR: No containers found for compose project in ${_compose_dir}."
+                break
+            fi
+
+            _all_healthy=true
+            _any_failed=false
+            _failed_container=""
+
+            printf "\n--- Container Status ($(date +%H:%M:%S)) ---\n"
+            printf "%-30s %-12s %-12s\n" "CONTAINER" "STATUS" "HEALTH"
+            printf "%-30s %-12s %-12s\n" "-----" "------" "------"
+
+            for _cname in "${_containers[@]}"; do
+                _cstatus=$(docker inspect --format='{{.State.Status}}' "$_cname" 2>/dev/null) || _cstatus="not_found"
+                _chealth=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no_healthcheck{{end}}' "$_cname" 2>/dev/null) || _chealth="unknown"
+                _cerror=$(docker inspect --format='{{.State.Error}}' "$_cname" 2>/dev/null) || _cerror=""
+
+                printf "%-30s %-12s %-12s\n" "$_cname" "$_cstatus" "$_chealth"
+
+                if [[ "$_cstatus" == "exited" || "$_cstatus" == "dead" || "$_cstatus" == "restarting" || "$_chealth" == "unhealthy" ]]; then
+                    _any_failed=true
+                    _failed_container="$_cname"
                 fi
 
-                _all_healthy=true
-                _any_failed=false
-                _failed_container=""
+                if [[ "$_cstatus" == "created" && -n "$_cerror" ]]; then
+                    _any_failed=true
+                    _failed_container="$_cname"
+                fi
 
-                printf "\n--- Container Status ($(date +%H:%M:%S)) ---\n"
-                printf "%-30s %-12s %-12s\n" "CONTAINER" "STATUS" "HEALTH"
-                printf "%-30s %-12s %-12s\n" "-----" "------" "------"
+                if [[ "$_chealth" != "healthy" && "$_chealth" != "no_healthcheck" ]]; then
+                    _all_healthy=false
+                fi
+                if [[ "$_cstatus" != "running" ]]; then
+                    _all_healthy=false
+                fi
+            done
 
+            if $_any_failed; then
+                echo ""
+                _cfailed_error=$(docker inspect --format='{{.State.Error}}' "$_failed_container" 2>/dev/null)
+                if [[ -n "$_cfailed_error" ]]; then
+                    echo "ERROR: Container '${_failed_container}' failed to start: ${_cfailed_error}"
+                    break
+                fi
+                _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
+                if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
+                    echo "Recoverable error detected in '${_failed_container}' — rebuilding image..."
+                    docker rm -f "$_failed_container" 2>/dev/null || true
+                    docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
+                    _has_rebuilt=true
+                    _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                    sleep 5
+                    continue
+                fi
+                echo "ERROR: Container '${_failed_container}' is in a bad state. Logs:"
+                echo "$_cfailed_logs"
+                break
+            fi
+
+            if ! $_any_failed; then
                 for _cname in "${_containers[@]}"; do
-                    _cstatus=$(docker inspect --format='{{.State.Status}}' "$_cname" 2>/dev/null) || _cstatus="not_found"
-                    _chealth=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no_healthcheck{{end}}' "$_cname" 2>/dev/null) || _chealth="unknown"
-                    _cerror=$(docker inspect --format='{{.State.Error}}' "$_cname" 2>/dev/null) || _cerror=""
-
-                    printf "%-30s %-12s %-12s\n" "$_cname" "$_cstatus" "$_chealth"
-
-                    if [[ "$_cstatus" == "exited" || "$_cstatus" == "dead" || "$_cstatus" == "restarting" || "$_chealth" == "unhealthy" ]]; then
+                    _crestart=$(docker inspect --format='{{.RestartCount}}' "$_cname" 2>/dev/null) || _crestart=0
+                    if [[ "$_crestart" -ge 3 ]]; then
                         _any_failed=true
                         _failed_container="$_cname"
-                    fi
-
-                    if [[ "$_cstatus" == "created" && -n "$_cerror" ]]; then
-                        _any_failed=true
-                        _failed_container="$_cname"
-                    fi
-
-                    if [[ "$_chealth" != "healthy" && "$_chealth" != "no_healthcheck" ]]; then
-                        _all_healthy=false
-                    fi
-                    if [[ "$_cstatus" != "running" ]]; then
-                        _all_healthy=false
+                        echo "Container '${_cname}' has restarted ${_crestart} times — treating as failed."
+                        _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
+                        if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
+                            echo "Recoverable error detected in '${_failed_container}' — rebuilding image..."
+                            docker rm -f "$_failed_container" 2>/dev/null || true
+                            docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
+                            _has_rebuilt=true
+                            _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+                            sleep 5
+                            break
+                        fi
+                        echo "ERROR: Container '${_failed_container}' is crash-looping. Logs:"
+                        echo "$_cfailed_logs"
+                        break 2
                     fi
                 done
+                if $_any_failed; then continue; fi
+            fi
 
-                if $_any_failed; then
-                    echo ""
-                    _cfailed_error=$(docker inspect --format='{{.State.Error}}' "$_failed_container" 2>/dev/null)
-                    if [[ -n "$_cfailed_error" ]]; then
-                        echo "ERROR: Container '${_failed_container}' failed to start: ${_cfailed_error}"
-                        break
-                    fi
-                    _cfailed_logs=$(docker logs --since "$_docker_since" --tail 80 "$_failed_container" 2>&1)
-                    if ! $_arch_rebuilt && echo "$_cfailed_logs" | grep -q "No supported CUDA architectures found"; then
-                        echo "CUDA arch error detected in '${_failed_container}' — rebuilding image..."
-                        docker rm -f "$_failed_container" 2>/dev/null || true
-                        docker compose -f "${_compose_dir}/docker-compose.yml" up --build -d
-                        _arch_rebuilt=true
-                        _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-                        sleep 5
-                        continue
-                    fi
-                    echo "ERROR: Container '${_failed_container}' is in a bad state. Logs:"
-                    echo "$_cfailed_logs"
-                    break
+            if $_all_healthy; then
+                echo ""
+                echo "All services are ready!"
+                _after_hook="jwm_configs/remote_after.sh"
+                if [[ -f "$_after_hook" ]]; then
+                    source "$_after_hook"
+                    echo "after hook finished"
                 fi
+                break
+            fi
 
-                if $_all_healthy; then
-                    echo ""
-                    echo "All services are ready!"
-                    break
-                fi
+            echo "Waiting for all services to become healthy..."
+            sleep 10
+        done
 
-                echo "Waiting for all services to become healthy..."
-                sleep 10
-            done
-        fi
+    elif [[ "$1" == "remotedocker" ]]; then
+        source jwm_configs/remote.sh
+        _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        echo "$JWM_CONTAINER_ID" >"remote_job_id.txt"
+        nohup bash -c "while true; sleep 10; do docker logs --since ${_docker_since} $JWM_CONTAINER_ID >slurm_out.log 2>&1; docker inspect $JWM_CONTAINER_ID >/dev/null 2>&1 || break; done" >/dev/null 2>&1 &
+        disown
+        echo "docker_container_started"
+
+    elif [[ "$1" == "remote" ]]; then
+        source jwm_configs/remote.sh
+        echo "remote.sh completed — agent deployed"
+    fi
 else
-    # if [[ "$3" != "remote_docker" && "$3" != "remote_slurm" && "$3" != "remote_docker_compose" ]]; then
-    #     echo "ERROR: \$3 must be one of 'remote_docker', 'remote_slurm', 'remote_docker_compose', got '$3'"
-    #     return 1 2>/dev/null || true
-    # fi
-    if [[ "$1" == "localmachine" ]]; then
-        last_commit="local"
-    else
-        cd $2/ &&
-            while IFS= read -r pattern; do
-                grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
-            done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt &&
-            git submodule foreach 'git add -A && (git commit -m "v" || true)' &&
-            git add -A &&
-            (
-                _staged=$(git diff --cached --name-only)
-                _non_config=$(echo "$_staged" | grep -v "^jwm_configs/")
-                if [[ -n "$_staged" && -n "$_non_config" ]]; then
-                    git commit -m "v"
-                fi
-            ) &&
-            last_commit=$(git rev-parse HEAD) &&
-            cd - &&
-            echo ${last_commit}
-    fi &&
-        run_timestamp="$(date +%Y%m%d_%H%M%S)" &&
-        run_id="${run_timestamp}_${last_commit}" &&
-        if [[ "${1}" == "juwels_cluster" || "${1}" == "juwels_booster" ]]; then
-            run_dir_pre=/p/project1/trustllm-eu/mao4
-        elif [[ ${1} == "custodian"* ]]; then
-            run_dir_pre=/home/custodian/project_remote_jwm
-        elif [[ ${1} == "alvis"* ]]; then
-            run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
-        elif [[ "${1}" == "localmachine" ]]; then
-            run_dir_pre=$(pwd)
-        else
-            exit
-        fi
-    # Remote dir is always <project>_<branch> so it's clear which branch is running.
-    # e.g. gpu_commander on main -> gpu_commander_main, on dev -> gpu_commander_dev
-    _git_branch=$(git -C $2 rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)
-    _remote_proj="${2}_${_git_branch}"
-    echo "Branch: ${_git_branch} → remote dir: ${_remote_proj}" &&
-    echo ${run_dir_pre} &&
-        { [[ "$1" == "localmachine" ]] || ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true; } &&
-        { [[ -f "$2/jwm_configs/local.sh" ]] && source "$2/jwm_configs/local.sh" pre "$1" || true; } &&
-    if [[ "$1" == "localmachine" ]]; then
-        # No rsync — project is already local; point run_dir_remote at the source dir
-        run_dir_remote="${run_dir_pre}/$2"
-        local_dir="${run_dir_pre}/zzzjwmoutput/${_remote_proj}"
-    elif [[ "$3" == "remote_slurm" ]]; then
-        run_dir_remote="${run_dir_pre}/${_remote_proj}_runs/${run_id}"
-        local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}_runs/${run_id}"
-        ssh "$1" "mkdir -p ${run_dir_pre}/${_remote_proj}_runs"
-    else
-        run_dir_remote="${run_dir_pre}/${_remote_proj}"
-        local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
-    fi &&
-    if [[ "$1" != "localmachine" ]]; then
-        rsync -av --exclude-from='common_tools/rsync_exclude.txt' $2/ "$1":${run_dir_remote}/ &&
-        if [[ "${3}" == "sync" ]]; then
-            echo "sync done"
-            return
-        fi &&
-        rsync -av --exclude-from='common_tools/rsync_exclude.txt' common_tools/ "$1":${run_dir_pre}/common_tools/
-    fi &&
-    mkdir -p "$local_dir"
-    local nohup_log="${local_dir}/nohup_monitor.log"
-
-    if [[ "$3" == "remote_slurm" ]]; then
-        log_file="${run_dir_remote}/slurm_out.log"
-        local_log="${local_dir}/slurm_out.log"
-        echo "Running remote setup + sbatch..."
-        if ! ssh "$1" "bash --login ${run_dir_pre}/common_tools/meta_script.sh $3 ${_remote_proj}_runs/${run_id} ${last_commit} ${run_id} ${run_dir_pre} $1"; then
-            echo "FAILED: remote setup/sbatch on $1 failed."
-        else
-            remote_job_id=$(ssh "$1" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
-            if [[ -z "$remote_job_id" ]]; then
-                echo "FAILED: could not read remote_job_id.txt from ${run_dir_remote}."
-            else
-                echo ${local_dir}
-                echo "Launching background monitor for job $remote_job_id (log: $nohup_log)"
-                nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh slurm "$1" "$remote_job_id" "$log_file" "$local_log" "$run_dir_pre" "$run_id" "${_remote_proj}" >"$nohup_log" 2>&1 &
-                echo "Background monitor PID: $!"
-            fi
-        fi
-    else
-        remote_nohup_log="${run_dir_remote}/nohup_remote.log"
-        remote_pid_file="${run_dir_remote}/remote_job.pid"
-        local_log="${local_dir}/nohup_remote.log"
-
-        if [[ "$3" == "remote_docker_compose" ]]; then
-            local ports_before="${local_dir}/ports_before.txt"
-            if [[ "$1" == "localmachine" ]]; then
-                ss -tlnp 2>/dev/null | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
-            else
-                ssh "$1" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
-            fi
-        fi
-
-        echo "Launching task as background job..."
-        if [[ "$1" == "localmachine" ]]; then
-            mkdir -p "${run_dir_remote}"
-            nohup bash --login -c "cd ${run_dir_pre} && source common_tools/meta_script.sh $3 $2 ${last_commit} ${run_id} ${run_dir_pre} localmachine" >"${remote_nohup_log}" 2>&1 &
-            echo $! >"${remote_pid_file}"
-            remote_pid=$(cat "${remote_pid_file}")
-        else
-            ssh "$1" "mkdir -p ${run_dir_remote} && nohup bash --login ${run_dir_pre}/common_tools/meta_script.sh $3 ${_remote_proj} ${last_commit} ${run_id} ${run_dir_pre} $1 >${remote_nohup_log} 2>&1 & echo \$! >${remote_pid_file}" &&
-                remote_pid=$(ssh "$1" "cat ${remote_pid_file} 2>/dev/null")
-        fi
-        echo "Job PID: ${remote_pid}"
-        echo "Local log: ${local_log}"
-
-        local monitor_args=(pid "$1" "$remote_pid" "$remote_nohup_log" "$local_log")
-        if [[ "$3" == "remote_docker_compose" ]]; then
-            monitor_args+=(port_forward "$ports_before")
-        fi
-        echo ${local_dir}
-        echo "Launching background monitor for PID $remote_pid (log: $nohup_log)"
-        nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >"$nohup_log" 2>&1 &
-        echo "Background monitor PID: $!"
-    fi
-
-    if [[ -f "$2/jwm_configs/local.sh" ]]; then
-        echo "Running $2/jwm_configs/local.sh after hook..."
-        source "$2/jwm_configs/local.sh" after "$1"
-    fi
+    echo "ERROR: unrecognized arguments. Usage:"
+    echo "  meta_script.sh /path/to/project/jwm_configs/<mode>.sh  (last line of file: # <server>)"
+    echo "  (remote-side call is handled internally)"
+    exit 1
 fi

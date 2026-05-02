@@ -282,6 +282,27 @@ hs.hotkey.bind({ "ctrl" }, "h", function()
 	share1("com.googlecode.iterm2", "2")
 end)
 
+-- Returns true if Terminal.app is running AND its front tab is currently busy
+-- (i.e. executing a command). Returns false if Terminal is idle or not running.
+local function terminalFrontTabBusy()
+	local termApp = hs.application.get("com.apple.Terminal")
+	if not termApp then
+		return false
+	end
+	local ok, busy = hs.osascript.applescript([[
+		tell application "Terminal"
+			if not running then return false
+			if (count of windows) is 0 then return false
+			try
+				return busy of selected tab of front window
+			on error
+				return false
+			end try
+		end tell
+	]])
+	return ok and busy == true
+end
+
 hs.hotkey.bind({ "ctrl" }, "l", function()
 	local SRC_TITLE = "net.kovidgoyal.kitty"
 	local sourceApp = hs.application.frontmostApplication()
@@ -299,19 +320,91 @@ hs.hotkey.bind({ "ctrl" }, "l", function()
 		return
 	end
 
-	local logFile = os.getenv("HOME") .. "/hammerspoon_cmd.log"
-	local cmd = clip:gsub("%s+$", "")
-	cmd = cmd:gsub("curl ", "curl -s ")
-	cmd = cmd:gsub("&& ", "&& echo && ")
-
-	local shellScript = string.format(
-		'exec > %q 2>&1; echo "--- [$(date)] ---"; set -x; %s',
-		logFile, cmd
-	)
-	hs.task.new("/bin/bash", nil, { "-c", shellScript }):start()
+	if terminalFrontTabBusy() then
+		-- Busy: open a new Terminal window so we don't interrupt the running command
+		hs.osascript.applescript([[
+			tell application "Terminal"
+				activate
+				do script ""
+			end tell
+		]])
+	else
+		hs.osascript.applescript([[
+			tell application "Terminal"
+				activate
+				if (count of windows) is 0 then
+					do script ""
+				end if
+			end tell
+		]])
+	end
+	usleep(300)
+	hs.eventtap.keyStroke({ "ctrl" }, "c")
 	usleep(500)
-	hs.eventtap.keyStrokes("fj")
+
+	local script = string.format([[
+		tell application "Terminal"
+			activate
+			do script %q in selected tab of front window
+		end tell
+	]], clip)
+	hs.osascript.applescript(script)
+	usleep(500)
+	sourceApp:activate()
 end)
+
+-- hs.hotkey.bind({ "ctrl" }, "l", function()
+-- 	local SRC_TITLE = "net.kovidgoyal.kitty"
+-- 	local sourceApp = hs.application.frontmostApplication()
+-- 	if not sourceApp or sourceApp:bundleID() ~= SRC_TITLE then
+-- 		return
+-- 	end
+-- 	hs.eventtap.keyStrokes("V")
+-- 	usleep(500)
+-- 	hs.eventtap.keyStrokes("y")
+-- 	usleep(1000)
+--
+-- 	local clip = hs.pasteboard.getContents() or ""
+-- 	if clip == "" then
+-- 		hs.alert.show("Clipboard is empty")
+-- 		return
+-- 	end
+--
+-- 	local logFile = os.getenv("HOME") .. "/hammerspoon_cmd.log"
+-- 	local cmd = clip:gsub("%s+$", "")
+-- 	cmd = cmd:gsub("curl ", "curl -s ")
+-- 	cmd = cmd:gsub("&& ", "&& echo && ")
+--
+-- 	local shellScript = string.format(
+-- 		'exec > %q 2>&1; echo "--- [$(date)] ---"; set -x; %s',
+-- 		logFile, cmd
+-- 	)
+-- 	hs.task.new("/bin/bash", nil, { "-c", shellScript }):start()
+-- 	usleep(500)
+-- 	hs.eventtap.keyStrokes("fj")
+-- end)
+
+
+-- Returns true if iTerm is running AND its current session is processing
+-- (i.e. a foreground command is running). Returns false if iTerm is idle or not running.
+local function itermCurrentSessionBusy()
+	local itermApp = hs.application.get("com.googlecode.iterm2")
+	if not itermApp then
+		return false
+	end
+	local ok, busy = hs.osascript.applescript([[
+		tell application "iTerm"
+			if not running then return false
+			if (count of windows) is 0 then return false
+			try
+				return is processing of current session of current window
+			on error
+				return false
+			end try
+		end tell
+	]])
+	return ok and busy == true
+end
 
 hs.hotkey.bind({ "ctrl" }, "f", function()
     local SRC_TITLE = "net.kovidgoyal.kitty" -- source window/app title substring
@@ -330,16 +423,38 @@ hs.hotkey.bind({ "ctrl" }, "f", function()
 		hs.alert.show("Clipboard is empty")
 		return
 	end
-	hs.osascript.applescript(string.format([[
+
+	if itermCurrentSessionBusy() then
+		-- Busy: open a new iTerm window so we don't interrupt the running command
+		hs.osascript.applescript([[
+			tell application "iTerm"
+				activate
+				create window with default profile
+			end tell
+		]])
+	else
+		hs.osascript.applescript([[
+			tell application "iTerm"
+				activate
+				if (count of windows) is 0 then
+					create window with default profile
+				end if
+			end tell
+		]])
+	end
+	usleep(300)
+	hs.eventtap.keyStroke({ "ctrl" }, "c")
+	usleep(500)
+
+	local script = string.format([[
 		tell application "iTerm"
 			activate
 			tell current session of current window
-                write text (ASCII character 3)
-                delay 2
 				write text %q
 			end tell
 		end tell
-	]], clip))
+	]], clip)
+	hs.osascript.applescript(script)
 	usleep(500)
 	sourceApp:activate()
 end)
