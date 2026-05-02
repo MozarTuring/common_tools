@@ -31,6 +31,12 @@ sync_and_commit_repo() {
     return $_sync_rc
 }
 
+if false; then
+sudo chmod -R a+rwX /data/huggingface_cache
+sudo setfacl -R -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
+sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
+fi
+
 check_gpu() {
     local GPU_TYPE="${1:-}"
     local REQ_FREE="${2:-}"
@@ -82,7 +88,7 @@ _remote_setup() {
     echo "RUN_PROJ_DATA: ${RUN_PROJ_DATA}"
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
-    if [[ -d /home/jinma && -d /data && $1 == "remotedocker"* ]]; then
+    if [[ -d /data && $1 == "remotedocker"* ]]; then
         # failure inside the if block will just not stop, regardless of set -e
         mkdir -p /data/huggingface_cache
         mkdir -p /home/jinma/.cache
