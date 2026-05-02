@@ -6,15 +6,15 @@ sync_and_commit_repo() {
         grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
     done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt
     git submodule foreach 'git add -A && (git commit -m "v" || true)'
-    git add -A > /dev/null
+    git add -A >/dev/null
     (
         _staged=$(git diff --cached --name-only)
         _non_config=$(echo "$_staged" | grep -v "^jwm_configs/" || true)
         if [[ -n "$_staged" && -n "$_non_config" ]]; then
-            git commit -m "v" > /dev/null
+            git commit -m "v" >/dev/null
             git show-ref --verify --quiet refs/heads/jingwei && echo "Branch jingwei already exists, skipping rename." || (git branch -m jingwei && echo "Branch renamed to jingwei")
             tmpbranch=$(git branch --show-current)
-            git push origin -u ${tmpbranch} > /dev/null
+            git push origin -u ${tmpbranch} >/dev/null
         fi
     )
     last_commit=$(git rev-parse HEAD)
@@ -98,7 +98,7 @@ _remote_setup() {
         tmpcache=/home/${tmpuser}/.cache/huggingface
         if [[ ! -L ${tmpcache} ]]; then
             echo "create link ${tmpcache}"
-            false || { docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && ln -s /data/docker ${tmpcache} && echo "hard remove, check" ;}
+            false || { docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && ln -s /data/docker ${tmpcache} && echo "hard remove, check"; }
             # if using () here, will create a subshell, and exit only exit subshell
         fi
 
@@ -136,7 +136,7 @@ export PYTHONUNBUFFERED=1
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
 }
 
-if [[ $# -lt 3 && $# -gt 0 ]]; then
+if [[ $# -eq 1 ]]; then
     _coord_port=9800 && ssh -o ControlPath=none -f -N -L ${_coord_port}:localhost:${_coord_port} -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes ferragon || echo "Port ${_coord_port} tunnel already active"
 
     _abspath="$1"
@@ -146,9 +146,10 @@ if [[ $# -lt 3 && $# -gt 0 ]]; then
     _stem="${_filename%.sh}"
     _mode="${_stem%%_*}"
     _server=$(tail -1 "$_abspath" | sed 's/^[[:space:]]*#[[:space:]]*//')
-    if [[ $# -eq 2 ]];then
-        _server=$2
-    fi
+
+    # if [[ $# -eq 2 ]]; then
+    #     _server=$2
+    # fi
 
     case "$_mode" in
     remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
@@ -204,6 +205,10 @@ if [[ $# -lt 3 && $# -gt 0 ]]; then
     echo "Running remote setup... (output: $nohup_log)"
     ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file}" 2>&1 | tee "$nohup_log"
 
+    if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
+        source "$_project_name/jwm_configs/local_after.sh"
+    fi
+
     if [[ "$_mode" == "remotedockercompose" ]]; then
         # echo "local dir: ${local_dir}"
         # pkill -f "ssh.*ControlPath=none.*-N.*$SERVER_NAME" 2>/dev/null && echo "Killed existing SSH tunnel to $SERVER_NAME" || true
@@ -257,10 +262,6 @@ if [[ $# -lt 3 && $# -gt 0 ]]; then
         nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
         monitor_pid=$!
         echo "Background monitor PID: $monitor_pid"
-
-        if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
-            source "$_project_name/jwm_configs/local_after.sh" "$SERVER_NAME"
-        fi
 
         echo "datetime_seconds: $(date +%Y%m%d_%H%M%S)"
         tail -f "$nohup_log" &
