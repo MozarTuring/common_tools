@@ -82,6 +82,7 @@ END {
 _remote_setup() {
     echo "$1, $2, $3, $4"
     export RUN_DIR_PRE="$4"
+    export RUN_DIR_HOME="$(dirname "${RUN_DIR_PRE}")"
     source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
     export RUN_PROJ="$2"
     export RUN_PROJ_DATA="${RUN_PROJ%_*}"
