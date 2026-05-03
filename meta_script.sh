@@ -472,9 +472,8 @@ EOF
 
     elif [[ "$1" == "remotedocker" ]]; then
         source jwm_configs/remote.sh
-        _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
         echo "$JWM_CONTAINER_ID" >"remote_job_id.txt"
-        nohup bash -c "while true; sleep 10; do docker logs --since ${_docker_since} $JWM_CONTAINER_ID >slurm_out.log.tmp 2>&1 && tr '\r' '\n' <slurm_out.log.tmp >slurm_out.log.clean && mv -f slurm_out.log.clean slurm_out.log; docker inspect $JWM_CONTAINER_ID >/dev/null 2>&1 || break; done; docker logs $JWM_CONTAINER_ID >slurm_out.log.tmp 2>&1 && tr '\r' '\n' <slurm_out.log.tmp >slurm_out.log.clean && mv -f slurm_out.log.clean slurm_out.log || true; rm -f remote_job_id.txt" >/dev/null 2>&1 &
+        nohup bash -c "docker logs -f $JWM_CONTAINER_ID >slurm_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; rm -f slurm_out.log.raw slurm_out.log.tmp remote_job_id.txt" >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
 
