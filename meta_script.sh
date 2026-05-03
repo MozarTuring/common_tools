@@ -146,7 +146,7 @@ if [[ $# -eq 1 ]]; then
     _project_name=$(basename "$_project_dir")
     _stem="${_filename%.sh}"
     _mode="${_stem%%_*}"
-    _server=$(tail -1 "$_abspath" | sed 's/^[[:space:]]*#[[:space:]]*//')
+    _server=$(grep '^export JWM_SERVER_NAME=' "$_abspath" | tail -1 | sed "s/^export JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
 
     # if [[ $# -eq 2 ]]; then
     #     _server=$2
