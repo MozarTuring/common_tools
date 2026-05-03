@@ -89,7 +89,7 @@ is_job_running() {
         output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue --job=${job_id} --noheader 2>/dev/null" 2>/dev/null)
         rc=$?
     elif [[ "$mode" == "docker" ]]; then
-        output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "docker inspect -f '{{.State.Running}}' ${job_id} 2>/dev/null" 2>/dev/null)
+        output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "test -f ${remote_dir}/remote_job_id.txt && echo true || echo false" 2>/dev/null)
         rc=$?
     else
         ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
