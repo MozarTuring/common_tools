@@ -1740,7 +1740,12 @@ end tell]], escaped, escaped)
 		set the clipboard to prevClip
 	else
 		do script ""
-		delay 0.3
+		delay 0.5
+		repeat 30 times
+			if busy of selected tab of front window is false then exit repeat
+			delay 0.2
+		end repeat
+		delay 0.1
 		set prevClip to the clipboard
 		set the clipboard to "%s"
 		tell application "System Events"
