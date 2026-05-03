@@ -415,7 +415,7 @@ EOF
                 fi
                 _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
                 if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
-                    echo "Recoverable error detected in '${_failed_container}' — rebuilding image..."
+                    echo "Recoverable error detected in '${_failed_container}' — rebuilding image using no-cache mode..."
                     docker rm -f "$_failed_container" 2>/dev/null || true
                     docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
                     _has_rebuilt=true
@@ -428,6 +428,7 @@ EOF
                 break
             fi
 
+            # rebuild for restarting too many times
             if ! $_any_failed; then
                 for _cname in "${_containers[@]}"; do
                     _crestart=$(docker inspect --format='{{.RestartCount}}' "$_cname" 2>/dev/null) || _crestart=0
