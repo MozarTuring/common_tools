@@ -1892,9 +1892,16 @@ local function run_meta_script(mode)
 	end
 	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh " .. vim.fn.shellescape(filepath)
 	if mode == "background" then
-		local log_dir = "/Users/maojingwei/baidu/project/zzzjwmoutput"
+		local prefix = "/Users/maojingwei/baidu/project/"
+		local rel = filepath:sub(#prefix + 1)
+		local dir_name = rel:match("^([^/]+)")
+		if not dir_name then
+			vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
+			return
+		end
+		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name .. "/aaajwmlogs"
 		vim.fn.mkdir(log_dir, "p")
-		local log_file = log_dir .. "/" .. os.date("%Y%m%d_%H%M%S") .. ".jwmlog"
+		local log_file = log_dir .. "/" .. os.date("%Y%m%d_%H%M%S") .. ".log"
 		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		local log_buf = vim.api.nvim_get_current_buf()

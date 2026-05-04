@@ -117,19 +117,19 @@ _remote_setup() {
     cd "$4"/"$2"
     cp -R . $7/
     cd $7
-    if [[ $1 == "remotedocker" ]]; then
-        eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${_manual_file}" | tail -1)"
-        clearflag=0
-        for _ctn in "${JWM_CONTAINERS[@]}"; do
-            echo "removing ${_ctn}"
-            docker rm -f "${_ctn}"
-            clearflag=1
-        done
-        if [[ ${clearflag} == 1 ]]; then
-            echo "waiting for clearing"
-            sleep 30
-        fi
-    fi
+    # if [[ $1 == "remotedocker" ]]; then
+    #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${_manual_file}" | tail -1)"
+    #     clearflag=0
+    #     for _ctn in "${JWM_CONTAINERS[@]}"; do
+    #         echo "removing ${_ctn}"
+    #         docker rm -f "${_ctn}"
+    #         clearflag=1
+    #     done
+    #     if [[ ${clearflag} == 1 ]]; then
+    #         echo "waiting for clearing"
+    #         sleep 30
+    #     fi
+    # fi
     remote_job_id_file=./remote_job_id.txt
     rm ${remote_job_id_file} 2>/dev/null || true
     export RUN_BACKGROUND_JWM=1
@@ -209,7 +209,7 @@ if [[ $# -eq 1 ]]; then
     { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
 
     echo ${last_commit}
-    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
+    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${repo_path}"
     run_timestamp="$(date +%Y%m%d_%H%M%S)"
     run_id="${run_timestamp}_${last_commit}"
     local_dir="${local_dir}/${run_id}"
@@ -489,7 +489,9 @@ EOF
 
     elif [[ "$1" == "remotedocker" ]]; then
         source jwm_configs/remote.sh
-        echo "$JWM_CONTAINER_ID" >"remote_job_id.txt"
+        echo "JWM_CONTAINER_ID:"
+        echo "${JWM_CONTAINER_ID}"
+        echo "$JWM_CONTAINER_ID" > "./remote_job_id.txt"
         nohup bash -c "docker logs -f $JWM_CONTAINER_ID >slurm_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; rm -f slurm_out.log.raw slurm_out.log.tmp remote_job_id.txt" >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
