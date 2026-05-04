@@ -80,7 +80,7 @@ END {
 }
 
 _remote_setup() {
-    echo "$1, $2, $3, $4"
+    echo "$1, $2, $3, $4, $5"
     export RUN_DIR_PRE="$4"
     export RUN_DIR_HOME="$(dirname "${RUN_DIR_PRE}")"
     source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
@@ -88,7 +88,7 @@ _remote_setup() {
     export RUN_PROJ_DATA="${RUN_PROJ%_*}"
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
-    
+
     if [[ -d /data && $1 == "remotedocker"* ]]; then
         # failure inside the if block will just not stop, regardless of set -e
         mkdir -p /data/huggingface_cache
@@ -282,14 +282,15 @@ if [[ $# -eq 1 ]]; then
         echo "Background monitor PID: $monitor_pid"
 
         echo "datetime_seconds: $(date +%Y%m%d_%H%M%S)"
-        tail -f "$nohup_log" &
-        tail_pid=$!
-        while kill -0 "$monitor_pid" 2>/dev/null; do
-            sleep 1
-        done
-        kill "$tail_pid" 2>/dev/null
-        wait "$tail_pid" 2>/dev/null || true
-        echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
+        echo "see logs at ${local_dir}"
+        # tail -f "$nohup_log" &
+        # tail_pid=$!
+        # while kill -0 "$monitor_pid" 2>/dev/null; do
+        #     sleep 1
+        # done
+        # kill "$tail_pid" 2>/dev/null
+        # wait "$tail_pid" 2>/dev/null || true
+        # echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
     else
         echo "FAILED: remote setup on $SERVER_NAME failed."
     fi
