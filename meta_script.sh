@@ -122,7 +122,7 @@ _remote_setup() {
             docker rm -f "${_ctn}"
         done
         echo "waiting for clearing"
-        sleep 15
+        sleep 30
     fi
     remote_job_id_file=${RUN_DIR_PRE}/${RUN_PROJ}/"remote_job_id.txt"
     rm ${remote_job_id_file} 2>/dev/null || true
