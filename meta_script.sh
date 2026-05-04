@@ -88,6 +88,15 @@ _remote_setup() {
     export RUN_PROJ_DATA="${RUN_PROJ%_*}"
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
+    if [[ $1 == "remotedocker" ]]; then
+        eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${_manual_file}" | tail -1)"
+        for _ctn in "${JWM_CONTAINERS[@]}"; do
+            echo "removing ${_ctn}"
+            docker rm -f "${_ctn}"
+        done
+        echo "waiting for clearing"
+        sleep 15
+    fi
     if [[ -d /data && $1 == "remotedocker"* ]]; then
         # failure inside the if block will just not stop, regardless of set -e
         mkdir -p /data/huggingface_cache
@@ -136,6 +145,7 @@ export PYTHONUNBUFFERED=1
 
 """ >jwm_configs/remote.sh
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
+
 }
 
 if [[ $# -eq 1 ]]; then
