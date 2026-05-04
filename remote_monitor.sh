@@ -8,29 +8,39 @@ set -euo pipefail
 #   remote_monitor.sh docker <host> <container_id>   <remote_dir> <local_dir>
 #   remote_monitor.sh pid    <host> <remote_pid>     <remote_dir> <local_dir> [port_forward <ports_before_file>]
 
-mode="$1"; shift
-host="$1"; shift
-job_id="$1"; shift   # slurm job id, docker container id, OR remote pid
-remote_dir="$1"; shift
-local_dir="$1"; shift
+mode="$1"
+shift
+host="$1"
+shift
+job_id="$1"
+shift # slurm job id, docker container id, OR remote pid
+remote_dir="$1"
+shift
+local_dir="$1"
+shift
 
 port_forward=false
 ports_before_file=""
 if [[ "$mode" == "slurm" ]]; then
-    run_dir_pre="$1"; shift
-    run_id="$1"; shift
-    proj_name="$1"; shift
+    run_dir_pre="$1"
+    shift
+    run_id="$1"
+    shift
+    proj_name="$1"
+    shift
 elif [[ "${1:-}" == "port_forward" ]]; then
-    port_forward=true; shift
-    ports_before_file="${1:-}"; shift
+    port_forward=true
+    shift
+    ports_before_file="${1:-}"
+    shift
 fi
 
 mkdir -p "$local_dir"
 
 print_slurm_summary() {
-    ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" \
-        | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}' \
-        || true
+    ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" |
+        sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}' ||
+        true
 }
 
 _log_state_file=""
@@ -52,7 +62,7 @@ fetch_new_content() {
         prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
         prev_lines=${prev_lines:-0}
         local cur_lines
-        cur_lines=$(wc -l < "$f" | tr -d '[:space:]')
+        cur_lines=$(wc -l <"$f" | tr -d '[:space:]')
         [[ "$cur_lines" -lt "$prev_lines" ]] && prev_lines=0
         if [[ "$cur_lines" -gt "$prev_lines" ]]; then
             local new_start=$((prev_lines + 1))
@@ -132,8 +142,8 @@ fi
 sync_remote() {
     local _rsync_out _rsync_rc=0
     if [[ "$mode" == "slurm" || "$mode" == "docker" ]]; then
-        _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f" 2>/dev/null \
-            | rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
+        _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f" 2>/dev/null |
+            rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
     else
         _rsync_out=$(rsync -av "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
     fi
@@ -145,54 +155,30 @@ sync_remote() {
 
 # --- main monitoring loop ---
 _check_count=0
-while true; do
+finish_flag=0
+while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
-    _interval=$(( ((_check_count - 1) / 5 + 1) * 15 ))
+    _interval=$((((_check_count - 1) / 5 + 1) * 15))
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     [[ "$mode" == "slurm" ]] && print_slurm_summary
     fetch_new_content 2>/dev/null || true
 
-    if ! is_job_running; then
-        sleep 15
-        wait_for_ssh
-        sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
-        [[ "$mode" == "slurm" ]] && print_slurm_summary
-        fetch_new_content 2>/dev/null || true
+    total=0
+    while [[ total -lt ${_interval} ]]; do
+        ((total += 5))
+        sleep 5
+        if ! is_job_running; then
+            sleep 5
+            wait_for_ssh
+            sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
+            [[ "$mode" == "slurm" ]] && print_slurm_summary
+            fetch_new_content 2>/dev/null || true
 
-        # if $port_forward; then
-        #     pkill -f "ssh.*ControlPath=none.*-N.*${host}" 2>/dev/null && echo "Killed existing SSH tunnel to ${host}" || true
-
-            # ports_after=$(
-            #     ssh "$host" "ss -tlnp 2>/dev/null" \
-            #     | { grep -oE '0\.0\.0\.0:[0-9]+' || true; } \
-            #     | awk -F: '$2 >= 1024 {print $2}' \
-            #     | sort -un
-            # )
-
-            # ports=()
-            # while IFS= read -r p; do
-            #     [[ -n "$p" ]] && ports+=("$p")
-            # done < <(comm -23 <(echo "$ports_after") <(cat "$ports_before_file" 2>/dev/null || true))
-
-            # if [[ ${#ports[@]} -gt 0 ]]; then
-            #     ssh_args=(-o ControlPath=none -N -f)
-            #     for p in "${ports[@]}"; do
-            #         ssh_args+=(-L "${p}:localhost:${p}")
-            #     done
-            #     echo "New ports from this run: ${ports[*]}"
-            #     echo "ssh ${ssh_args[*]} $host"
-            #     ssh "${ssh_args[@]}" "$host" 
-            # else
-            #     echo "No new ports detected from this run."
-            # fi
-        # fi
-
-        echo ""
-        echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
-        break
-    fi
-
-    sleep $_interval
+            echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
+            finish_flag=1
+            break
+        fi
+    done
 done
