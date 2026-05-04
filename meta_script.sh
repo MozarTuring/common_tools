@@ -80,7 +80,7 @@ END {
 }
 
 _remote_setup() {
-    echo "$1, $2, $3, $4, $5"
+    echo "$1, $2, $3, $4, $5, $6, $7"
     export RUN_DIR_PRE="$4"
     export RUN_DIR_HOME="$(dirname "${RUN_DIR_PRE}")"
     source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
@@ -115,16 +115,22 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd "$4"/"$2"
+    cp -R . $7/
+    cd $7
     if [[ $1 == "remotedocker" ]]; then
         eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${_manual_file}" | tail -1)"
+        clearflag=0
         for _ctn in "${JWM_CONTAINERS[@]}"; do
             echo "removing ${_ctn}"
             docker rm -f "${_ctn}"
+            clearflag=1
         done
-        echo "waiting for clearing"
-        sleep 30
+        if [[ ${clearflag} == 1 ]]; then
+            echo "waiting for clearing"
+            sleep 30
+        fi
     fi
-    remote_job_id_file=${RUN_DIR_PRE}/${RUN_PROJ}/"remote_job_id.txt"
+    remote_job_id_file=./remote_job_id.txt
     rm ${remote_job_id_file} 2>/dev/null || true
     export RUN_BACKGROUND_JWM=1
     echo """
@@ -204,11 +210,10 @@ if [[ $# -eq 1 ]]; then
 
     echo ${last_commit}
     local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_remote_proj}"
-    if [[ "$_mode" == "remoteslurm" || "$_mode" == "remotedocker" ]]; then
-        run_timestamp="$(date +%Y%m%d_%H%M%S)"
-        run_id="${run_timestamp}_${last_commit}"
-        local_dir="${local_dir}/${run_id}"
-    fi
+    run_timestamp="$(date +%Y%m%d_%H%M%S)"
+    run_id="${run_timestamp}_${last_commit}"
+    local_dir="${local_dir}/${run_id}"
+    run_dir_remote_tmp=${run_dir_remote}_${run_id}
     mkdir -p "$local_dir"
     #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     # fi
@@ -216,7 +221,7 @@ if [[ $# -eq 1 ]]; then
     nohup_log="${local_dir}/nohup_monitor.log"
 
     echo "Running remote setup... (output: $nohup_log)"
-    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file}" 2>&1 | tee "$nohup_log"
+    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
     _ssh_rc=${PIPESTATUS[0]}
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $SERVER_NAME failed (exit code $_ssh_rc)"
@@ -259,18 +264,18 @@ if [[ $# -eq 1 ]]; then
         exit 0
     fi
 
-    remote_job_id=$(ssh "$SERVER_NAME" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
+    remote_job_id=$(ssh "$SERVER_NAME" "cat ${run_dir_remote_tmp}/remote_job_id.txt" 2>/dev/null)
 
     if [ -n "${remote_job_id}" ]; then
         echo "Remote job ID: $remote_job_id"
         echo "local dir: ${local_dir}"
 
         if [[ "$_mode" == "remoteslurm" ]]; then
-            monitor_args=(slurm "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
+            monitor_args=(slurm "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
         elif [[ "$_mode" == "remotedocker" ]]; then
-            monitor_args=(docker "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir")
+            monitor_args=(docker "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir")
         else
-            monitor_args=(pid "$SERVER_NAME" "$remote_job_id" "$run_dir_remote" "$local_dir")
+            monitor_args=(pid "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir")
             if [[ "$_mode" == "remotedockercompose" ]]; then
                 monitor_args+=(port_forward "$ports_before")
             fi
