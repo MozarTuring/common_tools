@@ -1884,16 +1884,52 @@ vim.keymap.set("n", "fj", function()
 	vim.cmd("normal! G")
 end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
 
-vim.keymap.set("n", "<F5>", function()
+local function run_meta_script(mode)
 	local filepath = vim.fn.expand("%:p")
 	if filepath == "" then
 		vim.notify("No file to run", vim.log.levels.WARN)
 		return
 	end
 	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh " .. vim.fn.shellescape(filepath)
-	run_in_terminal_app(cmd, nil, false)
-	vim.notify("Command staged in Terminal.app (press Enter to run)")
+	if mode == "background" then
+		local log_dir = "/Users/maojingwei/baidu/project/zzzjwmoutput"
+		vim.fn.mkdir(log_dir, "p")
+		local log_file = log_dir .. "/" .. os.date("%Y%m%d_%H%M%S") .. ".jwmlog"
+		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
+		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+		local log_buf = vim.api.nvim_get_current_buf()
+		vim.fn.jobstart({ "zsh", "-l", "-c", bg_cmd }, {
+			on_exit = function(_, code)
+				vim.schedule(function()
+					if vim.api.nvim_buf_is_valid(log_buf) then
+						vim.api.nvim_buf_call(log_buf, function() vim.cmd("edit") end)
+					end
+					if code == 0 then
+						vim.notify("meta_script finished (exit 0)")
+					else
+						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
+					end
+				end)
+			end,
+		})
+		vim.notify("Running in background: " .. filepath)
+	else
+		run_in_terminal_app(cmd, nil, false)
+		vim.notify("Command staged in Terminal.app (press Enter to run)")
+	end
+end
+
+vim.keymap.set("n", "<F5>", function()
+	run_meta_script("background")
 end, { noremap = true, silent = true, desc = "Run meta_script on current file in Terminal" })
+
+vim.api.nvim_create_user_command("RunMeta", function(args)
+	run_meta_script(args.args ~= "" and args.args or nil)
+end, {
+	nargs = "?",
+	complete = function() return { "background" } end,
+	desc = "Run meta_script; use :RunMeta background to run silently",
+})
 
 vim.defer_fn(function()
 	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
