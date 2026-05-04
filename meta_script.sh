@@ -159,9 +159,12 @@ if [[ $# -eq 1 ]]; then
     _coord_port=9800 && ssh -o ControlPath=none -f -N -L ${_coord_port}:localhost:${_coord_port} -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes ferragon || echo "Port ${_coord_port} tunnel already active"
 
     _abspath="$1"
+    echo "abspath, $_abspath"
     _filename=$(basename "$_abspath")
+    echo "filename, $_filename"
     _project_dir=$(dirname "$(dirname "$_abspath")")
     _project_name=$(basename "$_project_dir")
+    echo "project_name, $_project_name"
     _stem="${_filename%.sh}"
     _mode="${_stem%%_*}"
     _server=$(grep '^JWM_SERVER_NAME=' "$_abspath" | tail -1 | sed "s/^JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")

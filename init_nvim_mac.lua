@@ -1902,6 +1902,8 @@ local function run_meta_script(mode)
 		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name .. "/aaajwmlogs"
 		vim.fn.mkdir(log_dir, "p")
 		local log_file = log_dir .. "/" .. os.date("%Y%m%d_%H%M%S") .. ".log"
+		local f = io.open(log_file, "w")
+		if f then f:close() end
 		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		local log_buf = vim.api.nvim_get_current_buf()
