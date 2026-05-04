@@ -212,7 +212,7 @@ if [[ $# -eq 1 ]]; then
     { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
 
     echo ${last_commit}
-    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${repo_path}"
+    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_project_name}"
     run_timestamp="$(date +%Y%m%d_%H%M%S)"
     run_id="${run_timestamp}_${last_commit}"
     local_dir="${local_dir}/${run_id}"
