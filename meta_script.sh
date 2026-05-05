@@ -160,7 +160,7 @@ export PYTHONUNBUFFERED=1
 }
 
 if [[ $# -lt 3 ]]; then
-    set1=("greatrawr" 18900 8080)
+    set1=("greatrawr" 18900)
     set2=("ferragon" 9800)
     for array_ref in set1[@] set2[@]; do
         current=("${!array_ref}")

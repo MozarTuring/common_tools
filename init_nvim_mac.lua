@@ -1942,10 +1942,11 @@ local function run_meta_script_execute(cmd, filepath, mode)
 			vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
 			return
 		end
+		local tmpdate = os.date("%Y%m%d_%H%M%S")
 		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 		vim.fn.mkdir(log_dir, "p")
-		local tmpdate = os.date("%Y%m%d_%H%M%S")
-		local log_file = log_dir .. "/" .. tmpdate .. ".log"
+		vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
+		local log_file = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
 		local f = io.open(log_file, "w")
 		if f then
 			f:close()
@@ -1960,12 +1961,10 @@ local function run_meta_script_execute(cmd, filepath, mode)
 					if vim.api.nvim_buf_is_valid(log_buf) then
 						vim.api.nvim_buf_call(log_buf, function()
 							vim.cmd("edit")
-							vim.uv.sleep(5000)
-							vim.cmd("q")
+							vim.cmd("normal! G")
 						end)
 					end
 					if code == 0 then
-						vim.cmd("tabnew " .. vim.fn.fnameescape(log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"))
 						vim.notify("meta_script finished (exit 0)")
 					else
 						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
