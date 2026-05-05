@@ -1884,13 +1884,7 @@ vim.keymap.set("n", "fj", function()
 	vim.cmd("normal! G")
 end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
 
-local function run_meta_script(mode)
-	local filepath = vim.fn.expand("%:p")
-	if filepath == "" then
-		vim.notify("No file to run", vim.log.levels.WARN)
-		return
-	end
-	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh " .. vim.fn.shellescape(filepath)
+local function run_meta_script_execute(cmd, filepath, mode)
 	if mode == "background" then
 		local prefix = "/Users/maojingwei/baidu/project/"
 		local rel = filepath:sub(#prefix + 1)
@@ -1926,6 +1920,22 @@ local function run_meta_script(mode)
 		run_in_terminal_app(cmd, nil, false)
 		vim.notify("Command staged in Terminal.app (press Enter to run)")
 	end
+end
+
+local function run_meta_script(mode)
+	local filepath = vim.fn.expand("%:p")
+	if filepath == "" then
+		vim.notify("No file to run", vim.log.levels.WARN)
+		return
+	end
+	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh " .. vim.fn.shellescape(filepath)
+	vim.fn.setreg("+", cmd)
+	vim.notify("Command copied to clipboard:\n" .. cmd, vim.log.levels.INFO)
+	vim.ui.select({ "Run", "Cancel" }, { prompt = "Run this command?" }, function(choice)
+		if choice ~= "Run" then return end
+		run_meta_script_execute(cmd, filepath, mode)
+	end)
+	run_meta_script_execute(cmd, filepath, mode)
 end
 
 vim.keymap.set("n", "<F5>", function()
