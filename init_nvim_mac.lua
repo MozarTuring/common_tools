@@ -2020,6 +2020,7 @@ local function run_meta_script_execute(cmd, filepath, mode)
 					-- end
 					if code == 0 then
 						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
+						ToggleAutoRefresh()
 						vim.notify("meta_script finished (exit 0)")
 					else
 						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
