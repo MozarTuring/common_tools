@@ -1961,10 +1961,14 @@ local function run_meta_script_execute(cmd, filepath, mode)
 			on_exit = function(_, code)
 				vim.schedule(function()
 					if vim.api.nvim_buf_is_valid(log_buf) then
-						vim.api.nvim_buf_call(log_buf, function()
+						local wins = vim.fn.win_findbuf(log_buf)
+						if #wins > 0 then
+							vim.api.nvim_set_current_win(wins[1])
 							vim.cmd("edit")
 							vim.cmd("wq")
-						end)
+						else
+							vim.api.nvim_buf_delete(log_buf, { force = true })
+						end
 					end
 					if code == 0 then
 						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
