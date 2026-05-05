@@ -1132,6 +1132,35 @@ end
 
 local _jw_auto_refresh_timer = nil
 local _jw_auto_refresh_buf = nil
+local _jw_auto_refresh_win = nil
+local _jw_auto_refresh_indicator_buf = nil
+
+local function close_auto_refresh_indicator()
+	if _jw_auto_refresh_win and vim.api.nvim_win_is_valid(_jw_auto_refresh_win) then
+		vim.api.nvim_win_close(_jw_auto_refresh_win, true)
+	end
+	_jw_auto_refresh_win = nil
+	_jw_auto_refresh_indicator_buf = nil
+end
+
+local function open_auto_refresh_indicator()
+	close_auto_refresh_indicator()
+	local text = " AUTO-REFRESH "
+	_jw_auto_refresh_indicator_buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(_jw_auto_refresh_indicator_buf, 0, -1, false, { text })
+	vim.api.nvim_set_option_value("modifiable", false, { buf = _jw_auto_refresh_indicator_buf })
+	_jw_auto_refresh_win = vim.api.nvim_open_win(_jw_auto_refresh_indicator_buf, false, {
+		relative = "editor",
+		row = 0,
+		col = vim.o.columns - #text,
+		width = #text,
+		height = 1,
+		style = "minimal",
+		focusable = false,
+		zindex = 100,
+	})
+	vim.api.nvim_set_option_value("winhl", "Normal:DiffAdd", { win = _jw_auto_refresh_win })
+end
 
 function ToggleAutoRefresh()
 	if _jw_auto_refresh_timer then
@@ -1139,10 +1168,12 @@ function ToggleAutoRefresh()
 		_jw_auto_refresh_timer:close()
 		_jw_auto_refresh_timer = nil
 		_jw_auto_refresh_buf = nil
+		close_auto_refresh_indicator()
 		vim.notify("Auto-refresh OFF")
 	else
 		_jw_auto_refresh_buf = vim.api.nvim_get_current_buf()
 		local bufname = vim.api.nvim_buf_get_name(_jw_auto_refresh_buf)
+		open_auto_refresh_indicator()
 		_jw_auto_refresh_timer = vim.uv.new_timer()
 		_jw_auto_refresh_timer:start(
 			2000,
@@ -1168,6 +1199,7 @@ function ToggleAutoRefresh()
 						_jw_auto_refresh_timer = nil
 						_jw_auto_refresh_buf = nil
 					end
+					close_auto_refresh_indicator()
 				end
 			end)
 		)
