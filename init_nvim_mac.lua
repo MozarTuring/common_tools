@@ -1946,14 +1946,16 @@ local function run_meta_script_execute(cmd, filepath, mode)
 		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 		vim.fn.mkdir(log_dir, "p")
 		vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
-		local log_file = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
+		local log_file = log_dir .. "/" .. tmpdate .. ".log"
+		local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
 		local f = io.open(log_file, "w")
 		if f then
 			f:close()
 		end
 		cmd = cmd .. " " .. tmpdate
-		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+
+		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		local log_buf = vim.api.nvim_get_current_buf()
 		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
 			on_exit = function(_, code)
@@ -1962,9 +1964,11 @@ local function run_meta_script_execute(cmd, filepath, mode)
 						vim.api.nvim_buf_call(log_buf, function()
 							vim.cmd("edit")
 							vim.cmd("normal! G")
+							vim.cmd("normal! ;q")
 						end)
 					end
 					if code == 0 then
+						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
 						vim.notify("meta_script finished (exit 0)")
 					else
 						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
