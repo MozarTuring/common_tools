@@ -160,6 +160,7 @@ export PYTHONUNBUFFERED=1
 }
 
 if [[ $# -lt 3 ]]; then
+    trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
     set1=("greatrawr" 18900)
     set2=("ferragon" 9800)
     for array_ref in set1[@] set2[@]; do
@@ -167,7 +168,7 @@ if [[ $# -lt 3 ]]; then
         host="${current[0]}"
         ports=("${current[@]:1}")
         for port in "${ports[@]}"; do
-            tmp=$(lsof -t -i :"$port")
+            tmp=$(lsof -t -i :"$port" 2>/dev/null || true)
             # [[ -n $tmp ]] && kill -9 $tmp
             ssh -o ControlPath=none -f -N -L "${port}:localhost:${port}" \
                 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
@@ -301,6 +302,8 @@ if [[ $# -lt 3 ]]; then
         fi
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
+        echo """nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >> $nohup_log
+        echo ""
         nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
         monitor_pid=$!
         echo "Background monitor PID: $monitor_pid"

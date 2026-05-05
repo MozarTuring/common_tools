@@ -1946,7 +1946,7 @@ local function run_meta_script_execute(cmd, filepath, mode)
 		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 		vim.fn.mkdir(log_dir, "p")
 		vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
-		local log_file = log_dir .. "/" .. tmpdate .. ".log"
+		local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
 		local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
 		local f = io.open(log_file, "w")
 		if f then
