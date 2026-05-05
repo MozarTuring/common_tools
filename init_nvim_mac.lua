@@ -194,9 +194,13 @@ require("lazy").setup({
 						vim.defer_fn(function()
 							local c = vim.fn.getcharstr()
 							local pickers = Snacks.picker.get({ source = "explorer" })
-							if #pickers == 0 then return end
+							if #pickers == 0 then
+								return
+							end
 							local item = pickers[1]:current()
-							if not item or not item.file then return end
+							if not item or not item.file then
+								return
+							end
 							if c == "y" then
 								local name = vim.fn.fnamemodify(item.file, ":t")
 								vim.fn.setreg("+", name)
@@ -214,10 +218,14 @@ require("lazy").setup({
 				keys["c"] = {
 					function(self)
 						local pickers = Snacks.picker.get({ source = "explorer" })
-						if #pickers == 0 then return end
+						if #pickers == 0 then
+							return
+						end
 						local picker = pickers[1]
 						local item = picker:current()
-						if not item or not item.file then return end
+						if not item or not item.file then
+							return
+						end
 						local sel = vim.tbl_map(Snacks.picker.util.path, picker:selected())
 						if #sel > 0 then
 							local dir = picker:dir()
@@ -232,7 +240,9 @@ require("lazy").setup({
 							prompt = "Copy " .. fname .. " to (relative to cwd)",
 							completion = "file",
 						}, function(value)
-							if not value or value:find("^%s*$") then return end
+							if not value or value:find("^%s*$") then
+								return
+							end
 							local uv = vim.uv or vim.loop
 							local to
 							if value:sub(1, 1) == "/" or value:sub(1, 1) == "~" then
@@ -259,42 +269,48 @@ require("lazy").setup({
 					desc = "Copy file to destination",
 				}
 
-			keys["<cr>"] = {
-				function()
-					local pickers = Snacks.picker.get({ source = "explorer" })
-					if #pickers == 0 then return end
-					local picker = pickers[1]
-					local item = picker:current()
-					if not item or not item.file then return end
-					if vim.fn.isdirectory(item.file) == 1 then
-						picker:action("confirm")
-						return
-					end
-					local file = item.file
-					picker:close()
-					local origin_buf = vim.api.nvim_get_current_buf()
-					vim.cmd("edit " .. vim.fn.fnameescape(file))
-					vim.schedule(function()
-						local ok, bl = pcall(require, "bufferline")
-						if not ok then return end
-						local elems = bl.get_elements().elements
-						local origin_pos = nil
-						for i, e in ipairs(elems) do
-							if e.id == origin_buf then
-								origin_pos = i
-								break
+				keys["<cr>"] = {
+					function()
+						local pickers = Snacks.picker.get({ source = "explorer" })
+						if #pickers == 0 then
+							return
+						end
+						local picker = pickers[1]
+						local item = picker:current()
+						if not item or not item.file then
+							return
+						end
+						if vim.fn.isdirectory(item.file) == 1 then
+							picker:action("confirm")
+							return
+						end
+						local file = item.file
+						picker:close()
+						local origin_buf = vim.api.nvim_get_current_buf()
+						vim.cmd("edit " .. vim.fn.fnameescape(file))
+						vim.schedule(function()
+							local ok, bl = pcall(require, "bufferline")
+							if not ok then
+								return
 							end
-						end
-						if origin_pos then
-							bl.move_to(origin_pos + 1)
-						end
-					end)
-				end,
-				desc = "Open file to the right in bufferline",
-			}
+							local elems = bl.get_elements().elements
+							local origin_pos = nil
+							for i, e in ipairs(elems) do
+								if e.id == origin_buf then
+									origin_pos = i
+									break
+								end
+							end
+							if origin_pos then
+								bl.move_to(origin_pos + 1)
+							end
+						end)
+					end,
+					desc = "Open file to the right in bufferline",
+				}
 
-			keys["p"] = "explorer_close"
-			keys["r"] = "explorer_update"
+				keys["p"] = "explorer_close"
+				keys["r"] = "explorer_update"
 			end,
 		},
 		{
@@ -321,20 +337,20 @@ require("lazy").setup({
 				execution_message = {
 					message = "",
 				},
-		condition = function(buf)
-			if not vim.api.nvim_buf_is_valid(buf) then
-				return false
-			end
-			local bufname = vim.api.nvim_buf_get_name(buf)
-			if bufname ~= "" and vim.fn.filereadable(bufname) == 0 then
-				return false
-			end
-			local ext = vim.fn.expand("%:e")
-			if ext == "tex" then
-				return false
-			end
-			return true
-		end,
+				condition = function(buf)
+					if not vim.api.nvim_buf_is_valid(buf) then
+						return false
+					end
+					local bufname = vim.api.nvim_buf_get_name(buf)
+					if bufname ~= "" and vim.fn.filereadable(bufname) == 0 then
+						return false
+					end
+					local ext = vim.fn.expand("%:e")
+					if ext == "tex" then
+						return false
+					end
+					return true
+				end,
 			},
 		},
 		{ "Vigemus/iron.nvim" },
@@ -364,27 +380,27 @@ require("lazy").setup({
 			},
 		},
 		{ "iamcco/markdown-preview.nvim", build = "cd app && npx --yes yarn install" },
-	-- Enable wrap in all Neogit buffers
-	{
-		"NeogitOrg/neogit",
-		init = function()
-			vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
-				callback = function()
-					local ft = vim.bo.filetype or ""
-					local name = vim.api.nvim_buf_get_name(0)
-					if ft:match("^Neogit") or ft:match("^neogit") or name:match("Neogit") then
-						vim.wo.wrap = true
-					end
-				end,
-			})
-		end,
-	},
+		-- Enable wrap in all Neogit buffers
+		{
+			"NeogitOrg/neogit",
+			init = function()
+				vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
+					callback = function()
+						local ft = vim.bo.filetype or ""
+						local name = vim.api.nvim_buf_get_name(0)
+						if ft:match("^Neogit") or ft:match("^neogit") or name:match("Neogit") then
+							vim.wo.wrap = true
+						end
+					end,
+				})
+			end,
+		},
 		{ "HakonHarnes/img-clip.nvim" },
 		{
 			"lervag/vimtex",
-		init = function()
-			vim.g.vimtex_quickfix_mode = 0
-			vim.g.vimtex_view_method = "skim"
+			init = function()
+				vim.g.vimtex_quickfix_mode = 0
+				vim.g.vimtex_view_method = "skim"
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
 				vim.g.vimtex_view_skim_activate = 1 -- bring Skim to front on VimtexView
 				vim.g.vimtex_compiler_method = "latexmk"
@@ -398,43 +414,43 @@ require("lazy").setup({
 					},
 				}
 
-			-- Open Skim and forward-sync after every successful compile
-			vim.api.nvim_create_autocmd("User", {
-				pattern = "VimtexEventCompileSuccess",
-				callback = function()
-					vim.cmd("VimtexView")
+				-- Open Skim and forward-sync after every successful compile
+				vim.api.nvim_create_autocmd("User", {
+					pattern = "VimtexEventCompileSuccess",
+					callback = function()
+						vim.cmd("VimtexView")
 
-					local tex_file = vim.fn.expand("%:p")
-					local tex_dir = vim.fn.fnamemodify(tex_file, ":h")
-					local base_name = vim.fn.fnamemodify(tex_file, ":t:r")
-					local synctex = tex_dir .. "/" .. base_name .. ".synctex.gz"
-					if vim.fn.filereadable(synctex) == 1 then
-						local dest = tex_dir .. "/latex_compilation"
-						vim.fn.mkdir(dest, "p")
-						os.rename(synctex, dest .. "/" .. base_name .. ".synctex.gz")
-					end
-
-					-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
-					local handle = io.popen('ls "' .. tex_dir .. '"/pdflatex*.fls 2>/dev/null')
-					if handle then
-						for f in handle:lines() do
-							os.remove(f)
+						local tex_file = vim.fn.expand("%:p")
+						local tex_dir = vim.fn.fnamemodify(tex_file, ":h")
+						local base_name = vim.fn.fnamemodify(tex_file, ":t:r")
+						local synctex = tex_dir .. "/" .. base_name .. ".synctex.gz"
+						if vim.fn.filereadable(synctex) == 1 then
+							local dest = tex_dir .. "/latex_compilation"
+							vim.fn.mkdir(dest, "p")
+							os.rename(synctex, dest .. "/" .. base_name .. ".synctex.gz")
 						end
-						handle:close()
-					end
 
-					vim.defer_fn(function()
-						vim.cmd("echo ''")
-					end, 2000)
-				end,
-			})
+						-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
+						local handle = io.popen('ls "' .. tex_dir .. '"/pdflatex*.fls 2>/dev/null')
+						if handle then
+							for f in handle:lines() do
+								os.remove(f)
+							end
+							handle:close()
+						end
 
-			-- Close Skim when quitting Neovim
-			vim.api.nvim_create_autocmd("VimLeavePre", {
-				callback = function()
-					vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
-				end,
-			})
+						vim.defer_fn(function()
+							vim.cmd("echo ''")
+						end, 2000)
+					end,
+				})
+
+				-- Close Skim when quitting Neovim
+				vim.api.nvim_create_autocmd("VimLeavePre", {
+					callback = function()
+						vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
+					end,
+				})
 			end,
 		},
 		{
@@ -1236,7 +1252,6 @@ vim.keymap.set("n", ",f", function()
 	Snacks.explorer()
 end, { noremap = true, desc = "Open file explorer" })
 
-
 --    if not python_package_exists('jedi') then
 --        print('install jedi')
 --        os.execute('pip install jedi')
@@ -1306,12 +1321,11 @@ local function start_grip(root)
 		return
 	end
 	os.execute("pkill -f 'go-grip' 2>/dev/null")
-	vim.wait(500, function() return false end)
+	vim.wait(500, function()
+		return false
+	end)
 	grip_root = root
-	local cmd = grip_bin
-		.. " -b=false"
-		.. " -p " .. grip_port
-		.. " " .. vim.fn.shellescape(root)
+	local cmd = grip_bin .. " -b=false" .. " -p " .. grip_port .. " " .. vim.fn.shellescape(root)
 	vim.fn.jobstart(cmd, { detach = true })
 	local ok = vim.wait(5000, grip_running, 200)
 	if not ok then
@@ -1330,14 +1344,12 @@ local function open_in_grip()
 	local serve_root = vim.fn.fnamemodify(root, ":h")
 	local rel = file:sub(#serve_root + 2)
 	local url = "http://localhost:" .. grip_port .. "/" .. rel
-	local app = vim.fn.system(
-		[[osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true']]
-	):gsub("%s+$", "")
-	vim.fn.system(
-		'open -a "Safari" '
-			.. vim.fn.shellescape(url)
-			.. " >/dev/null 2>&1 &"
-	)
+	local app = vim.fn
+		.system(
+			[[osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true']]
+		)
+		:gsub("%s+$", "")
+	vim.fn.system('open -a "Safari" ' .. vim.fn.shellescape(url) .. " >/dev/null 2>&1 &")
 	vim.defer_fn(function()
 		vim.fn.system([[osascript -e 'tell application "]] .. app .. [[" to activate']])
 	end, 600)
@@ -1384,7 +1396,6 @@ require("img-clip").setup({
 		prompt_for_file_name = false,
 	},
 })
-
 
 vim.keymap.set({ "n" }, "<leader>v", "<cmd>PasteImage<CR>", { desc = "Smart Cmd+V" })
 
@@ -1495,8 +1506,18 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		local buf = args.buf
 		vim.defer_fn(function()
 			if vim.api.nvim_buf_is_valid(buf) then
-				vim.keymap.set("n", "gy", "<cmd>BufferLineCycleNext<CR>", { buffer = buf, noremap = true, silent = true })
-				vim.keymap.set("n", "gt", "<cmd>BufferLineCyclePrev<CR>", { buffer = buf, noremap = true, silent = true })
+				vim.keymap.set(
+					"n",
+					"gy",
+					"<cmd>BufferLineCycleNext<CR>",
+					{ buffer = buf, noremap = true, silent = true }
+				)
+				vim.keymap.set(
+					"n",
+					"gt",
+					"<cmd>BufferLineCyclePrev<CR>",
+					{ buffer = buf, noremap = true, silent = true }
+				)
 				vim.keymap.set("n", "K", "<C-b>", { buffer = buf, noremap = true, silent = true, desc = "Page up" })
 			end
 		end, 500)
@@ -1611,7 +1632,12 @@ vim.defer_fn(function()
 	-- After yank in visual mode, move cursor to end of selection
 	vim.keymap.set("x", "y", "ygv<Esc>", { noremap = true, silent = true, desc = "Yank and go to end" })
 	-- Remap gt/gy for buffer cycling (override LazyVim's gy = Goto Type Definition)
-	vim.keymap.set("n", "gt", "<cmd>BufferLineCyclePrev<CR>", { noremap = true, silent = true, desc = "Previous buffer" })
+	vim.keymap.set(
+		"n",
+		"gt",
+		"<cmd>BufferLineCyclePrev<CR>",
+		{ noremap = true, silent = true, desc = "Previous buffer" }
+	)
 	vim.keymap.set("n", "gy", "<cmd>BufferLineCycleNext<CR>", { noremap = true, silent = true, desc = "Next buffer" })
 	vim.keymap.set(
 		"v",
@@ -1663,7 +1689,8 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 	callback = function(ev)
 		local pdf_path = vim.api.nvim_buf_get_name(ev.buf)
 		local saved_bounds = vim.fn.system({
-			"osascript", "-e",
+			"osascript",
+			"-e",
 			'try\ntell application "Skim" to get bounds of window 1\non error\nreturn ""\nend try',
 		})
 		saved_bounds = vim.trim(saved_bounds)
@@ -1671,7 +1698,8 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 		if saved_bounds ~= "" then
 			vim.defer_fn(function()
 				vim.fn.system({
-					"osascript", "-e",
+					"osascript",
+					"-e",
 					'tell application "Skim" to set bounds of window 1 to {' .. saved_bounds .. "}",
 				})
 			end, 500)
@@ -1686,10 +1714,12 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 
 local function run_in_terminal_app(cmd, app, auto_run)
 	app = app or "terminal"
-	if auto_run == nil then auto_run = true end
+	if auto_run == nil then
+		auto_run = true
+	end
 	local enter_key = auto_run and "\n\t\t\tkey code 36" or ""
 	if app == "kitty" then
-		local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+		local escaped = cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
 		local script = string.format([[
 tell application "System Events"
 	set found to false
@@ -1723,15 +1753,20 @@ tell application "System Events"
 end tell]], escaped, escaped)
 		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 	else
-		local escaped = cmd:gsub('\\', '\\\\'):gsub('"', '\\"')
+		local escaped = cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
 		local run_action
 		if auto_run then
-			run_action = string.format([[
+			run_action = string.format(
+				[[
 		do script "%s" in idleTab
 	else
-		do script "%s"]], escaped, escaped)
+		do script "%s"]],
+				escaped,
+				escaped
+			)
 		else
-			run_action = string.format([[
+			run_action = string.format(
+				[[
 		set prevClip to the clipboard
 		set the clipboard to "%s"
 		tell application "System Events"
@@ -1753,9 +1788,13 @@ end tell]], escaped, escaped)
 			keystroke "v" using command down
 		end tell
 		delay 0.1
-		set the clipboard to prevClip]], escaped, escaped)
+		set the clipboard to prevClip]],
+				escaped,
+				escaped
+			)
 		end
-		local script = string.format([[
+		local script = string.format(
+			[[
 tell application "Terminal"
 	activate
 	set idleTab to missing value
@@ -1792,12 +1831,15 @@ tell application "Terminal"
 		set index of frontWindow to 1
 		%s
 	end if
-end tell]], run_action)
+end tell]],
+			run_action
+		)
 		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 	end
 end
 
-local claude_sessions_dir = "/Users/maojingwei/baidu/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+local claude_sessions_dir =
+	"/Users/maojingwei/baidu/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,
@@ -1839,8 +1881,12 @@ local function prompt_close_deleted_buf()
 
 	local short = vim.fn.fnamemodify(name, ":.")
 	vim.ui.select({ "Yes", "No" }, { prompt = "File deleted: " .. short .. " — close buffer?" }, function(choice)
-		if choice ~= "Yes" then return end
-		if not vim.api.nvim_buf_is_valid(buf) then return end
+		if choice ~= "Yes" then
+			return
+		end
+		if not vim.api.nvim_buf_is_valid(buf) then
+			return
+		end
 		local wins = {}
 		for _, win in ipairs(vim.api.nvim_list_wins()) do
 			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
@@ -1848,7 +1894,9 @@ local function prompt_close_deleted_buf()
 			end
 		end
 		for _, win in ipairs(wins) do
-			if not vim.api.nvim_win_is_valid(win) then goto continue end
+			if not vim.api.nvim_win_is_valid(win) then
+				goto continue
+			end
 			local alt = vim.fn.bufnr("#")
 			if alt > 0 and alt ~= buf and vim.api.nvim_buf_is_valid(alt) and vim.bo[alt].buflisted then
 				vim.api.nvim_win_set_buf(win, alt)
@@ -1894,11 +1942,15 @@ local function run_meta_script_execute(cmd, filepath, mode)
 			vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
 			return
 		end
-		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name .. "/aaajwmlogs"
+		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 		vim.fn.mkdir(log_dir, "p")
-		local log_file = log_dir .. "/" .. os.date("%Y%m%d_%H%M%S") .. ".log"
+		local tmpdate = os.date("%Y%m%d_%H%M%S")
+		local log_file = log_dir .. "/" .. tmpdate .. ".log"
 		local f = io.open(log_file, "w")
-		if f then f:close() end
+		if f then
+			f:close()
+		end
+		cmd = cmd .. " " .. tmpdate
 		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		local log_buf = vim.api.nvim_get_current_buf()
@@ -1906,9 +1958,14 @@ local function run_meta_script_execute(cmd, filepath, mode)
 			on_exit = function(_, code)
 				vim.schedule(function()
 					if vim.api.nvim_buf_is_valid(log_buf) then
-						vim.api.nvim_buf_call(log_buf, function() vim.cmd("edit") end)
+						vim.api.nvim_buf_call(log_buf, function()
+							vim.cmd("edit")
+							vim.uv.sleep(5000)
+							vim.cmd("q")
+						end)
 					end
 					if code == 0 then
+						vim.cmd("tabnew " .. vim.fn.fnameescape(log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"))
 						vim.notify("meta_script finished (exit 0)")
 					else
 						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
@@ -1934,21 +1991,29 @@ local function run_meta_script(mode)
 	vim.notify("Command copied to clipboard:\n" .. cmd, vim.log.levels.INFO)
 	local responded = false
 	local timer = vim.uv.new_timer()
-	timer:start(10000, 0, vim.schedule_wrap(function()
-		timer:close()
-		if not responded then
-			responded = true
-			local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
-			local ctrl_c = vim.api.nvim_replace_termcodes("<C-c>", true, false, true)
-			vim.api.nvim_feedkeys(esc, "n", true)
-			vim.api.nvim_feedkeys(esc, "n", true)
-			vim.notify("F5 prompt timed out (10s)", vim.log.levels.WARN)
-		end
-	end))
+	timer:start(
+		10000,
+		0,
+		vim.schedule_wrap(function()
+			timer:close()
+			if not responded then
+				responded = true
+				local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+				local ctrl_c = vim.api.nvim_replace_termcodes("<C-c>", true, false, true)
+				vim.api.nvim_feedkeys(esc, "n", true)
+				vim.api.nvim_feedkeys(esc, "n", true)
+				vim.notify("F5 prompt timed out (10s)", vim.log.levels.WARN)
+			end
+		end)
+	)
 	vim.ui.select({ "Run", "Cancel" }, { prompt = "Run this command?" }, function(choice)
 		responded = true
-		if not timer:is_closing() then timer:close() end
-		if choice ~= "Run" then return end
+		if not timer:is_closing() then
+			timer:close()
+		end
+		if choice ~= "Run" then
+			return
+		end
 		run_meta_script_execute(cmd, filepath, mode)
 	end)
 end
@@ -1970,7 +2035,7 @@ vim.keymap.set("v", "<F5>", function()
 		local rel = filepath ~= "" and filepath:sub(#prefix + 1) or ""
 		local dir_name = rel:match("^([^/]+)") or "misc"
 
-		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name .. "/aaajwmlogs"
+		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 		vim.fn.mkdir(log_dir, "p")
 		local timestamp = os.date("%Y%m%d_%H%M%S")
 
@@ -1983,7 +2048,9 @@ vim.keymap.set("v", "<F5>", function()
 
 		local log_file = log_dir .. "/" .. timestamp .. "_sel.log"
 		local lf = io.open(log_file, "w")
-		if lf then lf:close() end
+		if lf then
+			lf:close()
+		end
 
 		local bg_cmd = "bash " .. vim.fn.shellescape(tmp_file) .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		vim.fn.setreg("+", "bash " .. tmp_file)
@@ -1993,7 +2060,9 @@ vim.keymap.set("v", "<F5>", function()
 			on_exit = function(_, code)
 				vim.schedule(function()
 					if vim.api.nvim_buf_is_valid(log_buf) then
-						vim.api.nvim_buf_call(log_buf, function() vim.cmd("edit") end)
+						vim.api.nvim_buf_call(log_buf, function()
+							vim.cmd("edit")
+						end)
 					end
 					if code == 0 then
 						vim.notify("Selection script finished (exit 0)")
@@ -2011,7 +2080,9 @@ vim.api.nvim_create_user_command("RunMeta", function(args)
 	run_meta_script(args.args ~= "" and args.args or nil)
 end, {
 	nargs = "?",
-	complete = function() return { "background" } end,
+	complete = function()
+		return { "background" }
+	end,
 	desc = "Run meta_script; use :RunMeta background to run silently",
 })
 

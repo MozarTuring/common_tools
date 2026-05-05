@@ -159,7 +159,7 @@ export PYTHONUNBUFFERED=1
 
 }
 
-if [[ $# -eq 1 ]]; then
+if [[ $# -lt 3 ]]; then
     set1=("greatrawr" 18900 8080)
     set2=("ferragon" 9800)
     for array_ref in set1[@] set2[@]; do
@@ -229,8 +229,8 @@ if [[ $# -eq 1 ]]; then
 
     echo ${last_commit}
     local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_project_name}"
-    run_timestamp="$(date +%Y%m%d_%H%M%S)"
-    run_id="${run_timestamp}_${last_commit}"
+    run_timestamp="$2"
+    run_id="${run_timestamp}"
     local_dir="${local_dir}/${run_id}"
     run_dir_remote_tmp=${run_dir_remote}_${run_id}
     mkdir -p "$local_dir"
