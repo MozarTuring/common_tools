@@ -1,30 +1,27 @@
+# Shared environment settings — sourced by both zshrc and bash_profile
 
-# Put all the commands here that should run regardless of whether this is an interactive or non-interactive shell.
+# Locale
+export LANG=zh_CN.UTF-8
+export LC_TIME=en_US.UTF-8
 
+# LS colors
+export LS_OPTIONS='--color=auto'
+export CLICOLOR='Yes'
+export LSCOLORS='CxfxcxdxbxegedabagGxGx'
 
+# PATH
+export PATH="$HOME/jwSoftware/nvim/bin:$PATH"
+export PATH="/Users/maojingwei/Library/Python/3.7/bin/:$PATH"
+export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/local/sbin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.npm-global/bin:$PATH"
 
-# test if the prompt var is not set and also to prevent failures
-# when `$PS1` is unset and `set -u` is used 
-if [ -z "${PS1:-}" ]; then
-    # prompt var is not set, so this is *not* an interactive shell
-    return
-fi
+# HomeBrew
+export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles
 
-# If we reach this line of code, then the prompt var is set, so
-# this is an interactive shell.
+# Safe rm: moves files to trash instead of deleting
+alias rm='f() { DIR=~/111mjw_tmp_jwm/trash/$(date +%F%T) && mkdir -p "$DIR" && mv "$@" "$DIR"; }; f'
 
-# Put all the commands here that should run only if this is an
-# interactive shell.
-
-
-
-# Source global definitions
-if [ -f /etc/bashrc ]; then
-	. /etc/bashrc
-fi
-
-if [ -f ~/.fzf.bash ]; then
-    source ~/.fzf.bash
-fi
-
+alias claude='cd ~/project && command claude'
 

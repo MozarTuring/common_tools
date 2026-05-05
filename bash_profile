@@ -7,3 +7,5 @@ esac
 #
 # manually add the above to the top of .bashrc
 # init_nvim.sh will add source ~/project/common_tools/bash_profile to the bottom of file ~/.bash_profile on macos or ~/.profile on ubuntu
+export BASH_SILENCE_DEPRECATION_WARNING=1
+source ~/project/common_tools/bashrc

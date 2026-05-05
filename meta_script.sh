@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -e
 sync_and_commit_repo() {
     local repo_path="$1"
@@ -158,8 +160,20 @@ export PYTHONUNBUFFERED=1
 }
 
 if [[ $# -eq 1 ]]; then
-    _coord_port=9800 && ssh -o ControlPath=none -f -N -L ${_coord_port}:localhost:${_coord_port} -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes ferragon || echo "Port ${_coord_port} tunnel already active"
-
+    set1=("greatrawr" 18900 8080)
+    set2=("ferragon" 9800)
+    for array_ref in set1[@] set2[@]; do
+        current=("${!array_ref}")
+        host="${current[0]}"
+        ports=("${current[@]:1}")
+        for port in "${ports[@]}"; do
+            tmp=$(lsof -t -i :"$port")
+            # [[ -n $tmp ]] && kill -9 $tmp
+            ssh -o ControlPath=none -f -N -L "${port}:localhost:${port}" \
+                -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+                -o ExitOnForwardFailure=yes "$host" && echo "$port succeed" || echo "Port $port tunnel failed/active"
+        done
+    done
     _abspath="$1"
     echo "abspath, $_abspath"
     _filename=$(basename "$_abspath")
