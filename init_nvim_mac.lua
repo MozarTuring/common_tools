@@ -1953,23 +1953,23 @@ local function run_meta_script_execute(cmd, filepath, mode)
 			f:close()
 		end
 		cmd = cmd .. " " .. tmpdate
-		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+		-- vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 
 		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		local log_buf = vim.api.nvim_get_current_buf()
 		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
 			on_exit = function(_, code)
 				vim.schedule(function()
-					if vim.api.nvim_buf_is_valid(log_buf) then
-						local wins = vim.fn.win_findbuf(log_buf)
-						if #wins > 0 then
-							vim.api.nvim_set_current_win(wins[1])
-							vim.cmd("edit")
-							vim.cmd("wq")
-						else
-							vim.api.nvim_buf_delete(log_buf, { force = true })
-						end
-					end
+					-- if vim.api.nvim_buf_is_valid(log_buf) then
+					-- 	local wins = vim.fn.win_findbuf(log_buf)
+					-- 	if #wins > 0 then
+					-- 		vim.api.nvim_set_current_win(wins[1])
+					-- 		vim.cmd("edit")
+					-- 		vim.cmd("wq")
+					-- 	else
+					-- 		vim.api.nvim_buf_delete(log_buf, { force = true })
+					-- 	end
+					-- end
 					if code == 0 then
 						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
 						vim.notify("meta_script finished (exit 0)")
