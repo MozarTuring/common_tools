@@ -382,8 +382,9 @@ require("lazy").setup({
 		{ "HakonHarnes/img-clip.nvim" },
 		{
 			"lervag/vimtex",
-			init = function()
-				vim.g.vimtex_view_method = "skim"
+		init = function()
+			vim.g.vimtex_quickfix_mode = 0
+			vim.g.vimtex_view_method = "skim"
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
 				vim.g.vimtex_view_skim_activate = 1 -- bring Skim to front on VimtexView
 				vim.g.vimtex_compiler_method = "latexmk"
@@ -1935,7 +1936,7 @@ local function run_meta_script(mode)
 		if choice ~= "Run" then return end
 		run_meta_script_execute(cmd, filepath, mode)
 	end)
-	run_meta_script_execute(cmd, filepath, mode)
+	-- run_meta_script_execute(cmd, filepath, mode)
 end
 
 vim.keymap.set("n", "<F5>", function()
