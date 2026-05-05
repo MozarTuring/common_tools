@@ -1963,8 +1963,7 @@ local function run_meta_script_execute(cmd, filepath, mode)
 					if vim.api.nvim_buf_is_valid(log_buf) then
 						vim.api.nvim_buf_call(log_buf, function()
 							vim.cmd("edit")
-							vim.cmd("normal! G")
-							vim.cmd("normal! ;q")
+							vim.cmd("wq")
 						end)
 					end
 					if code == 0 then
