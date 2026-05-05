@@ -1126,11 +1126,54 @@ vim.opt.endofline = true
 -- vim.cmd('let g:jedi#popup_on_dot = 0')
 
 function MyRefreshFile()
-	-- 执行命令 "e"，通常用于编辑文件，但在这里可能只是刷新当前文件
 	vim.cmd("e")
-
-	-- 执行普通模式命令 "G"，跳转到文件末尾
 	vim.cmd("normal G")
+end
+
+local _jw_auto_refresh_timer = nil
+local _jw_auto_refresh_buf = nil
+
+function ToggleAutoRefresh()
+	if _jw_auto_refresh_timer then
+		_jw_auto_refresh_timer:stop()
+		_jw_auto_refresh_timer:close()
+		_jw_auto_refresh_timer = nil
+		_jw_auto_refresh_buf = nil
+		vim.notify("Auto-refresh OFF")
+	else
+		_jw_auto_refresh_buf = vim.api.nvim_get_current_buf()
+		local bufname = vim.api.nvim_buf_get_name(_jw_auto_refresh_buf)
+		_jw_auto_refresh_timer = vim.uv.new_timer()
+		_jw_auto_refresh_timer:start(
+			2000,
+			2000,
+			vim.schedule_wrap(function()
+				if
+					_jw_auto_refresh_buf
+					and vim.api.nvim_buf_is_valid(_jw_auto_refresh_buf)
+					and vim.fn.buflisted(_jw_auto_refresh_buf) == 1
+				then
+					vim.api.nvim_buf_call(_jw_auto_refresh_buf, function()
+						vim.cmd("checktime")
+						local last_line = vim.api.nvim_buf_line_count(0)
+						local wins = vim.fn.win_findbuf(_jw_auto_refresh_buf)
+						for _, win in ipairs(wins) do
+							vim.api.nvim_win_set_cursor(win, { last_line, 0 })
+						end
+					end)
+				else
+					if _jw_auto_refresh_timer then
+						_jw_auto_refresh_timer:stop()
+						_jw_auto_refresh_timer:close()
+						_jw_auto_refresh_timer = nil
+						_jw_auto_refresh_buf = nil
+					end
+				end
+			end)
+		)
+		local short = bufname ~= "" and vim.fn.fnamemodify(bufname, ":.") or "[unnamed]"
+		vim.notify("Auto-refresh ON: " .. short)
+	end
 end
 
 function Clswap()
@@ -1174,37 +1217,10 @@ vim.api.nvim_set_keymap("n", "<C-g>", "<Nop>", { noremap = true, silent = true }
 vim.api.nvim_set_keymap("n", "<C-f>", "<Nop>", { noremap = true, silent = true })
 
 --keymaps
--- NERDTree mapping only for older nvim (0.9.1); overridden to Neotree in 0.11.5 block
-vim.api.nvim_set_keymap("n", ",f", ":NERDTreeFind<CR>", { noremap = true })
-
--- 保存并退出
-vim.api.nvim_set_keymap("n", ";q", ":q<CR>", { noremap = true, silent = true })
-
--- 保存所有文件并退出
-vim.api.nvim_set_keymap("n", ";a", ":qall<CR>", { noremap = true, silent = true })
-
--- 执行自定义函数刷新文件
-vim.api.nvim_set_keymap("n", ";e", ":lua MyRefreshFile()<CR>", { noremap = true, silent = true })
-
--- 编译并运行 GCC 程序
 vim.api.nvim_set_keymap("n", "<2-LeftMouse>", ":call CompileRunGcc('r')<CR>", { noremap = true, silent = true })
-
--- 使用 Jedi 跳转到定义
-vim.api.nvim_set_keymap("n", "gj", ":call jedi#goto()<CR>", { noremap = true, silent = true })
-
--- 设置键映射，使用 Clswap 函数
 vim.api.nvim_set_keymap("n", "cls", ":lua Clswap()<CR>", { noremap = true })
-
 vim.api.nvim_set_keymap("n", "fl", "<cmd>lua OpenLog()<CR>", { noremap = true, silent = true })
---vim.api.nvim_set_keymap('n', 'm', ":lua Jw_send_l()<CR>", { noremap = true, silent = true })
-
---vim.api.nvim_set_keymap('v', '<space>ll', '<cmd>lua Jwsend()<CR>', { noremap = true, silent = true})
---vim.api.nvim_set_keymap('v', 'm', ":lua Jw_send_v()<CR>", { noremap = true, silent = true })
-
---vim.api.nvim_set_keymap('n', 'ee', '<cmd>lua jw_iron_restart()<CR>', { noremap = true, silent = true })
-
 vim.api.nvim_set_keymap("n", "yb", "<cmd>lua CopyFilePathToClipboard()<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", ";w", "<cmd>lua myWriteFile()<CR>", { noremap = true, silent = true })
 
 vim.api.nvim_set_keymap("v", "sy", ":lua copy_visual_lines()<CR>", { noremap = true, silent = true }) -- here <cmd> not work in windows
 
@@ -1662,7 +1678,7 @@ vim.defer_fn(function()
 		end
 	end, { noremap = true, silent = true, desc = "Close current buffer" })
 	vim.keymap.set("n", ";a", ":qall<CR>", { noremap = true, silent = true, desc = "Quit all" })
-	vim.keymap.set("n", ";e", ":lua MyRefreshFile()<CR>", { noremap = true, silent = true, desc = "Refresh file" })
+	vim.keymap.set("n", ";e", ":lua ToggleAutoRefresh()<CR>", { noremap = true, silent = true, desc = "Toggle auto-refresh" })
 	vim.keymap.set("n", ";w", "<cmd>lua myWriteFile()<CR>", { noremap = true, silent = true, desc = "Save file" })
 
 	-- Format current buffer with conform.nvim
