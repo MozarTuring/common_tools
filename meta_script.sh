@@ -115,8 +115,10 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd "$4"/"$2"
-    cp -R . $7/
-    cd $7
+    if [[ $1 != "remotedockercompose" ]]; then
+        cp -R . $7/
+        cd $7
+    fi
     # if [[ $1 == "remotedocker" ]]; then
     #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${_manual_file}" | tail -1)"
     #     clearflag=0
@@ -495,7 +497,7 @@ EOF
         source jwm_configs/remote.sh
         echo "JWM_CONTAINER_ID:"
         echo "docker rm -f ${JWM_CONTAINER_ID}"
-        echo "$JWM_CONTAINER_ID" > "./remote_job_id.txt"
+        echo "$JWM_CONTAINER_ID" >"./remote_job_id.txt"
         nohup bash -c "docker logs -f $JWM_CONTAINER_ID >slurm_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; rm -f slurm_out.log.raw slurm_out.log.tmp remote_job_id.txt" >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
