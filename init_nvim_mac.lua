@@ -1130,26 +1130,27 @@ function MyRefreshFile()
 	vim.cmd("normal G")
 end
 
-local _jw_auto_refresh_timer = nil
-local _jw_auto_refresh_buf = nil
-local _jw_auto_refresh_win = nil
+local _jw_auto_refresh_timers = {} -- bufnr -> timer
+local _jw_auto_refresh_indicator_win = nil
 local _jw_auto_refresh_indicator_buf = nil
 
-local function close_auto_refresh_indicator()
-	if _jw_auto_refresh_win and vim.api.nvim_win_is_valid(_jw_auto_refresh_win) then
-		vim.api.nvim_win_close(_jw_auto_refresh_win, true)
+local function update_auto_refresh_indicator()
+	if _jw_auto_refresh_indicator_win and vim.api.nvim_win_is_valid(_jw_auto_refresh_indicator_win) then
+		vim.api.nvim_win_close(_jw_auto_refresh_indicator_win, true)
 	end
-	_jw_auto_refresh_win = nil
+	_jw_auto_refresh_indicator_win = nil
 	_jw_auto_refresh_indicator_buf = nil
-end
 
-local function open_auto_refresh_indicator()
-	close_auto_refresh_indicator()
-	local text = " AUTO-REFRESH "
+	local count = vim.tbl_count(_jw_auto_refresh_timers)
+	if count == 0 then
+		return
+	end
+
+	local text = " AUTO-REFRESH(" .. count .. ") "
 	_jw_auto_refresh_indicator_buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(_jw_auto_refresh_indicator_buf, 0, -1, false, { text })
 	vim.api.nvim_set_option_value("modifiable", false, { buf = _jw_auto_refresh_indicator_buf })
-	_jw_auto_refresh_win = vim.api.nvim_open_win(_jw_auto_refresh_indicator_buf, false, {
+	_jw_auto_refresh_indicator_win = vim.api.nvim_open_win(_jw_auto_refresh_indicator_buf, false, {
 		relative = "editor",
 		row = 0,
 		col = vim.o.columns - #text,
@@ -1159,50 +1160,50 @@ local function open_auto_refresh_indicator()
 		focusable = false,
 		zindex = 100,
 	})
-	vim.api.nvim_set_option_value("winhl", "Normal:DiffAdd", { win = _jw_auto_refresh_win })
+	vim.api.nvim_set_option_value("winhl", "Normal:DiffAdd", { win = _jw_auto_refresh_indicator_win })
+end
+
+local function stop_auto_refresh_for_buf(bufnr)
+	local timer = _jw_auto_refresh_timers[bufnr]
+	if timer then
+		timer:stop()
+		timer:close()
+		_jw_auto_refresh_timers[bufnr] = nil
+	end
 end
 
 function ToggleAutoRefresh()
-	if _jw_auto_refresh_timer then
-		_jw_auto_refresh_timer:stop()
-		_jw_auto_refresh_timer:close()
-		_jw_auto_refresh_timer = nil
-		_jw_auto_refresh_buf = nil
-		close_auto_refresh_indicator()
-		vim.notify("Auto-refresh OFF")
+	local bufnr = vim.api.nvim_get_current_buf()
+	if _jw_auto_refresh_timers[bufnr] then
+		stop_auto_refresh_for_buf(bufnr)
+		update_auto_refresh_indicator()
+		local bufname = vim.api.nvim_buf_get_name(bufnr)
+		local short = bufname ~= "" and vim.fn.fnamemodify(bufname, ":.") or "[unnamed]"
+		vim.notify("Auto-refresh OFF: " .. short)
 	else
-		_jw_auto_refresh_buf = vim.api.nvim_get_current_buf()
-		local bufname = vim.api.nvim_buf_get_name(_jw_auto_refresh_buf)
-		open_auto_refresh_indicator()
-		_jw_auto_refresh_timer = vim.uv.new_timer()
-		_jw_auto_refresh_timer:start(
+		local bufname = vim.api.nvim_buf_get_name(bufnr)
+		local timer = vim.uv.new_timer()
+		_jw_auto_refresh_timers[bufnr] = timer
+		timer:start(
 			2000,
 			2000,
 			vim.schedule_wrap(function()
-				if
-					_jw_auto_refresh_buf
-					and vim.api.nvim_buf_is_valid(_jw_auto_refresh_buf)
-					and vim.fn.buflisted(_jw_auto_refresh_buf) == 1
-				then
-					vim.api.nvim_buf_call(_jw_auto_refresh_buf, function()
+				if vim.api.nvim_buf_is_valid(bufnr) and vim.fn.buflisted(bufnr) == 1 then
+					vim.api.nvim_buf_call(bufnr, function()
 						vim.cmd("checktime")
 						local last_line = vim.api.nvim_buf_line_count(0)
-						local wins = vim.fn.win_findbuf(_jw_auto_refresh_buf)
+						local wins = vim.fn.win_findbuf(bufnr)
 						for _, win in ipairs(wins) do
 							vim.api.nvim_win_set_cursor(win, { last_line, 0 })
 						end
 					end)
 				else
-					if _jw_auto_refresh_timer then
-						_jw_auto_refresh_timer:stop()
-						_jw_auto_refresh_timer:close()
-						_jw_auto_refresh_timer = nil
-						_jw_auto_refresh_buf = nil
-					end
-					close_auto_refresh_indicator()
+					stop_auto_refresh_for_buf(bufnr)
+					vim.schedule(update_auto_refresh_indicator)
 				end
 			end)
 		)
+		update_auto_refresh_indicator()
 		local short = bufname ~= "" and vim.fn.fnamemodify(bufname, ":.") or "[unnamed]"
 		vim.notify("Auto-refresh ON: " .. short)
 	end
