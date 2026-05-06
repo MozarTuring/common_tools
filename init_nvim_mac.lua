@@ -1710,7 +1710,12 @@ vim.defer_fn(function()
 		end
 	end, { noremap = true, silent = true, desc = "Close current buffer" })
 	vim.keymap.set("n", ";a", ":qall<CR>", { noremap = true, silent = true, desc = "Quit all" })
-	vim.keymap.set("n", ";e", ":lua ToggleAutoRefresh()<CR>", { noremap = true, silent = true, desc = "Toggle auto-refresh" })
+	vim.keymap.set(
+		"n",
+		";e",
+		":lua ToggleAutoRefresh()<CR>",
+		{ noremap = true, silent = true, desc = "Toggle auto-refresh" }
+	)
 	vim.keymap.set("n", ";w", "<cmd>lua myWriteFile()<CR>", { noremap = true, silent = true, desc = "Save file" })
 
 	-- Format current buffer with conform.nvim
@@ -2001,7 +2006,7 @@ local function run_meta_script_execute(cmd, filepath, mode)
 			f:close()
 		end
 		cmd = cmd .. " " .. tmpdate
-		-- vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 
 		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		local log_buf = vim.api.nvim_get_current_buf()
@@ -2019,6 +2024,9 @@ local function run_meta_script_execute(cmd, filepath, mode)
 					-- 	end
 					-- end
 					if code == 0 then
+						if vim.api.nvim_buf_is_valid(log_buf) then
+							vim.api.nvim_buf_delete(log_buf, { force = true })
+						end
 						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
 						ToggleAutoRefresh()
 						vim.notify("meta_script finished (exit 0)")
