@@ -1261,42 +1261,6 @@ vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
-	local ok, tree = pcall(require, "snacks.explorer.tree")
-	if ok and not tree._jw_mtime_patched then
-		tree._jw_mtime_patched = true
-		local mt = getmetatable(tree)
-		local uv = vim.uv or vim.loop
-		mt.walk = function(self, node, fn, wopts)
-			local abort = fn(node)
-			if abort ~= nil then
-				return abort
-			end
-			local children = vim.tbl_values(node.children)
-			table.sort(children, function(a, b)
-				if a.dir ~= b.dir then
-					return a.dir
-				end
-				local sa = uv.fs_stat(a.path)
-				local sb = uv.fs_stat(b.path)
-				local ma = sa and sa.mtime and sa.mtime.sec or 0
-				local mb = sb and sb.mtime and sb.mtime.sec or 0
-				return ma > mb
-			end)
-			for c, child in ipairs(children) do
-				child.last = c == #children
-				abort = false
-				if child.dir and (child.open or (wopts and wopts.all)) then
-					abort = self:walk(child, fn, wopts)
-				else
-					abort = fn(child)
-				end
-				if abort then
-					return true
-				end
-			end
-			return false
-		end
-	end
 	Snacks.explorer()
 end, { noremap = true, desc = "Open file explorer" })
 
