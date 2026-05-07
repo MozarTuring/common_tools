@@ -238,11 +238,11 @@ if [[ $# -lt 3 ]]; then
     #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     # fi
 
-    nohup_log="${local_dir}/nohup_monitor.log"
-    echo "branch: ${_git_branch} , commit_hash: ${last_commit}" > ${nohup_log}
+    info_before_remote="${local_dir}/info_before_remote.txt"
+    echo "branch: ${_git_branch} , commit_hash: ${last_commit}" > ${info_before_remote}
 
     echo "Running remote setup... (output: $nohup_log)"
-    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee -a "$nohup_log"
+    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
     _ssh_rc=${PIPESTATUS[0]}
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $SERVER_NAME failed (exit code $_ssh_rc)"
@@ -281,7 +281,7 @@ if [[ $# -lt 3 ]]; then
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
         echo """nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >> $nohup_log
-        echo ""
+
         nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
         monitor_pid=$!
         echo "Background monitor PID: $monitor_pid"

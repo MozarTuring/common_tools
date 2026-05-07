@@ -178,6 +178,7 @@ jobsfile=/Users/maojingwei/baidu/project/jobsjwm.txt
 grep -qxF ${local_dir} ${jobsfile} || echo ${local_dir} >>${jobsfile}
 while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
+    _interval=0
     if [[ ${_interval} -lt 60 ]]; then
         _interval=$((((_check_count - 1) / 5 + 1) * 15))
     fi
