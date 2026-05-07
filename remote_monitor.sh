@@ -174,9 +174,13 @@ sync_remote() {
 # --- main monitoring loop ---
 _check_count=0
 finish_flag=0
+jobsfile=/Users/maojingwei/baidu/project/jobsjwm.txt
+grep -qxF ${local_dir} ${jobsfile} || echo ${local_dir} >>${jobsfile}
 while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
-    _interval=$((((_check_count - 1) / 5 + 1) * 15))
+    if [[ ${_interval} -lt 60 ]]; then
+        _interval=$((((_check_count - 1) / 5 + 1) * 15))
+    fi
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"

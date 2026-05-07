@@ -254,29 +254,6 @@ if [[ $# -lt 3 ]]; then
     fi
 
     if [[ "$_mode" == "remotedockercompose" ]]; then
-        # echo "local dir: ${local_dir}"
-        # pkill -f "ssh.*ControlPath=none.*-N.*$SERVER_NAME" 2>/dev/null && echo "Killed existing SSH tunnel to $SERVER_NAME" || true
-        # ports_after=$(
-        #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" |
-        #         { grep -oE '0\.0\.0\.0:[0-9]+' || true; } |
-        #         awk -F: '$2 >= 1024 {print $2}' |
-        #         sort -un
-        # )
-        # ports=()
-        # while IFS= read -r p; do
-        #     [[ -n "$p" ]] && ports+=("$p")
-        # done < <(comm -23 <(echo "$ports_after") <(cat "$ports_before" 2>/dev/null || true))
-        # if [[ ${#ports[@]} -gt 0 ]]; then
-        #     ssh_args=(-o ControlPath=none -N -f)
-        #     for p in "${ports[@]}"; do
-        #         ssh_args+=(-L "${p}:localhost:${p}")
-        #     done
-        #     echo "New ports from this run: ${ports[*]}"
-        #     echo "ssh ${ssh_args[*]} $SERVER_NAME"
-        #     ssh "${ssh_args[@]}" "$SERVER_NAME"
-        # else
-        #     echo "No new ports detected from this run."
-        # fi
         exit 0
     fi
 
