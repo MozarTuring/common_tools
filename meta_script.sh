@@ -239,9 +239,10 @@ if [[ $# -lt 3 ]]; then
     # fi
 
     nohup_log="${local_dir}/nohup_monitor.log"
+    echo "branch: ${_git_branch} , commit_hash: ${last_commit}" > ${nohup_log}
 
     echo "Running remote setup... (output: $nohup_log)"
-    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
+    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee -a "$nohup_log"
     _ssh_rc=${PIPESTATUS[0]}
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $SERVER_NAME failed (exit code $_ssh_rc)"
