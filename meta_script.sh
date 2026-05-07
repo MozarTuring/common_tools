@@ -289,7 +289,7 @@ if [[ $# -lt 3 ]]; then
 
         echo "datetime_seconds: $(date +%Y%m%d_%H%M%S)"
         echo "see logs at ${local_dir}"
-        jobsfile=/Users/maojingwei/baidu/project/${_project_name}/record.md
+        jobsfile=/Users/maojingwei/baidu/project/${_project_name}/jwm_configs/record.md
         grep -qxF ${run_id} ${jobsfile} || sed -i '' '1i ${run_id}' ${jobsfile}
 
         # tail -f "$nohup_log" &
