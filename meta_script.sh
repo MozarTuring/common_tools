@@ -235,6 +235,7 @@ if [[ $# -lt 3 ]]; then
     local_dir="${local_dir}/${run_id}"
     run_dir_remote_tmp=${run_dir_remote}_${run_id}
     mkdir -p "$local_dir"
+    nohup_log="${local_dir}/nohup_monitor.log"
     #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     # fi
 
