@@ -174,8 +174,6 @@ sync_remote() {
 # --- main monitoring loop ---
 _check_count=0
 finish_flag=0
-jobsfile=/Users/maojingwei/baidu/project/jobsjwm.txt
-grep -qxF ${local_dir} ${jobsfile} || echo ${local_dir} >>${jobsfile}
 while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
     _interval=0

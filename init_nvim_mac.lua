@@ -1275,8 +1275,21 @@ vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
+	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
+	if line ~= "" then
+		local expanded = vim.fn.expand(line)
+		local stat = vim.loop.fs_stat(expanded)
+		if stat then
+			if stat.type == "directory" then
+				Snacks.explorer({ cwd = expanded })
+			else
+				OpenOrSwitchToFile(expanded)
+			end
+			return
+		end
+	end
 	Snacks.explorer()
-end, { noremap = true, desc = "Open file explorer" })
+end, { noremap = true, desc = "Open path under cursor or file explorer" })
 
 --    if not python_package_exists('jedi') then
 --        print('install jedi')
