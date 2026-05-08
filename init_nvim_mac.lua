@@ -2106,7 +2106,7 @@ vim.keymap.set("v", "<F5>", function()
 			lf:close()
 		end
 
-		local bg_cmd = "bash " .. vim.fn.shellescape(tmp_file) .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
+		local bg_cmd = "bash " .. vim.fn.shellescape(tmp_file) .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1 && echo 'done'"
 		vim.fn.setreg("+", "bash " .. tmp_file)
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		local log_buf = vim.api.nvim_get_current_buf()

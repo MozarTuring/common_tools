@@ -166,7 +166,7 @@ sync_remote() {
     fi
 }
 
-_project_name=$(basename ${local_dir})
+_project_name=$(basename "$(dirname "$local_dir")")
 nohup_log="${local_dir}/nohup_monitor.log"
 
 jobsfile=/Users/maojingwei/baidu/project/${_project_name}/jwm_configs/jobs.txt
