@@ -2014,14 +2014,20 @@ local function run_meta_script_execute(cmd, filepath, mode)
 					-- 		vim.api.nvim_buf_delete(log_buf, { force = true })
 					-- 	end
 					-- end
+
 					if code == 0 then
 						if vim.api.nvim_buf_is_valid(log_buf) then
-							vim.api.nvim_buf_delete(log_buf, { force = true })
+							vim.api.nvim_buf_delete(log_buf)
 						end
 						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
 						ToggleAutoRefresh()
 						vim.notify("meta_script finished (exit 0)")
 					else
+						if vim.api.nvim_buf_is_valid(log_buf) then
+							vim.api.nvim_buf_call(log_buf, function()
+								vim.cmd("edit")
+							end)
+						end
 						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
 					end
 				end)
@@ -2106,7 +2112,11 @@ vim.keymap.set("v", "<F5>", function()
 			lf:close()
 		end
 
-		local bg_cmd = "bash " .. vim.fn.shellescape(tmp_file) .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1 && echo 'done'"
+		local bg_cmd = "bash "
+			.. vim.fn.shellescape(tmp_file)
+			.. " > "
+			.. vim.fn.shellescape(log_file)
+			.. " 2>&1 && echo 'done'"
 		vim.fn.setreg("+", "bash " .. tmp_file)
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		local log_buf = vim.api.nvim_get_current_buf()
