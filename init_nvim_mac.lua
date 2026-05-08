@@ -1998,7 +1998,7 @@ local function run_meta_script_execute(cmd, filepath, mode)
 		end
 		cmd = cmd .. " " .. tmpdate
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-
+		ToggleAutoRefresh()
 		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 		local log_buf = vim.api.nvim_get_current_buf()
 		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
@@ -2023,11 +2023,6 @@ local function run_meta_script_execute(cmd, filepath, mode)
 						ToggleAutoRefresh()
 						vim.notify("meta_script finished (exit 0)")
 					else
-						if vim.api.nvim_buf_is_valid(log_buf) then
-							vim.api.nvim_buf_call(log_buf, function()
-								vim.cmd("edit")
-							end)
-						end
 						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
 					end
 				end)

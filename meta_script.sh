@@ -199,7 +199,7 @@ if [[ $# -lt 3 ]]; then
     esac
 
     if [[ -z "$_server" ]]; then
-        echo "ERROR: last line of '$_abspath' must contain the server name (e.g. '# myserver')"
+        echo "ERROR:  must contain the server name "
         exit 1
     fi
     export SERVER_NAME="$_server"
