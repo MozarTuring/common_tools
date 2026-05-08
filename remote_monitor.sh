@@ -28,11 +28,6 @@ if [[ "$mode" == "slurm" ]]; then
     shift
     proj_name="$1"
     shift
-elif [[ "${1:-}" == "port_forward" ]]; then
-    port_forward=true
-    shift
-    ports_before_file="${1:-}"
-    shift
 fi
 
 mkdir -p "$local_dir"
@@ -171,6 +166,11 @@ sync_remote() {
     fi
 }
 
+_project_name=$(basename ${local_dir})
+nohup_log="${local_dir}/nohup_monitor.log"
+
+jobsfile=/Users/maojingwei/baidu/project/${_project_name}/jwm_configs/jobs.txt
+grep -qxF ${nohup_log} ${jobsfile} || echo "${nohup_log}" >> ${jobsfile}
 # --- main monitoring loop ---
 _check_count=0
 finish_flag=0
@@ -198,6 +198,8 @@ while [[ ${finish_flag} == 0 ]]; do
             fetch_new_content 2>/dev/null || true
 
             echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
+            sed -i '' "s|^${nohup_log}|${nohup_log}-finished/g" ${jobsfile}
+
             finish_flag=1
             break
         fi

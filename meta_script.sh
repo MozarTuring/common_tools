@@ -275,9 +275,6 @@ if [[ $# -lt 3 ]]; then
             monitor_args=(docker "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir")
         else
             monitor_args=(pid "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir")
-            if [[ "$_mode" == "remotedockercompose" ]]; then
-                monitor_args+=(port_forward "$ports_before")
-            fi
         fi
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
@@ -288,8 +285,7 @@ if [[ $# -lt 3 ]]; then
         echo "Background monitor PID: $monitor_pid"
 
         echo "see logs at ${local_dir}"
-        jobsfile=/Users/maojingwei/baidu/project/${_project_name}/jwm_configs/record.md
-        grep -qxF ${nohup_log} ${jobsfile} || { echo "${nohup_log}"; cat ${jobsfile}; } > temp && mv temp ${jobsfile}
+        
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
