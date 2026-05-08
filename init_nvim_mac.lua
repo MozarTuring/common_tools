@@ -151,7 +151,7 @@ require("lazy").setup({
 			"folke/snacks.nvim",
 			opts = function(_, opts)
 				opts.notifier = opts.notifier or {}
-				opts.notifier.timeout = 3
+				opts.notifier.timeout = 5000
 
 				opts.explorer = opts.explorer or {}
 				opts.explorer.replace_netrw = false
