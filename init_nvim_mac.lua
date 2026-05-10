@@ -67,7 +67,7 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
 	spec = {
 		-- add LazyVim and import its plugins
-		{ "LazyVim/LazyVim", import = "lazyvim.plugins", opts = { autoformat = false, colorscheme = "vscode" } },
+		{ "LazyVim/LazyVim", import = "lazyvim.plugins", version = "15.*", opts = { autoformat = false, colorscheme = "vscode" } },
 		-- import/override with your plugins
 		{ import = "plugins" },
 		-- Disable LazyVim's gy LSP keymap so we can use it for buffer cycling
@@ -151,7 +151,7 @@ require("lazy").setup({
 			"folke/snacks.nvim",
 			opts = function(_, opts)
 				opts.notifier = opts.notifier or {}
-				opts.notifier.timeout = 3000
+				opts.notifier.timeout = 500
 
 				opts.explorer = opts.explorer or {}
 				opts.explorer.replace_netrw = false
@@ -358,8 +358,10 @@ require("lazy").setup({
 		{ "sindrets/diffview.nvim" },
 		{
 			"NeogitOrg/neogit",
+			version = "3.*",
 			dependencies = { "sindrets/diffview.nvim" },
 			opts = {
+				graph_style = "unicode",
 				integrations = { diffview = true },
 				commit_view = { kind = "tab" },
 			},
@@ -479,9 +481,8 @@ require("lazy").setup({
 	},
 	install = { colorscheme = { "vscode", "tokyonight", "habamax" } },
 	checker = {
-		enabled = true, -- check for plugin updates periodically
-		notify = false, -- notify on update
-	}, -- automatically check for plugin updates
+		enabled = false,
+	},
 	performance = {
 		rtp = {
 			-- disable some rtp plugins
@@ -2017,7 +2018,7 @@ local function run_meta_script_execute(cmd, filepath, mode)
 
 					if code == 0 then
 						if vim.api.nvim_buf_is_valid(log_buf) then
-							vim.api.nvim_buf_delete(log_buf)
+							vim.api.nvim_buf_delete(log_buf, { force = true })
 						end
 						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
 						ToggleAutoRefresh()

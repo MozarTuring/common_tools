@@ -17,7 +17,9 @@ sync_and_commit_repo() {
         if [[ -n "$_staged" && -n "$_non_config" ]]; then
             git commit -m "v" >/dev/null
             tmpbranch=$(git branch --show-current)
-            git push origin -u ${tmpbranch} >/dev/null
+            if [[ ${tmpbranch} == "jingwei"* ]]; then
+                git push origin -u ${tmpbranch} >/dev/null
+            fi
         fi
     )
     last_commit=$(git rev-parse HEAD)
@@ -240,7 +242,7 @@ if [[ $# -lt 3 ]]; then
     # fi
 
     info_before_remote="${local_dir}/info_before_remote.txt"
-    echo "branch: ${_git_branch} , commit_hash: ${last_commit}" > ${info_before_remote}
+    echo "branch: ${_git_branch} , commit_hash: ${last_commit}" >${info_before_remote}
 
     echo "Running remote setup... (output: $nohup_log)"
     ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
@@ -279,14 +281,13 @@ if [[ $# -lt 3 ]]; then
         fi
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
-        echo """nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >> $nohup_log
+        echo """nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
 
         nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
         monitor_pid=$!
         echo "Background monitor PID: $monitor_pid"
 
         echo "see logs at ${local_dir}"
-        
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
@@ -489,6 +490,14 @@ EOF
         done
 
     elif [[ "$1" == "remotedocker" ]]; then
+        cat >>jwm_configs/remote.sh <<'EOF'
+if [ -z ${RUN_BACKGROUND_JWM} ]; then
+    docker run "${DOCKER_RUN_ARGS[@]}"
+else
+    export JWM_CONTAINER_ID=$(docker run -d "${DOCKER_RUN_ARGS[@]}")
+fi
+EOF
+
         source jwm_configs/remote.sh
         echo "JWM_CONTAINER_ID:"
         echo "docker rm -f ${JWM_CONTAINER_ID}"
