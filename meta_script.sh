@@ -138,6 +138,7 @@ _remote_setup() {
 export RUN_DIR_PRE=${RUN_DIR_PRE}
 export RUN_PROJ_DATA=${RUN_PROJ_DATA}
 export HF_TOKEN=${HF_TOKEN}
+export RUN_DIR_HOME=${RUN_DIR_HOME}
 """
     touch ".submit_marker"
 

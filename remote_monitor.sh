@@ -200,7 +200,8 @@ while [[ ${finish_flag} == 0 ]]; do
             echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
 
             finish_flag=1
-            sed -i '' "s|^${nohup_log}|${nohup_log}-finished|g" ${jobsfile}
+            sed -i '' "s|^${nohup_log}|${nohup_log}\\
+            finished|g" ${jobsfile}
             break
         fi
     done
