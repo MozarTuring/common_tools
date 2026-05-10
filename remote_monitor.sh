@@ -202,6 +202,8 @@ while [[ ${finish_flag} == 0 ]]; do
             finish_flag=1
             sed -i '' "s|^${nohup_log}|${nohup_log}\\
             finished|g" ${jobsfile}
+            echo "current dir ${PWD}"
+            cp ${local_dir}/jwm_configs/remote.sh ./jwm_configs/remote.sh
             break
         fi
     done
