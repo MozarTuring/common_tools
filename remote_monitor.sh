@@ -198,9 +198,9 @@ while [[ ${finish_flag} == 0 ]]; do
             fetch_new_content 2>/dev/null || true
 
             echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
-            sed -i '' "s|^${nohup_log}|${nohup_log}-finished/g" ${jobsfile}
 
             finish_flag=1
+            sed -i '' "s|^${nohup_log}|${nohup_log}-finished|g" ${jobsfile}
             break
         fi
     done

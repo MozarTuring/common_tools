@@ -96,13 +96,8 @@ _remote_setup() {
     if [[ -d /data && $1 == "remotedocker"* ]]; then
         # failure inside the if block will just not stop, regardless of set -e
         mkdir -p /data/huggingface_cache
-        if [[ ${SERVER_NAME} == "custodian@"* ]]; then
-            tmpuser=custodian
-        else
-            tmpuser=jinma
-        fi
-        mkdir -p /home/${tmpuser}/.cache
-        tmpcache=/home/${tmpuser}/.cache/huggingface
+        mkdir -p ${RUN_DIR_HOME}/.cache
+        tmpcache=${RUN_DIR_HOME}/.cache/huggingface
         if [[ ! -L ${tmpcache} ]]; then
             echo "create link ${tmpcache}"
             false || { docker run --rm -v ${tmpcache}:/mnt alpine rm -rf /mnt && ln -s /data/docker ${tmpcache} && echo "hard remove, check"; }
@@ -110,8 +105,8 @@ _remote_setup() {
         fi
 
         mkdir -p /data/docker
-        mkdir -p /home/${tmpuser}/.local/share
-        tmpcache=/home/${tmpuser}/.local/share/docker
+        mkdir -p ${RUN_DIR_HOME}/.local/share
+        tmpcache=${RUN_DIR_HOME}/.local/share/docker
         if [[ ! -L ${tmpcache} ]]; then
             echo "create link ${tmpcache}"
             systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && ln -s /data/docker ${tmpcache} && systemctl --user restart docker && echo "hard remove, check"
@@ -146,17 +141,18 @@ export HF_TOKEN=${HF_TOKEN}
 """
     touch ".submit_marker"
 
-    echo """
+    cat >>jwm_configs/remote.sh <<'EOF'
 set -e
 # uncomment the following to define them based on your running preference
 # export RUN_DIR_PRE=
 # export RUN_PROJ_DATA=
 # export HF_TOKEN=
+# export RUN_DIR_HOME=
 
-export JWM_DATA_DIR=\${RUN_DIR_PRE}/remote_data/\${RUN_PROJ_DATA}
+export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/${RUN_PROJ_DATA}
+export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
 export PYTHONUNBUFFERED=1
-
-""" >jwm_configs/remote.sh
+EOF
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
 
 }

@@ -1277,7 +1277,7 @@ vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
-	if line ~= "" then
+	if line:sub(1, 1) == "/" then
 		local expanded = vim.fn.expand(line)
 		local stat = vim.loop.fs_stat(expanded)
 		if stat then
