@@ -2107,7 +2107,7 @@ vim.keymap.set("n", "<F5>", function()
 	run_meta_script("background")
 end, { noremap = true, silent = true, desc = "Run meta_script on current file in Terminal" })
 
-local function f6_run_lines(lines)
+local function f10_run_lines(lines)
 	local filepath = vim.fn.expand("%:p")
 	local prefix = "/Users/maojingwei/baidu/project/"
 	local rel = filepath ~= "" and filepath:sub(#prefix + 1) or ""
@@ -2157,19 +2157,19 @@ local function f6_run_lines(lines)
 	vim.notify("Running selection in background: " .. tmp_file)
 end
 
-vim.keymap.set("n", "<F6>", function()
+vim.keymap.set("n", "<F10>", function()
 	local lines = { vim.fn.getline(".") }
-	f6_run_lines(lines)
+	f10_run_lines(lines)
 end, { noremap = true, silent = true, desc = "Run current line as bash script in background" })
 
-vim.keymap.set("v", "<F6>", function()
+vim.keymap.set("v", "<F10>", function()
 	local start_line = vim.fn.line("v")
 	local end_line = vim.fn.line(".")
 	if start_line > end_line then
 		start_line, end_line = end_line, start_line
 	end
 	local lines = vim.fn.getline(start_line, end_line)
-	f6_run_lines(lines)
+	f10_run_lines(lines)
 end, { noremap = true, silent = true, desc = "Run visual selection as bash script in background" })
 
 vim.api.nvim_create_user_command("RunMeta", function(args)
