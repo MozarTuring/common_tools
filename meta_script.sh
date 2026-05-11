@@ -382,10 +382,17 @@ EOF
         echo "$SLURM_JOB_ID" >${remote_job_id_file}
 
     elif [[ "$1" == "remotedockercompose" ]]; then
+        cat >>jwm_configs/remote.sh <<'EOF'
+if [ -z ${RUN_BACKGROUND_JWM} ]; then
+    docker compose up --force-recreate
+else
+    docker compose up --force-recreate -d 2>&1
+fi
+EOF
+
         echo "start run remote.sh"
         cat jwm_configs/remote.sh
         source jwm_configs/remote.sh
-        docker compose up --force-recreate -d 2>&1
         # cd - >/dev/null
         _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
