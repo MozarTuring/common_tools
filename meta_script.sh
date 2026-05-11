@@ -244,15 +244,19 @@ if [[ $# -lt 3 ]]; then
     echo "Running remote setup... (output: $nohup_log)"
     ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
     # The tee "$nohup_log" writes the SSH/docker output to nohup_monitor.log and also passes it to stdout
+
     _ssh_rc=${PIPESTATUS[0]}
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $SERVER_NAME failed (exit code $_ssh_rc)"
         exit $_ssh_rc
     fi
 
+
     if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
         source "$_project_name/jwm_configs/local_after.sh"
     fi
+    rsync -av "$SERVER_NAME":"${remote_dir_remote}/jwm_configs/remote.sh" "./jwm_configs/"
+
 
     if [[ "$_mode" == "remotedockercompose" ]]; then
         exit 0
