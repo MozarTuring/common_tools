@@ -159,6 +159,8 @@ EOF
     touch ".submit_marker"
 
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
+    sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/remote.sh
+
 
 }
 
