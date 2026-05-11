@@ -114,6 +114,10 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd "$4"/"$2"
+    echo """set -e
+
+""" >jwm_configs/remote.sh
+
     if [[ $1 != "remotedockercompose" ]]; then
         export RUN_BACKGROUND_JWM=1
         echo """
@@ -123,8 +127,7 @@ export HF_TOKEN=${HF_TOKEN}
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 """
 
-        cat >jwm_configs/remote.sh <<'EOF'
-set -e
+        cat >>jwm_configs/remote.sh <<'EOF'
 # uncomment the following to define them based on your running preference
 # export RUN_DIR_PRE=
 # export RUN_PROJ_DATA=
