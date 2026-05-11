@@ -118,8 +118,8 @@ _remote_setup() {
 
 """ >jwm_configs/remote.sh
 
+    export RUN_BACKGROUND_JWM=1
     if [[ $1 != "remotedockercompose" ]]; then
-        export RUN_BACKGROUND_JWM=1
         echo """
 export RUN_DIR_PRE=${RUN_DIR_PRE}
 export RUN_PROJ_DATA=${RUN_PROJ_DATA}
