@@ -393,6 +393,7 @@ EOF
         echo "start run remote.sh"
         cat jwm_configs/remote.sh
         source jwm_configs/remote.sh
+        cd "$4"/"$2"
         # cd - >/dev/null
         _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
@@ -490,6 +491,7 @@ EOF
             if $_all_healthy; then
                 echo ""
                 echo "All services are ready!"
+                echo "current dir ${PWD}"
                 _after_hook="jwm_configs/remote_after.sh"
                 if [[ -f "$_after_hook" ]]; then
                     source "$_after_hook"
