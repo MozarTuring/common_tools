@@ -276,7 +276,7 @@ if [[ $# -lt 3 ]]; then
 
 
     if [[ "$_mode" == "remotedockercompose" ]]; then
-        echo "$_mode done"
+        echo "local $_mode done"
         exit 0
     fi
 
@@ -545,7 +545,7 @@ EOF
     elif [[ "$1" == "remotenone" ]]; then
         source jwm_configs/remote.sh
     fi
-    echo "JWM_DATA_DIR: ${JWM_DATA_DIR}"
+    echo "ssh of $1 done"
 
 else
     echo "ERROR: unrecognized arguments. Usage:"
