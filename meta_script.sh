@@ -115,6 +115,26 @@ _remote_setup() {
     _manual_file="${6}"
     cd "$4"/"$2"
     if [[ $1 != "remotedockercompose" ]]; then
+        export RUN_BACKGROUND_JWM=1
+        echo """
+export RUN_DIR_PRE=${RUN_DIR_PRE}
+export RUN_PROJ_DATA=${RUN_PROJ_DATA}
+export HF_TOKEN=${HF_TOKEN}
+export RUN_DIR_HOME=${RUN_DIR_HOME}
+"""
+
+        cat >jwm_configs/remote.sh <<'EOF'
+set -e
+# uncomment the following to define them based on your running preference
+# export RUN_DIR_PRE=
+# export RUN_PROJ_DATA=
+# export HF_TOKEN=
+# export RUN_DIR_HOME=
+
+export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/${RUN_PROJ_DATA}
+export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
+export PYTHONUNBUFFERED=1
+EOF
         cp -R . $7/
         cd $7
     fi
@@ -133,27 +153,8 @@ _remote_setup() {
     # fi
     remote_job_id_file=./remote_job_id.txt
     rm ${remote_job_id_file} 2>/dev/null || true
-    export RUN_BACKGROUND_JWM=1
-    echo """
-export RUN_DIR_PRE=${RUN_DIR_PRE}
-export RUN_PROJ_DATA=${RUN_PROJ_DATA}
-export HF_TOKEN=${HF_TOKEN}
-export RUN_DIR_HOME=${RUN_DIR_HOME}
-"""
     touch ".submit_marker"
 
-    cat >jwm_configs/remote.sh <<'EOF'
-set -e
-# uncomment the following to define them based on your running preference
-# export RUN_DIR_PRE=
-# export RUN_PROJ_DATA=
-# export HF_TOKEN=
-# export RUN_DIR_HOME=
-
-export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/${RUN_PROJ_DATA}
-export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
-export PYTHONUNBUFFERED=1
-EOF
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
 
 }
