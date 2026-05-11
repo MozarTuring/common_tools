@@ -339,8 +339,6 @@ hs.hotkey.bind({ "ctrl" }, "l", function()
 		]])
 	end
 	usleep(300)
-	hs.eventtap.keyStroke({ "ctrl" }, "c")
-	usleep(500)
 
 	local script = string.format([[
 		tell application "Terminal"
@@ -443,8 +441,6 @@ hs.hotkey.bind({ "ctrl" }, "f", function()
 		]])
 	end
 	usleep(300)
-	hs.eventtap.keyStroke({ "ctrl" }, "c")
-	usleep(500)
 
 	local script = string.format([[
 		tell application "iTerm"
