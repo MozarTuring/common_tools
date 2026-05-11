@@ -276,6 +276,7 @@ if [[ $# -lt 3 ]]; then
 
 
     if [[ "$_mode" == "remotedockercompose" ]]; then
+        echo "$_mode done"
         exit 0
     fi
 
@@ -410,6 +411,10 @@ EOF
         echo "current dir ${PWD}"
         # cd - >/dev/null
         export COMPOSE_DIR="llm_services/${MODEL_DIR}"
+        if [[ ! -d ${COMPOSE_DIR} ]]; then
+            export COMPOSE_DIR="./"
+        fi
+
 
         _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
