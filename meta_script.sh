@@ -142,7 +142,7 @@ export RUN_DIR_HOME=${RUN_DIR_HOME}
 """
     touch ".submit_marker"
 
-    cat >>jwm_configs/remote.sh <<'EOF'
+    cat >jwm_configs/remote.sh <<'EOF'
 set -e
 # uncomment the following to define them based on your running preference
 # export RUN_DIR_PRE=
