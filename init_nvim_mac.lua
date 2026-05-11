@@ -2163,14 +2163,13 @@ vim.keymap.set("n", "<F6>", function()
 end, { noremap = true, silent = true, desc = "Run current line as bash script in background" })
 
 vim.keymap.set("v", "<F6>", function()
-	vim.cmd("normal! V")
-	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
-	vim.schedule(function()
-		local start_line = vim.fn.line("'<")
-		local end_line = vim.fn.line("'>")
-		local lines = vim.fn.getline(start_line, end_line)
-		f6_run_lines(lines)
-	end)
+	local start_line = vim.fn.line("v")
+	local end_line = vim.fn.line(".")
+	if start_line > end_line then
+		start_line, end_line = end_line, start_line
+	end
+	local lines = vim.fn.getline(start_line, end_line)
+	f6_run_lines(lines)
 end, { noremap = true, silent = true, desc = "Run visual selection as bash script in background" })
 
 vim.api.nvim_create_user_command("RunMeta", function(args)
