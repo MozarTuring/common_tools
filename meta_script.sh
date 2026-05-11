@@ -375,6 +375,7 @@ EOF
 
     elif [[ "$1" == "remotedockercompose" ]]; then
         echo "start run remote.sh"
+        cat jwm_configs/remote.sh
         source jwm_configs/remote.sh
         docker compose up --force-recreate -d 2>&1
         # cd - >/dev/null
