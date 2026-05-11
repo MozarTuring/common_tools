@@ -255,7 +255,7 @@ if [[ $# -lt 3 ]]; then
     if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
         source "$_project_name/jwm_configs/local_after.sh"
     fi
-    rsync -av "$SERVER_NAME":"${run_dir_remote}/jwm_configs/remote.sh" "./jwm_configs/"
+    rsync -av "$SERVER_NAME":"${run_dir_remote}/jwm_configs/remote.sh" "./${_project_name}/jwm_configs/"
 
 
     if [[ "$_mode" == "remotedockercompose" ]]; then
