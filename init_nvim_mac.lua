@@ -2107,6 +2107,61 @@ vim.keymap.set("n", "<F5>", function()
 	run_meta_script("background")
 end, { noremap = true, silent = true, desc = "Run meta_script on current file in Terminal" })
 
+local function f6_run_lines(lines)
+	local filepath = vim.fn.expand("%:p")
+	local prefix = "/Users/maojingwei/baidu/project/"
+	local rel = filepath ~= "" and filepath:sub(#prefix + 1) or ""
+	local dir_name = rel:match("^([^/]+)") or "misc"
+
+	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
+	vim.fn.mkdir(log_dir, "p")
+	local timestamp = os.date("%Y%m%d_%H%M%S")
+
+	local tmp_file = log_dir .. "/" .. timestamp .. "_sel.sh"
+	local f = io.open(tmp_file, "w")
+	if f then
+		f:write(table.concat(lines, "\n") .. "\n")
+		f:close()
+	end
+
+	local log_file = log_dir .. "/" .. timestamp .. "_sel.log"
+	local lf = io.open(log_file, "w")
+	if lf then
+		lf:close()
+	end
+
+	local bg_cmd = "bash "
+		.. vim.fn.shellescape(tmp_file)
+		.. " > "
+		.. vim.fn.shellescape(log_file)
+		.. " 2>&1 && echo 'done'"
+	vim.fn.setreg("+", "bash " .. tmp_file)
+	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+	local log_buf = vim.api.nvim_get_current_buf()
+	vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
+		on_exit = function(_, code)
+			vim.schedule(function()
+				if vim.api.nvim_buf_is_valid(log_buf) then
+					vim.api.nvim_buf_call(log_buf, function()
+						vim.cmd("edit")
+					end)
+				end
+				if code == 0 then
+					vim.notify("Selection script finished (exit 0)")
+				else
+					vim.notify("Selection script exited with code " .. code, vim.log.levels.ERROR)
+				end
+			end)
+		end,
+	})
+	vim.notify("Running selection in background: " .. tmp_file)
+end
+
+vim.keymap.set("n", "<F6>", function()
+	local lines = { vim.fn.getline(".") }
+	f6_run_lines(lines)
+end, { noremap = true, silent = true, desc = "Run current line as bash script in background" })
+
 vim.keymap.set("v", "<F6>", function()
 	vim.cmd("normal! V")
 	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
@@ -2114,54 +2169,7 @@ vim.keymap.set("v", "<F6>", function()
 		local start_line = vim.fn.line("'<")
 		local end_line = vim.fn.line("'>")
 		local lines = vim.fn.getline(start_line, end_line)
-
-		local filepath = vim.fn.expand("%:p")
-		local prefix = "/Users/maojingwei/baidu/project/"
-		local rel = filepath ~= "" and filepath:sub(#prefix + 1) or ""
-		local dir_name = rel:match("^([^/]+)") or "misc"
-
-		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
-		vim.fn.mkdir(log_dir, "p")
-		local timestamp = os.date("%Y%m%d_%H%M%S")
-
-		local tmp_file = log_dir .. "/" .. timestamp .. "_sel.sh"
-		local f = io.open(tmp_file, "w")
-		if f then
-			f:write(table.concat(lines, "\n") .. "\n")
-			f:close()
-		end
-
-		local log_file = log_dir .. "/" .. timestamp .. "_sel.log"
-		local lf = io.open(log_file, "w")
-		if lf then
-			lf:close()
-		end
-
-		local bg_cmd = "bash "
-			.. vim.fn.shellescape(tmp_file)
-			.. " > "
-			.. vim.fn.shellescape(log_file)
-			.. " 2>&1 && echo 'done'"
-		vim.fn.setreg("+", "bash " .. tmp_file)
-		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-		local log_buf = vim.api.nvim_get_current_buf()
-		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
-			on_exit = function(_, code)
-				vim.schedule(function()
-					if vim.api.nvim_buf_is_valid(log_buf) then
-						vim.api.nvim_buf_call(log_buf, function()
-							vim.cmd("edit")
-						end)
-					end
-					if code == 0 then
-						vim.notify("Selection script finished (exit 0)")
-					else
-						vim.notify("Selection script exited with code " .. code, vim.log.levels.ERROR)
-					end
-				end)
-			end,
-		})
-		vim.notify("Running selection in background: " .. tmp_file)
+		f6_run_lines(lines)
 	end)
 end, { noremap = true, silent = true, desc = "Run visual selection as bash script in background" })
 
