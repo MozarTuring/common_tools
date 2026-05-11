@@ -119,14 +119,19 @@ _remote_setup() {
 """ >jwm_configs/remote.sh
 
     export RUN_BACKGROUND_JWM=1
-    if [[ $1 != "remotedockercompose" ]]; then
-        echo """
+    echo """
 export RUN_DIR_PRE=${RUN_DIR_PRE}
 export RUN_PROJ_DATA=${RUN_PROJ_DATA}
 export HF_TOKEN=${HF_TOKEN}
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 """
 
+    if [[ $1 != "remotedockercompose" ]]; then
+        cp -R . $7/
+        cd $7
+    fi
+
+    if [[ $1 == "remotedocker" ]]; then
         cat >>jwm_configs/remote.sh <<'EOF'
 # uncomment the following to define them based on your running preference
 # export RUN_DIR_PRE=
@@ -138,8 +143,14 @@ export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/${RUN_PROJ_DATA}
 export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
 export PYTHONUNBUFFERED=1
 EOF
-        cp -R . $7/
-        cd $7
+    fi
+
+    if [[ $1 == "remotedockercompose" ]]; then
+        cat >>jwm_configs/remote.sh <<'EOF'
+# uncomment the following to define them based on your running preference
+# export HF_TOKEN="fill in your huggingface token"
+
+EOF
     fi
     # if [[ $1 == "remotedocker" ]]; then
     #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${_manual_file}" | tail -1)"

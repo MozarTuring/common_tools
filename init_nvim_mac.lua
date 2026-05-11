@@ -1403,6 +1403,35 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+local _grip_refresh_timer = nil
+vim.api.nvim_create_autocmd("BufWritePost", {
+	pattern = "*.md",
+	callback = function()
+		if not grip_root then
+			return
+		end
+		if _grip_refresh_timer then
+			_grip_refresh_timer:stop()
+		end
+		_grip_refresh_timer = vim.defer_fn(function()
+			_grip_refresh_timer = nil
+			local script = string.format(
+				[[
+tell application "Safari"
+	if (count of windows) > 0 then
+		set theURL to URL of current tab of front window
+		if theURL starts with "http://localhost:%d" then
+			set URL of current tab of front window to theURL
+		end if
+	end if
+end tell]],
+				grip_port
+			)
+			vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+		end, 300)
+	end,
+})
+
 --vim.api.nvim_create_autocmd("BufEnter", {
 --  pattern = "*.md",
 --  callback = function()
