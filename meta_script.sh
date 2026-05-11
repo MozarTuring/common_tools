@@ -178,7 +178,7 @@ EOF
 if [[ $# -lt 3 ]]; then
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
     set1=("greatrawr" 18900)
-    set2=("ferragon" 9800)
+    set2=("ferragon" 9800 3031)
     for array_ref in set1[@] set2[@]; do
         current=("${!array_ref}")
         host="${current[0]}"
@@ -397,9 +397,9 @@ EOF
     elif [[ "$1" == "remotedockercompose" ]]; then
         cat >>jwm_configs/remote.sh <<'EOF'
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
-    docker compose up --force-recreate -d
+    docker compose ${DOCKER_ARGS} up --force-recreate -d
 else
-    docker compose up --force-recreate -d 2>&1
+    docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
 fi
 EOF
 
