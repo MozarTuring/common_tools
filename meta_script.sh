@@ -187,7 +187,7 @@ if [[ $# -lt 3 ]]; then
     echo "project_name, $_project_name"
     _stem="${_filename%.sh}"
     _mode="${_stem%%_*}"
-    _server=$(grep '^JWM_SERVER_NAME=' "$_abspath" | tail -1 | sed "s/^JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
+    _server=$(grep '^# JWM_SERVER_NAME=' "$_abspath" | tail -1 | sed "s/^# JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
 
     # if [[ $# -eq 2 ]]; then
     #     _server=$2
@@ -394,7 +394,10 @@ EOF
         cat jwm_configs/remote.sh
         source jwm_configs/remote.sh
         cd "$4"/"$2"
+        echo "current dir ${PWD}"
         # cd - >/dev/null
+        export COMPOSE_DIR="llm_services/${MODEL_DIR}"
+
         _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
         _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
