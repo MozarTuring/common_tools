@@ -1277,6 +1277,22 @@ vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
+
+	local curfile = vim.fn.expand("%:p")
+	local project_name = curfile:match("/Users/maojingwei/baidu/project/([^/]+)/jwm_configs/")
+	if project_name then
+		vim.cmd('normal! yiw')
+		local word = vim.fn.getreg('"')
+		if word and word ~= "" then
+			local output_dir = "/Users/maojingwei/baidu/project/zzzjwmoutput/" .. project_name .. "/" .. word
+			if directory_exists(output_dir) then
+				local log_path = output_dir .. "/nohup_monitor.log"
+				OpenOrSwitchToFile(log_path)
+				return
+			end
+		end
+	end
+
 	if line:sub(1, 1) == "/" then
 		local expanded = vim.fn.expand(line)
 		local stat = vim.loop.fs_stat(expanded)

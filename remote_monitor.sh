@@ -167,10 +167,10 @@ sync_remote() {
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
-nohup_log="${local_dir}/nohup_monitor.log"
+tmpdirname=$(dirname "$local_dir")
 
 jobsfile=/Users/maojingwei/baidu/project/${_project_name}/jwm_configs/jobs.txt
-grep -qxF ${nohup_log} ${jobsfile} || echo "${nohup_log}" >> ${jobsfile}
+grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >> ${jobsfile}
 # --- main monitoring loop ---
 _check_count=0
 finish_flag=0
@@ -200,7 +200,7 @@ while [[ ${finish_flag} == 0 ]]; do
             echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
 
             finish_flag=1
-            sed -i '' "s|^${nohup_log}|${nohup_log}\\
+            sed -i '' "s|^${tmpdirname}|${tmpdirname}\\
             finished|g" ${jobsfile}
             echo "current dir ${PWD}"
             break
