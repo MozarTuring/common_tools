@@ -167,7 +167,7 @@ sync_remote() {
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
-tmpdirname=$(dirname "$local_dir")
+tmpdirname=$(basename "$local_dir")
 
 jobsfile=/Users/maojingwei/baidu/project/${_project_name}/jwm_configs/jobs.txt
 grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >> ${jobsfile}
