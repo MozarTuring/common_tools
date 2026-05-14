@@ -177,7 +177,7 @@ finish_flag=0
 while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
     _interval=0
-    if [[ ${_interval} -lt 60 ]]; then
+    if (( _interval < 60 )); then
         _interval=$((((_check_count - 1) / 5 + 1) * 10))
     fi
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
