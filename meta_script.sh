@@ -429,6 +429,8 @@ EOF
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
         _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
         _has_rebuilt=false
+        _loop_start=$(date +%s)
+        _startup_grace=200
 
         while true; do
             mapfile -t _containers < <(docker compose -f "${_compose_dir}/docker-compose.yml" ps -a --format '{{.Name}}' 2>/dev/null)
@@ -452,7 +454,11 @@ EOF
 
                 printf "%-30s %-12s %-12s\n" "$_cname" "$_cstatus" "$_chealth"
 
-                if [[ "$_cstatus" == "exited" || "$_cstatus" == "dead" || "$_cstatus" == "restarting" || "$_chealth" == "unhealthy" ]]; then
+                _elapsed=$(( $(date +%s) - _loop_start ))
+                if [[ "$_cstatus" == "exited" || "$_cstatus" == "dead" || "$_cstatus" == "restarting" ]]; then
+                    _any_failed=true
+                    _failed_container="$_cname"
+                elif [[ "$_chealth" == "unhealthy" && $_elapsed -ge $_startup_grace ]]; then
                     _any_failed=true
                     _failed_container="$_cname"
                 fi
