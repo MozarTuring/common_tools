@@ -92,9 +92,13 @@ dockerfile_to_def() {
     while IFS= read -r line || [[ -n "$line" ]]; do
         if [[ -n "$continued" ]]; then
             line="${line#"${line%%[![:space:]]*}"}"
+            continued="${continued%\\}"
+            continued="${continued% }"
             continued="${continued} ${line}"
             if [[ ! "$line" =~ \\[[:space:]]*$ ]]; then
-                runs+=("${continued%\\}")
+                continued="${continued%\\}"
+                continued="${continued% }"
+                runs+=("${continued}")
                 continued=""
             fi
             continue
