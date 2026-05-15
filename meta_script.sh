@@ -83,6 +83,60 @@ END {
 '
 }
 
+dockerfile_to_def() {
+    local infile="$1" outfile="$2"
+    local from_image="" workdir="/app"
+    local envs=() runs=()
+    local continued=""
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ -n "$continued" ]]; then
+            line="${line#"${line%%[![:space:]]*}"}"
+            continued="${continued} ${line}"
+            if [[ ! "$line" =~ \\[[:space:]]*$ ]]; then
+                runs+=("${continued%\\}")
+                continued=""
+            fi
+            continue
+        fi
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "${line// /}" ]] && continue
+        if [[ "$line" =~ ^FROM[[:space:]]+(.*) ]]; then
+            from_image="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ ^ENV[[:space:]]+(.*) ]]; then
+            envs+=("${BASH_REMATCH[1]}")
+        elif [[ "$line" =~ ^RUN[[:space:]]+(.*) ]]; then
+            local cmd="${BASH_REMATCH[1]}"
+            if [[ "$cmd" =~ \\[[:space:]]*$ ]]; then
+                continued="$cmd"
+            else
+                runs+=("$cmd")
+            fi
+        elif [[ "$line" =~ ^WORKDIR[[:space:]]+(.*) ]]; then
+            workdir="${BASH_REMATCH[1]}"
+        fi
+    done <"$infile"
+
+    {
+        echo "Bootstrap: docker"
+        echo "From: ${from_image}"
+        echo ""
+        if [[ ${#envs[@]} -gt 0 ]]; then
+            echo "%environment"
+            for e in "${envs[@]}"; do
+                echo "    export $e"
+            done
+            echo ""
+        fi
+        echo "%post"
+        for r in "${runs[@]}"; do
+            echo "    $r"
+        done
+        echo "    mkdir -p ${workdir}"
+    } >"$outfile"
+    echo "Generated def file: $outfile (from $infile)"
+}
+
 _remote_setup() {
     echo "$1, $2, $3, $4, $5, $6, $7"
     export RUN_DIR_PRE="$4"
