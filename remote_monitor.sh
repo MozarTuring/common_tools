@@ -176,10 +176,8 @@ _check_count=0
 finish_flag=0
 while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
-    _interval=0
-    if (( _interval < 60 )); then
-        _interval=$((((_check_count - 1) / 5 + 1) * 10))
-    fi
+    _capped=$(( _check_count < 30 ? _check_count : 30 ))
+    _interval=$((( (_capped - 1) / 5 + 1) * 10))
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
@@ -200,8 +198,7 @@ while [[ ${finish_flag} == 0 ]]; do
             echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
 
             finish_flag=1
-            sed -i '' "s|^${tmpdirname}|${tmpdirname}\\
-            finished|g" ${jobsfile}
+            sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
             echo "current dir ${PWD}"
             break
         fi
