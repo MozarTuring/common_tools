@@ -1703,6 +1703,28 @@ vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.softtabstop = 4
 vim.opt.conceallevel = 0 -- Show all markup syntax (don't hide image links, etc.)
+-- File diff (no git): mark first file with ;d, then ;d on second file to compare
+local _jw_diff_file = nil
+
+local function diff_two_files(file_a, file_b)
+	vim.cmd("tabnew " .. vim.fn.fnameescape(file_a))
+	vim.cmd("diffthis")
+	vim.cmd("vsplit " .. vim.fn.fnameescape(file_b))
+	vim.cmd("diffthis")
+end
+
+vim.api.nvim_create_user_command("DiffFiles", function(args)
+	local parts = {}
+	for w in args.args:gmatch("%S+") do
+		table.insert(parts, w)
+	end
+	if #parts ~= 2 then
+		vim.notify("Usage: :DiffFiles <file1> <file2>", vim.log.levels.WARN)
+		return
+	end
+	diff_two_files(parts[1], parts[2])
+end, { nargs = "+", complete = "file", desc = "Diff two arbitrary files side by side" })
+
 -- 重映射 gt/gy: use BufferLine commands since LazyVim uses buffers as "tabs"
 vim.defer_fn(function()
 	vim.keymap.set("x", "V", function()
@@ -1754,6 +1776,25 @@ vim.defer_fn(function()
 		{ noremap = true, silent = true, desc = "Toggle auto-refresh" }
 	)
 	vim.keymap.set("n", ";w", "<cmd>lua myWriteFile()<CR>", { noremap = true, silent = true, desc = "Save file" })
+	vim.keymap.set("n", ";d", function()
+		local cur = vim.fn.expand("%:p")
+		if cur == "" then
+			vim.notify("No file in current buffer", vim.log.levels.WARN)
+			return
+		end
+		if _jw_diff_file == nil then
+			_jw_diff_file = cur
+			vim.notify("Diff A: " .. vim.fn.fnamemodify(cur, ":.") .. "  (open file B and press ;d)")
+		else
+			local file_a = _jw_diff_file
+			_jw_diff_file = nil
+			if file_a == cur then
+				vim.notify("Same file — diff cancelled", vim.log.levels.WARN)
+				return
+			end
+			diff_two_files(file_a, cur)
+		end
+	end, { noremap = true, silent = true, desc = "Diff: mark A / compare with B" })
 
 	-- Format current buffer with conform.nvim
 	vim.keymap.set({ "n", "v" }, "<leader>cf", function()

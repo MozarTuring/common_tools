@@ -340,7 +340,7 @@ if [[ $# -lt 3 ]]; then
         source "$_project_name/jwm_configs/local_after.sh"
     fi
     rsync -av "$SERVER_NAME":"${run_dir_remote}/jwm_configs/remote.sh" "./${_project_name}/jwm_configs/"
-
+    echo "remote.sh updated"
 
     if [[ "$_mode" == "remotedockercompose" ]]; then
         echo "local $_mode done"
