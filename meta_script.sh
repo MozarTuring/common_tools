@@ -172,7 +172,7 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd "$4"/"$2"
-    cat > jwm_configs/remote.sh <<'EOF'
+    cat >jwm_configs/remote.sh <<'EOF'
 set -e
 
 require_env() {
@@ -238,7 +238,6 @@ EOF
 
     cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
     sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/remote.sh
-
 
 }
 
@@ -317,6 +316,9 @@ if [[ $# -lt 3 ]]; then
     run_id="${run_timestamp}"
     local_dir="${local_dir}/${run_id}"
     run_dir_remote_tmp=${run_dir_remote}_${run_id}
+    if [[ ${_mode} == "remotedockercompose" ]]; then
+        run_dir_remote_tmp=${run_dir_remote}
+    fi
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
     #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
@@ -335,11 +337,10 @@ if [[ $# -lt 3 ]]; then
         exit $_ssh_rc
     fi
 
-
     if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
         source "$_project_name/jwm_configs/local_after.sh"
     fi
-    rsync -av "$SERVER_NAME":"${run_dir_remote}/jwm_configs/remote.sh" "./${_project_name}/jwm_configs/"
+    rsync -av "$SERVER_NAME":"${run_dir_remote_tmp}/jwm_configs/remote.sh" "./${_project_name}/jwm_configs/"
     echo "remote.sh updated"
 
     if [[ "$_mode" == "remotedockercompose" ]]; then
@@ -482,7 +483,6 @@ EOF
             export COMPOSE_DIR="./"
         fi
 
-
         _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
         _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -512,7 +512,7 @@ EOF
 
                 printf "%-30s %-12s %-12s\n" "$_cname" "$_cstatus" "$_chealth"
 
-                _elapsed=$(( $(date +%s) - _loop_start ))
+                _elapsed=$(($(date +%s) - _loop_start))
                 if [[ "$_cstatus" == "exited" || "$_cstatus" == "dead" || "$_cstatus" == "restarting" ]]; then
                     _any_failed=true
                     _failed_container="$_cname"
