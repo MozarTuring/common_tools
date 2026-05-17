@@ -242,6 +242,7 @@ EOF
 }
 
 if [[ $# -lt 3 ]]; then
+    echo "JWM_CUR_TIME, ${JWM_CUR_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
     set1=("greatrawr" 18900)
     set2=("ferragon" 9800 3031)

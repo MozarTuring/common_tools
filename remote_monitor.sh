@@ -176,7 +176,7 @@ _check_count=0
 finish_flag=0
 while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
-    _capped=$(( _check_count < 30 ? _check_count : 30 ))
+    _capped=$(( _check_count < 12 ? _check_count : 11 ))
     _interval=$((( (_capped - 1) / 5 + 1) * 10))
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh

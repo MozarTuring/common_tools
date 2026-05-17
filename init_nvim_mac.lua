@@ -2074,6 +2074,7 @@ local function run_meta_script_execute(cmd, filepath, mode)
 			return
 		end
 		local tmpdate = os.date("%Y%m%d_%H%M%S")
+		vim.fn.setenv("JWM_CUR_TIME", tmpdate)
 		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 		vim.fn.mkdir(log_dir, "p")
 		vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
