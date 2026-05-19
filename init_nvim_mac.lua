@@ -2066,44 +2066,53 @@ end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
 
 
 
-local function parse_batch_line(line)
-	local overrides = {}
-	for key, value in line:gmatch("(%S-)=(%S+)") do
-		if key ~= "" then
-			overrides[key] = value
-		end
-	end
-	return overrides
-end
-
 local function parse_batch_file(batch_file)
-	local entries = {}
 	local f = io.open(batch_file, "r")
 	if not f then
 		return nil
 	end
-	local current_overrides = {}
-	local current_raw = {}
+
+	local keys_order = {}
+	local keys_values = {}
 	for line in f:lines() do
 		local trimmed = line:match("^%s*(.-)%s*$")
-		if trimmed == "" then
-			if next(current_overrides) then
-				entries[#entries + 1] = { overrides = current_overrides, raw = table.concat(current_raw, " | ") }
-				current_overrides = {}
-				current_raw = {}
+		if trimmed ~= "" and trimmed:sub(1, 1) ~= "#" then
+			local key, value = trimmed:match("^(%S-)=(%S+)$")
+			if key and key ~= "" then
+				if not keys_values[key] then
+					keys_values[key] = {}
+					keys_order[#keys_order + 1] = key
+				end
+				for _, existing in ipairs(keys_values[key]) do
+					if existing == value then
+						f:close()
+						return nil, "Duplicate: " .. key .. "=" .. value
+					end
+				end
+				keys_values[key][#keys_values[key] + 1] = value
 			end
-		elseif trimmed:sub(1, 1) ~= "#" then
-			local line_overrides = parse_batch_line(trimmed)
-			for k, v in pairs(line_overrides) do
-				current_overrides[k] = v
-			end
-			current_raw[#current_raw + 1] = trimmed
 		end
 	end
-	if next(current_overrides) then
-		entries[#entries + 1] = { overrides = current_overrides, raw = table.concat(current_raw, " | ") }
-	end
 	f:close()
+
+	-- Cartesian product of all key values
+	local entries = {}
+	local function build_combo(idx, current)
+		if idx > #keys_order then
+			local raw_parts = {}
+			for _, k in ipairs(keys_order) do
+				raw_parts[#raw_parts + 1] = k .. "=" .. current[k]
+			end
+			entries[#entries + 1] = { overrides = vim.deepcopy(current), raw = table.concat(raw_parts, " ") }
+			return
+		end
+		local key = keys_order[idx]
+		for _, val in ipairs(keys_values[key]) do
+			current[key] = val
+			build_combo(idx + 1, current)
+		end
+	end
+	build_combo(1, {})
 	return entries
 end
 
@@ -2244,9 +2253,9 @@ vim.keymap.set("n", "<F5>", function()
 		return
 	end
 
-	local entries = parse_batch_file(batch_file)
+	local entries, parse_err = parse_batch_file(batch_file)
 	if not entries then
-		vim.notify("Cannot read batch file", vim.log.levels.ERROR)
+		vim.notify(parse_err or "Cannot read batch file", vim.log.levels.ERROR)
 		return
 	end
 
@@ -2296,6 +2305,7 @@ local function f10_run_lines(lines)
 		.. " 2>&1 && echo 'done'"
 	vim.fn.setreg("+", "bash " .. tmp_file)
 	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+	ToggleAutoRefresh()
 	local log_buf = vim.api.nvim_get_current_buf()
 	vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
 		on_exit = function(_, code)
