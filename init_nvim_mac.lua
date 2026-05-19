@@ -2064,106 +2064,207 @@ vim.keymap.set("n", "fj", function()
 	vim.cmd("normal! G")
 end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
 
-local function run_meta_script_execute(cmd, filepath, mode)
-	if mode == "background" then
-		local prefix = "/Users/maojingwei/baidu/project/"
-		local rel = filepath:sub(#prefix + 1)
-		local dir_name = rel:match("^([^/]+)")
-		if not dir_name then
-			vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
-			return
-		end
-		local tmpdate = os.date("%Y%m%d_%H%M%S")
-		vim.fn.setenv("JWM_CUR_TIME", tmpdate)
-		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
-		vim.fn.mkdir(log_dir, "p")
-		vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
-		local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
-		local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
-		local f = io.open(log_file, "w")
-		if f then
-			f:close()
-		end
-		cmd = cmd .. " " .. tmpdate
-		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-		ToggleAutoRefresh()
-		local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
-		local log_buf = vim.api.nvim_get_current_buf()
-		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
-			on_exit = function(_, code)
-				vim.schedule(function()
-					-- if vim.api.nvim_buf_is_valid(log_buf) then
-					-- 	local wins = vim.fn.win_findbuf(log_buf)
-					-- 	if #wins > 0 then
-					-- 		vim.api.nvim_set_current_win(wins[1])
-					-- 		vim.cmd("edit")
-					-- 		vim.cmd("wq")
-					-- 	else
-					-- 		vim.api.nvim_buf_delete(log_buf, { force = true })
-					-- 	end
-					-- end
 
-					if code == 0 then
-						if vim.api.nvim_buf_is_valid(log_buf) then
-							vim.api.nvim_buf_delete(log_buf, { force = true })
-						end
-						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
-						ToggleAutoRefresh()
-						vim.notify("meta_script finished (exit 0)")
-					else
-						vim.notify("meta_script exited with code " .. code, vim.log.levels.ERROR)
-					end
-				end)
-			end,
-		})
-		vim.notify("Running in background: " .. filepath)
-	else
-		run_in_terminal_app(cmd, nil, false)
-		vim.notify("Command staged in Terminal.app (press Enter to run)")
+
+local function parse_batch_line(line)
+	local overrides = {}
+	for key, value in line:gmatch("(%S-)=(%S+)") do
+		if key ~= "" then
+			overrides[key] = value
+		end
 	end
+	return overrides
 end
 
-local function run_meta_script(mode)
+local function parse_batch_file(batch_file)
+	local entries = {}
+	local f = io.open(batch_file, "r")
+	if not f then
+		return nil
+	end
+	local current_overrides = {}
+	local current_raw = {}
+	for line in f:lines() do
+		local trimmed = line:match("^%s*(.-)%s*$")
+		if trimmed == "" then
+			if next(current_overrides) then
+				entries[#entries + 1] = { overrides = current_overrides, raw = table.concat(current_raw, " | ") }
+				current_overrides = {}
+				current_raw = {}
+			end
+		elseif trimmed:sub(1, 1) ~= "#" then
+			local line_overrides = parse_batch_line(trimmed)
+			for k, v in pairs(line_overrides) do
+				current_overrides[k] = v
+			end
+			current_raw[#current_raw + 1] = trimmed
+		end
+	end
+	if next(current_overrides) then
+		entries[#entries + 1] = { overrides = current_overrides, raw = table.concat(current_raw, " | ") }
+	end
+	f:close()
+	return entries
+end
+
+local function generate_from_template(template_path, output_path, overrides)
+	local lines = {}
+	local f = io.open(template_path, "r")
+	if not f then
+		return false, "Cannot open template: " .. template_path
+	end
+	for l in f:lines() do
+		lines[#lines + 1] = l
+	end
+	f:close()
+
+	for i, l in ipairs(lines) do
+		for key, value in pairs(overrides) do
+			if l == key .. "=" then
+				lines[i] = key .. "=" .. value
+				overrides[key] = nil
+				break
+			elseif l == "# " .. key .. "=" then
+				lines[i] = "# " .. key .. "=" .. value
+				overrides[key] = nil
+				break
+			end
+		end
+	end
+
+	local missing = {}
+	for key, _ in pairs(overrides) do
+		missing[#missing + 1] = key
+	end
+	if #missing > 0 then
+		return false, "Key(s) not found in template: " .. table.concat(missing, ", ")
+	end
+
+	f = io.open(output_path, "w")
+	if not f then
+		return false, "Cannot write file: " .. output_path
+	end
+	f:write(table.concat(lines, "\n") .. "\n")
+	f:close()
+	return true, nil
+end
+
+local function run_batch_sequence(template_path, output_path, batch_entries, index)
+	if index > #batch_entries then
+		vim.notify("Batch run complete (" .. #batch_entries .. " runs finished)", vim.log.levels.INFO)
+		return
+	end
+
+	local entry = batch_entries[index]
+	vim.notify(
+		string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw),
+		vim.log.levels.INFO
+	)
+
+	local ok, err = generate_from_template(template_path, output_path, vim.deepcopy(entry.overrides))
+	if not ok then
+		vim.notify("Batch stopped: " .. err, vim.log.levels.ERROR)
+		return
+	end
+
+	local tmpdate = os.date("%Y%m%d_%H%M%S")
+	vim.fn.setenv("JWM_CUR_TIME", tmpdate)
+	local prefix = "/Users/maojingwei/baidu/project/"
+	local rel = output_path:sub(#prefix + 1)
+	local dir_name = rel:match("^([^/]+)")
+	if not dir_name then
+		vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
+		return
+	end
+	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
+	vim.fn.mkdir(log_dir, "p")
+	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
+	local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
+	local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
+	local lf = io.open(log_file, "w")
+	if lf then
+		lf:close()
+	end
+
+	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh "
+		.. vim.fn.shellescape(output_path)
+		.. " "
+		.. tmpdate
+	local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
+
+	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+	ToggleAutoRefresh()
+	local log_buf = vim.api.nvim_get_current_buf()
+
+	vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
+		on_exit = function(_, code)
+			vim.schedule(function()
+				if code == 0 then
+					if vim.api.nvim_buf_is_valid(log_buf) then
+						vim.api.nvim_buf_delete(log_buf, { force = true })
+					end
+					vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
+					ToggleAutoRefresh()
+					vim.notify(
+						string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries)
+					)
+				else
+					vim.notify(
+						string.format("Batch [%d/%d] failed (exit %d)", index, #batch_entries, code),
+						vim.log.levels.ERROR
+					)
+				end
+				run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+			end)
+		end,
+	})
+end
+
+vim.keymap.set("n", "<F5>", function()
 	local filepath = vim.fn.expand("%:p")
 	if filepath == "" then
 		vim.notify("No file to run", vim.log.levels.WARN)
 		return
 	end
-	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh " .. vim.fn.shellescape(filepath)
-	vim.fn.setreg("+", cmd)
-	vim.notify("Command copied to clipboard:\n" .. cmd, vim.log.levels.INFO)
-	local responded = false
-	local timer = vim.uv.new_timer()
-	timer:start(
-		10000,
-		0,
-		vim.schedule_wrap(function()
-			timer:close()
-			if not responded then
-				responded = true
-				local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
-				local ctrl_c = vim.api.nvim_replace_termcodes("<C-c>", true, false, true)
-				vim.api.nvim_feedkeys(esc, "n", true)
-				vim.api.nvim_feedkeys(esc, "n", true)
-				vim.notify("F5 prompt timed out (10s)", vim.log.levels.WARN)
-			end
-		end)
-	)
-	vim.ui.select({ "Run", "Cancel" }, { prompt = "Run this command?" }, function(choice)
-		responded = true
-		if not timer:is_closing() then
-			timer:close()
-		end
-		if choice ~= "Run" then
-			return
-		end
-		run_meta_script_execute(cmd, filepath, mode)
-	end)
-end
 
-vim.keymap.set("n", "<F5>", function()
-	run_meta_script("background")
-end, { noremap = true, silent = true, desc = "Run meta_script on current file in Terminal" })
+	if not filepath:match("%.batch$") then
+		vim.notify("F5 must be pressed on a .batch file", vim.log.levels.ERROR)
+		return
+	end
+
+	local dir = vim.fn.fnamemodify(filepath, ":h")
+	local stem = vim.fn.fnamemodify(filepath, ":t:r")
+
+	local template_path = dir .. "/" .. stem .. "_template.sh"
+	local output_path = dir .. "/" .. stem .. ".sh"
+	local batch_file = filepath
+
+	if not file_exists(template_path) then
+		vim.notify("No template file found: " .. template_path, vim.log.levels.WARN)
+		return
+	end
+
+	local entries = parse_batch_file(batch_file)
+	if not entries then
+		vim.notify("Cannot read batch file", vim.log.levels.ERROR)
+		return
+	end
+
+	if #entries == 0 then
+		vim.notify("Batch file is empty (no valid entries)", vim.log.levels.WARN)
+		return
+	end
+
+	vim.ui.select(
+		{ "Run all (" .. #entries .. " entries)", "Cancel" },
+		{ prompt = "Batch run from: " .. vim.fn.fnamemodify(batch_file, ":.") },
+		function(choice)
+			if choice and choice:match("^Run") then
+				run_batch_sequence(template_path, output_path, entries, 1)
+			end
+		end
+	)
+end, { noremap = true, silent = true, desc = "Run meta_script from template + .batch file" })
 
 local function f10_run_lines(lines)
 	local filepath = vim.fn.expand("%:p")
@@ -2229,16 +2330,6 @@ vim.keymap.set("v", "<F10>", function()
 	local lines = vim.fn.getline(start_line, end_line)
 	f10_run_lines(lines)
 end, { noremap = true, silent = true, desc = "Run visual selection as bash script in background" })
-
-vim.api.nvim_create_user_command("RunMeta", function(args)
-	run_meta_script(args.args ~= "" and args.args or nil)
-end, {
-	nargs = "?",
-	complete = function()
-		return { "background" }
-	end,
-	desc = "Run meta_script; use :RunMeta background to run silently",
-})
 
 vim.defer_fn(function()
 	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
