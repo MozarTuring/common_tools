@@ -1281,8 +1281,7 @@ vim.keymap.set("n", ",f", function()
 	local curfile = vim.fn.expand("%:p")
 	local project_name = curfile:match("/Users/maojingwei/baidu/project/([^/]+)/jwm_configs/")
 	if project_name then
-		vim.cmd('normal! yiw')
-		local word = vim.fn.getreg('"')
+		local word = vim.fn.expand('<cword>')
 		if word and word ~= "" then
 			local output_dir = "/Users/maojingwei/baidu/project/zzzjwmoutput/" .. project_name .. "/" .. word
 			if directory_exists(output_dir) then
@@ -2077,7 +2076,10 @@ local function parse_batch_file(batch_file)
 	for line in f:lines() do
 		local trimmed = line:match("^%s*(.-)%s*$")
 		if trimmed ~= "" and trimmed:sub(1, 1) ~= "#" then
-			local key, value = trimmed:match("^(%S-)=(%S+)$")
+			local key, value = trimmed:match("^export%s+(%S-)=(%S+)$")
+			if not key then
+				key, value = trimmed:match("^(%S-)=(%S+)$")
+			end
 			if key and key ~= "" then
 				if not keys_values[key] then
 					keys_values[key] = {}
@@ -2135,6 +2137,14 @@ local function generate_from_template(template_path, output_path, overrides)
 				break
 			elseif l == "# " .. key .. "=" then
 				lines[i] = "# " .. key .. "=" .. value
+				overrides[key] = nil
+				break
+			elseif l == "export " .. key .. "=" then
+				lines[i] = "export " .. key .. "=" .. value
+				overrides[key] = nil
+				break
+			elseif l == "# export " .. key .. "=" then
+				lines[i] = "# export " .. key .. "=" .. value
 				overrides[key] = nil
 				break
 			end
