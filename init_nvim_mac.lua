@@ -2076,9 +2076,12 @@ local function parse_batch_file(batch_file)
 	for line in f:lines() do
 		local trimmed = line:match("^%s*(.-)%s*$")
 		if trimmed ~= "" and trimmed:sub(1, 1) ~= "#" then
-			local key, value = trimmed:match("^export%s+(%S-)=(%S+)$")
+			local key, value = trimmed:match("^export%s+(%S-)=(.*)$")
 			if not key then
-				key, value = trimmed:match("^(%S-)=(%S+)$")
+				key, value = trimmed:match("^(%S-)=(.*)$")
+			end
+			if value then
+				value = value:match("^%s*(.-)%s*$")
 			end
 			if key and key ~= "" then
 				if not keys_values[key] then
