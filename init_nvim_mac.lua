@@ -2295,17 +2295,18 @@ local function f10_run_lines(lines)
 	local dir_name = rel:match("^([^/]+)") or "misc"
 
 	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
-	vim.fn.mkdir(log_dir, "p")
+	local tmp_dir = log_dir .. "/jwmtmptmp"
+	vim.fn.mkdir(tmp_dir, "p")
 	local timestamp = os.date("%Y%m%d_%H%M%S")
 
-	local tmp_file = log_dir .. "/" .. timestamp .. "_sel.sh"
+	local tmp_file = tmp_dir .. "/" .. timestamp .. "_sel.sh"
 	local f = io.open(tmp_file, "w")
 	if f then
 		f:write(table.concat(lines, "\n") .. "\n")
 		f:close()
 	end
 
-	local log_file = log_dir .. "/" .. timestamp .. "_sel.log"
+	local log_file = tmp_dir .. "/" .. timestamp .. "_sel.log"
 	local lf = io.open(log_file, "w")
 	if lf then
 		lf:close()
