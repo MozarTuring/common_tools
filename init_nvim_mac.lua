@@ -2279,15 +2279,16 @@ vim.keymap.set("n", "<F5>", function()
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	local short_output = vim.fn.fnamemodify(output_path, ":.")
-	local cmd_line = "bash common_tools/meta_script.sh " .. short_output .. " " .. tmpdate
+	local cmd_base = "bash common_tools/meta_script.sh " .. short_output .. " "
 	local preview_lines = { "" }
 	for i, _ in ipairs(entries) do
-		preview_lines[#preview_lines + 1] = string.format("  [%d] %s", i, cmd_line)
+		local ts = (i == 1) and tmpdate or "<pending>"
+		preview_lines[#preview_lines + 1] = string.format("  [%d] %s%s", i, cmd_base, ts)
 	end
 	preview_lines[#preview_lines + 1] = ""
 	preview_lines[#preview_lines + 1] = string.format("Total: %d run(s).  Press Enter to run, q to cancel.", #entries)
 
-	vim.fn.setreg("+", cmd_line)
+	vim.fn.setreg("+", cmd_base .. tmpdate)
 
 	local pbuf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, preview_lines)
