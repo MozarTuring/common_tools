@@ -2277,15 +2277,55 @@ vim.keymap.set("n", "<F5>", function()
 		return
 	end
 
-	vim.ui.select(
-		{ "Run all (" .. #entries .. " entries)", "Cancel" },
-		{ prompt = "Batch run from: " .. vim.fn.fnamemodify(batch_file, ":.") },
-		function(choice)
-			if choice and choice:match("^Run") then
-				run_batch_sequence(template_path, output_path, entries, 1)
-			end
+	local tmpdate = os.date("%Y%m%d_%H%M%S")
+	local short_output = vim.fn.fnamemodify(output_path, ":.")
+	local cmd_line = "bash common_tools/meta_script.sh " .. short_output .. " " .. tmpdate
+	local preview_lines = { "" }
+	for i, _ in ipairs(entries) do
+		preview_lines[#preview_lines + 1] = string.format("  [%d] %s", i, cmd_line)
+	end
+	preview_lines[#preview_lines + 1] = ""
+	preview_lines[#preview_lines + 1] = string.format("Total: %d run(s).  Press Enter to run, q to cancel.", #entries)
+
+	vim.fn.setreg("+", cmd_line)
+
+	local pbuf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, preview_lines)
+	vim.api.nvim_set_option_value("modifiable", false, { buf = pbuf })
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = pbuf })
+
+	local width = 0
+	for _, l in ipairs(preview_lines) do
+		if #l > width then width = #l end
+	end
+	width = math.min(math.max(width + 4, 40), vim.o.columns - 4)
+	local height = math.min(#preview_lines, vim.o.lines - 6)
+
+	local pwin = vim.api.nvim_open_win(pbuf, true, {
+		relative = "editor",
+		row = math.floor((vim.o.lines - height) / 2),
+		col = math.floor((vim.o.columns - width) / 2),
+		width = width,
+		height = height,
+		style = "minimal",
+		border = "rounded",
+		title = " Batch Preview ",
+		title_pos = "center",
+	})
+
+	local function close_preview()
+		if vim.api.nvim_win_is_valid(pwin) then
+			vim.api.nvim_win_close(pwin, true)
 		end
-	)
+	end
+
+	vim.keymap.set("n", "<CR>", function()
+		close_preview()
+		run_batch_sequence(template_path, output_path, entries, 1)
+	end, { buffer = pbuf, nowait = true })
+
+	vim.keymap.set("n", "q", close_preview, { buffer = pbuf, nowait = true })
+	vim.keymap.set("n", "<Esc>", close_preview, { buffer = pbuf, nowait = true })
 end, { noremap = true, silent = true, desc = "Run meta_script from template + .batch file" })
 
 local function f10_run_lines(lines)
