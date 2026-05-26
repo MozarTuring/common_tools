@@ -45,7 +45,7 @@ fetch_new_content() {
     if [[ -e "${local_dir}/job-${job_id}_1.out" ]]; then
         files=("${local_dir}/job-${job_id}_1.out")
     else
-        for f in "${local_dir}"/job-${job_id}*.out "${local_dir}"/job_out.log ; do
+        for f in "${local_dir}"/job-${job_id}*.out "${local_dir}"/job_out.log; do
             [[ -e "$f" ]] && files+=("$f")
         done
     fi
@@ -111,12 +111,9 @@ is_job_running() {
     if [[ "$mode" == "slurm" ]]; then
         output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue --job=${job_id} --noheader 2>/dev/null" 2>/dev/null)
         rc=$?
-    elif [[ "$mode" == "docker" ]]; then
+    elif [[ "$mode" == "docker" || "$mode" == "none" ]]; then
         output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "test -f ${remote_dir}/remote_job_id.txt && echo true || echo false" 2>/dev/null)
         rc=$?
-    else
-        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
-        return $?
     fi
     if [[ $rc -ne 0 && $rc -ne 1 ]]; then
         return 0
@@ -154,12 +151,8 @@ fi
 
 sync_remote() {
     local _rsync_out _rsync_rc=0
-    if [[ "$mode" == "slurm" || "$mode" == "docker" ]]; then
-        _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f" 2>/dev/null |
-            rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
-    else
-        _rsync_out=$(rsync -av "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
-    fi
+    _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f" 2>/dev/null |
+        rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
     if [[ $_rsync_rc -ne 0 ]]; then
         echo "$_rsync_out"
         return $_rsync_rc
@@ -170,14 +163,14 @@ _project_name=$(basename "$(dirname "$local_dir")")
 tmpdirname=$(basename "$local_dir")
 
 jobsfile=/Users/maojingwei/baidu/project/${_project_name}/jwm_configs/jobs.txt
-grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >> ${jobsfile}
+grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 # --- main monitoring loop ---
 _check_count=0
 finish_flag=0
 while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
-    _capped=$(( _check_count < 12 ? _check_count : 11 ))
-    _interval=$((( (_capped - 1) / 5 + 1) * 10))
+    _capped=$((_check_count < 12 ? _check_count : 11))
+    _interval=$((((_capped - 1) / 5 + 1) * 10))
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"

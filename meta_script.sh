@@ -348,11 +348,6 @@ if [[ $# -lt 3 ]]; then
         exit 0
     fi
 
-    if [[ "$_mode" == "remotenone" ]]; then
-        echo "local dir: ${local_dir}"
-        exit 0
-    fi
-
     remote_job_id=$(ssh "$SERVER_NAME" "cat ${run_dir_remote_tmp}/remote_job_id.txt" 2>/dev/null)
 
     if [ -n "${remote_job_id}" ]; then
@@ -363,8 +358,8 @@ if [[ $# -lt 3 ]]; then
             monitor_args=(slurm "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir" "$run_dir_pre" "$run_id" "${_remote_proj}")
         elif [[ "$_mode" == "remotedocker" ]]; then
             monitor_args=(docker "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir")
-        else
-            monitor_args=(pid "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir")
+        elif [[ "$_mode" == "remotenone" ]]; then
+            monitor_args=(none "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir")
         fi
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
@@ -616,6 +611,8 @@ EOF
     elif [[ "$1" == "remotenone" ]]; then
         source jwm_configs/remote.sh
         echo "$JWM_JOB_ID" >${remote_job_id_file}
+        nohup bash -c "while kill -0 $JWM_JOB_ID 2>/dev/null; do sleep 10; done;  rm remote_job_id.txt" >/dev/null 2>&1 &
+        disown
         echo "kill -9 ${JWM_JOB_ID}"
     fi
     echo "PWD: ${PWD}"
