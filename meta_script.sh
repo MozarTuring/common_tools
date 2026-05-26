@@ -396,7 +396,7 @@ elif [[ "$1" == "remote"* ]]; then
         sacctmgr show assoc where user=$USER format=User,Account,QOS
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
-        rm slurm-*.out || echo "no slurm-*.out"
+        rm job-*.out || echo "no job-*.out"
         cat >>jwm_configs/remote.sh <<'EOF'
 
 if [[ -z "${SBATCH_OUT:-}" ]]; then
@@ -404,7 +404,7 @@ if [[ -z ${JWM_SLURM_FILE} || -z ${JWM_RUN_TIME} || -z ${JWM_NODES_NUM} ]]; then
     echo "not defined"
     exit
 fi
-sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=slurm-%j.out --error=slurm-%j.out"&&
+sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=job-%j.out --error=job-%j.out"&&
 EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
         if [[ "${5}" == "berzeliusampere" ]]; then
@@ -459,9 +459,8 @@ EOF
 
         echo "start run remote.sh"
         source jwm_configs/remote.sh
-        SLURM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-        echo "${PWD}, ${SLURM_JOB_ID}"
-        echo "$SLURM_JOB_ID" >${remote_job_id_file}
+        JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
+        echo "$JWM_JOB_ID" >${remote_job_id_file}
 
     elif [[ "$1" == "remotedockercompose" ]]; then
         cat >>jwm_configs/remote.sh <<'EOF'
@@ -603,21 +602,24 @@ EOF
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
     docker run "${DOCKER_RUN_ARGS[@]}"
 else
-    export JWM_CONTAINER_ID=$(docker run -d "${DOCKER_RUN_ARGS[@]}")
+    export JWM_JOB_ID=$(docker run -d "${DOCKER_RUN_ARGS[@]}")
 fi
 EOF
 
         source jwm_configs/remote.sh
-        echo "JWM_CONTAINER_ID:"
-        echo "docker rm -f ${JWM_CONTAINER_ID}"
-        echo "$JWM_CONTAINER_ID" >"./remote_job_id.txt"
-        nohup bash -c "docker logs -f $JWM_CONTAINER_ID >slurm_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <slurm_out.log.raw >slurm_out.log.tmp && mv -f slurm_out.log.tmp slurm_out.log; docker ps >> slurm_out.log; rm -f slurm_out.log.raw slurm_out.log.tmp remote_job_id.txt" >/dev/null 2>&1 &
+        echo "docker rm -f ${JWM_JOB_ID}"
+        echo "$JWM_JOB_ID" >${remote_job_id_file}
+        nohup bash -c "docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp remote_job_id.txt" >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
 
     elif [[ "$1" == "remotenone" ]]; then
         source jwm_configs/remote.sh
+        echo "$JWM_JOB_ID" >${remote_job_id_file}
+        echo "kill -9 ${JWM_JOB_ID}"
     fi
+    echo "PWD: ${PWD}"
+    echo "JWM_JOB_ID: ${JWM_JOB_ID}"
     echo "ssh of $1 done"
 
 else

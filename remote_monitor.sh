@@ -42,10 +42,10 @@ _log_state_file=""
 fetch_new_content() {
     [[ -z "$_log_state_file" ]] && _log_state_file="${local_dir}/.log_state" && touch "$_log_state_file"
     local files=()
-    if [[ -e "${local_dir}/slurm-${job_id}_1.out" ]]; then
-        files=("${local_dir}/slurm-${job_id}_1.out")
+    if [[ -e "${local_dir}/job-${job_id}_1.out" ]]; then
+        files=("${local_dir}/job-${job_id}_1.out")
     else
-        for f in "${local_dir}"/slurm-${job_id}*.out "${local_dir}"/slurm_out.log "${local_dir}"/nohup.out; do
+        for f in "${local_dir}"/job-${job_id}*.out "${local_dir}"/job_out.log ; do
             [[ -e "$f" ]] && files+=("$f")
         done
     fi
