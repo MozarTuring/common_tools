@@ -147,7 +147,7 @@ _remote_setup() {
     export RUN_DIR_HOME="$(dirname "${RUN_DIR_PRE}")"
     source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
     export RUN_PROJ="$2"
-    export RUN_PROJ_DATA="${RUN_PROJ%_*}"
+    export RUN_DIR_DATA=${RUN_DIR_PRE}/remote_data/"${RUN_PROJ%_*}"
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
 
@@ -171,7 +171,7 @@ _remote_setup() {
         fi
     fi
     _manual_file="${6}"
-    cd "$4"/"$2"
+    cd ${RUN_DIR_PRE}/${RUN_PROJ}
     cat >jwm_configs/remote.sh <<'EOF'
 set -e
 
@@ -188,7 +188,7 @@ EOF
     export RUN_BACKGROUND_JWM=1
     echo """
 export RUN_DIR_PRE=${RUN_DIR_PRE}
-export RUN_PROJ_DATA=${RUN_PROJ_DATA}
+export RUN_DIR_DATA=${RUN_DIR_DATA}
 export HF_TOKEN=${HF_TOKEN}
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 """
@@ -202,11 +202,10 @@ export RUN_DIR_HOME=${RUN_DIR_HOME}
         cat >>jwm_configs/remote.sh <<'EOF'
 # uncomment the following to define them based on your running preference
 # export RUN_DIR_PRE=
-# export RUN_PROJ_DATA=
+# export RUN_DIR_DATA=
 # export HF_TOKEN=
 # export RUN_DIR_HOME=
 
-export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/${RUN_PROJ_DATA}
 export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
 export PYTHONUNBUFFERED=1
 EOF

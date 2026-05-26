@@ -208,5 +208,6 @@
     "python.analysis.diagnosticMode": "off",
     "python.analysis.reportGeneralTypeIssues": "none",
     "chat.disableAIFeatures": true,
-    "workbench.editor.enablePreview": false
+    "workbench.editor.enablePreview": false,
+    "window.autoDetectColorScheme": false
 }

@@ -1254,6 +1254,7 @@ vim.api.nvim_set_keymap("n", "W", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "X", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "Y", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "Z", "<Nop>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "P", "o<Esc>p", { noremap = true, silent = true, desc = "Paste to next line" })
 vim.api.nvim_set_keymap("n", "t", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<c-o>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<space>", "<Nop>", { noremap = true, silent = true })
@@ -1276,6 +1277,10 @@ vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
+	Snacks.explorer()
+end, { noremap = true, desc = "Open file explorer" })
+
+vim.keymap.set("n", ",t", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
 
 	local curfile = vim.fn.expand("%:p")
@@ -1304,8 +1309,7 @@ vim.keymap.set("n", ",f", function()
 			return
 		end
 	end
-	Snacks.explorer()
-end, { noremap = true, desc = "Open path under cursor or file explorer" })
+end, { noremap = true, desc = "Open path under cursor" })
 
 --    if not python_package_exists('jedi') then
 --        print('install jedi')
