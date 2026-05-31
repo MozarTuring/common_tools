@@ -8,7 +8,7 @@ sync_and_commit_repo() {
 
     while IFS= read -r pattern; do
         grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
-    done </Users/maojingwei/baidu/project/common_tools/common_gitignore.txt
+    done < ~/project/common_tools/common_gitignore.txt
     git submodule foreach 'git add -A && (git commit -m "v" || true)'
     git add -A >/dev/null
     (
@@ -28,7 +28,7 @@ sync_and_commit_repo() {
         _remote_proj="${repo_path}_${_git_branch}"
         run_dir_remote="${run_dir_pre}/${_remote_proj}"
         echo "remote dir: ${run_dir_remote}"
-        rsync -a --exclude-from='/Users/maojingwei/baidu/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
+        rsync -a --exclude-from='~/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
     fi
     local _sync_rc=$?
     cd - >/dev/null
@@ -307,7 +307,7 @@ if [[ $# -lt 3 ]]; then
         exit 1
     fi
 
-    cd /Users/maojingwei/baidu/project/
+    cd ~/project/
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
 
     sync_and_commit_repo "common_tools"
@@ -316,7 +316,7 @@ if [[ $# -lt 3 ]]; then
     { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
 
     echo ${last_commit}
-    local_dir="/Users/maojingwei/baidu/project/zzzjwmoutput/${_project_name}"
+    local_dir="~/project/zzzjwmoutput/${_project_name}"
     run_timestamp="$2"
     run_id="${run_timestamp}"
     local_dir="${local_dir}/${run_id}"
@@ -368,9 +368,9 @@ if [[ $# -lt 3 ]]; then
         fi
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
-        echo """nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
+        echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
 
-        nohup bash /Users/maojingwei/baidu/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
+        nohup bash ~/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
         monitor_pid=$!
         echo "Background monitor PID: $monitor_pid"
 
@@ -615,6 +615,9 @@ EOF
 
     elif [[ "$1" == "remotenone" ]]; then
         source jwm_configs/remote.sh
+        "${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
+        export JWM_JOB_ID=$!
+        disown ${JWM_JOB_ID}
         echo "$JWM_JOB_ID" >${remote_job_id_file}
         nohup bash -c "while kill -0 $JWM_JOB_ID 2>/dev/null; do sleep 10; done;  rm remote_job_id.txt" >/dev/null 2>&1 &
         disown

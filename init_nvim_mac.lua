@@ -1284,11 +1284,11 @@ vim.keymap.set("n", ",t", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
 
 	local curfile = vim.fn.expand("%:p")
-	local project_name = curfile:match("/Users/maojingwei/baidu/project/([^/]+)/jwm_configs/")
+	local project_name = curfile:match("/Users/jinma63/project/([^/]+)/jwm_configs/")
 	if project_name then
 		local word = vim.fn.expand('<cword>')
 		if word and word ~= "" then
-			local output_dir = "/Users/maojingwei/baidu/project/zzzjwmoutput/" .. project_name .. "/" .. word
+			local output_dir = "/Users/jinma63/project/zzzjwmoutput/" .. project_name .. "/" .. word
 			if directory_exists(output_dir) then
 				local log_path = output_dir .. "/nohup_monitor.log"
 				OpenOrSwitchToFile(log_path)
@@ -1973,7 +1973,7 @@ end tell]],
 end
 
 local claude_sessions_dir =
-	"/Users/maojingwei/baidu/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+	"/Users/jinma63/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,
@@ -2060,14 +2060,12 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 	end,
 })
 
-vim.keymap.set("n", "fj", function()
-	local log = vim.fn.expand("~/hammerspoon_cmd.log")
-	OpenOrSwitchToFile(log)
-	vim.cmd("edit!")
-	vim.cmd("normal! G")
-end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
-
-
+-- vim.keymap.set("n", "fj", function()
+-- 	local log = vim.fn.expand("~/hammerspoon_cmd.log")
+-- 	OpenOrSwitchToFile(log)
+-- 	vim.cmd("edit!")
+-- 	vim.cmd("normal! G")
+-- end, { noremap = true, silent = true, desc = "Open hammerspoon cmd log" })
 
 local function parse_batch_file(batch_file)
 	local f = io.open(batch_file, "r")
@@ -2195,7 +2193,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	vim.fn.setenv("JWM_CUR_TIME", tmpdate)
-	local prefix = "/Users/maojingwei/baidu/project/"
+	local prefix = "/Users/jinma63/project/"
 	local rel = output_path:sub(#prefix + 1)
 	local dir_name = rel:match("^([^/]+)")
 	if not dir_name then
@@ -2212,7 +2210,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		lf:close()
 	end
 
-	local cmd = "bash /Users/maojingwei/baidu/project/common_tools/meta_script.sh "
+	local cmd = "bash /Users/jinma63/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
 		.. " "
 		.. tmpdate
@@ -2336,7 +2334,7 @@ end, { noremap = true, silent = true, desc = "Run meta_script from template + .b
 
 local function f10_run_lines(lines)
 	local filepath = vim.fn.expand("%:p")
-	local prefix = "/Users/maojingwei/baidu/project/"
+	local prefix = "/Users/jinma63/project/"
 	local rel = filepath ~= "" and filepath:sub(#prefix + 1) or ""
 	local dir_name = rel:match("^([^/]+)") or "misc"
 
@@ -2401,9 +2399,9 @@ vim.keymap.set("v", "<F10>", function()
 	f10_run_lines(lines)
 end, { noremap = true, silent = true, desc = "Run visual selection as bash script in background" })
 
-vim.defer_fn(function()
-	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
-end, 500)
+-- vim.defer_fn(function()
+-- 	vim.fn.system({ "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs", "-c", "hs.reload()" })
+-- end, 500)
 
 local function get_or_create_terminal()
 	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -2454,6 +2452,15 @@ vim.keymap.set("v", "<leader>r", function()
 		send_to_terminal(table.concat(lines, "\n"))
 	end)
 end, { noremap = true, silent = true, desc = "Run selected lines in terminal" })
+
+vim.keymap.set("n", "<F12>", function()
+	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
+	if line == "" then
+		vim.notify("Empty line", vim.log.levels.WARN)
+		return
+	end
+	run_in_terminal_app(line, "terminal")
+end, { noremap = true, silent = true, desc = "Run current line in Terminal.app" })
 
 -- brew install --cask font-jetbrains-mono-nerd-font
 -- terminal should also use JetBrainsMono Nerd Font (or JetBrainsMono NF)

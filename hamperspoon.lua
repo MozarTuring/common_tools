@@ -309,14 +309,21 @@ hs.hotkey.bind({ "ctrl" }, "l", function()
 	if not sourceApp or sourceApp:bundleID() ~= SRC_TITLE then
 		return
 	end
+
+	local oldClip = hs.pasteboard.getContents() or ""
 	hs.eventtap.keyStrokes("V")
 	usleep(500)
-	hs.eventtap.keyStrokes("y")
-	usleep(1000)
+	hs.eventtap.keyStrokes('"+y')
+	usleep(500)
 
-	local clip = hs.pasteboard.getContents() or ""
-	if clip == "" then
-		hs.alert.show("Clipboard is empty")
+	local clip = ""
+	for _ = 1, 50 do
+		usleep(100)
+		clip = hs.pasteboard.getContents() or ""
+		if clip ~= "" and clip ~= oldClip then break end
+	end
+	if clip == "" or clip == oldClip then
+		hs.alert.show("Clipboard did not update")
 		return
 	end
 
