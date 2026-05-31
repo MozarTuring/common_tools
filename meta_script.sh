@@ -28,7 +28,7 @@ sync_and_commit_repo() {
         _remote_proj="${repo_path}_${_git_branch}"
         run_dir_remote="${run_dir_pre}/${_remote_proj}"
         echo "remote dir: ${run_dir_remote}"
-        rsync -a --exclude-from='~/project/common_tools/rsync_exclude.txt' ./ "$SERVER_NAME":${run_dir_remote}/
+        rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$SERVER_NAME":${run_dir_remote}/
     fi
     local _sync_rc=$?
     cd - >/dev/null
