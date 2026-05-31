@@ -256,10 +256,6 @@ if [[ $# -lt 3 ]]; then
                 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
                 -o ExitOnForwardFailure=yes "$host" && echo "$port succeed" || echo "Port $port tunnel failed/active"
 
-            ssh -o ControlPath=none -f -N -L "3031:localhost:3031" \
-                -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
-                -o ExitOnForwardFailure=yes jinma@ferragon.stellar.research.liu.se && echo "$port succeed" || echo "Port $port tunnel failed/active"
-
         done
     done
     _abspath="$1"
