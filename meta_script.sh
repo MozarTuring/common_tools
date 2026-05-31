@@ -312,7 +312,7 @@ if [[ $# -lt 3 ]]; then
     { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
 
     echo ${last_commit}
-    local_dir="~/project/zzzjwmoutput/${_project_name}"
+    local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
     run_timestamp="$2"
     run_id="${run_timestamp}"
     local_dir="${local_dir}/${run_id}"
