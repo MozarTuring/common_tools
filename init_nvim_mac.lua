@@ -2281,8 +2281,7 @@ vim.keymap.set("n", "<F5>", function()
 	end
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
-	local short_output = vim.fn.fnamemodify(output_path, ":.")
-	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. short_output .. " "
+	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. output_path .. " "
 	local preview_lines = { "" }
 	for i, _ in ipairs(entries) do
 		local ts = (i == 1) and tmpdate or "<pending>"
