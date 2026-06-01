@@ -610,8 +610,10 @@ EOF
         echo "docker_container_started"
 
     elif [[ "$1" == "remotenone" ]]; then
-        source jwm_configs/remote.sh
+        cat >>jwm_configs/remote.sh <<'EOF'
         "${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
+EOF
+        source jwm_configs/remote.sh
         export JWM_JOB_ID=$!
         disown ${JWM_JOB_ID}
         echo "$JWM_JOB_ID" >${remote_job_id_file}

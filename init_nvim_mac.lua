@@ -2244,7 +2244,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 					if vim.api.nvim_buf_is_valid(log_buf) then
 						vim.api.nvim_buf_delete(log_buf, { force = true })
 					end
-					os.remove(output_path)
+					os.execute("chmod a-w " .. vim.fn.shellescape(output_path))
 					vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
 					ToggleAutoRefresh()
 					vim.notify(
