@@ -15,6 +15,8 @@ local function isWindows()
 end
 is_win = isWindows()
 
+local jwMacHome = os.getenv("HOME")
+
 if is_win then
 	jwHomePath = "C:/Users/Mozar/BaiduSyncdisk/project"
 else
@@ -1284,11 +1286,11 @@ vim.keymap.set("n", ",t", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
 
 	local curfile = vim.fn.expand("%:p")
-	local project_name = curfile:match("/Users/jinma63/project/([^/]+)/jwm_configs/")
+	local project_name = curfile:match(jwMacHome .. "/project/([^/]+)/jwm_configs/")
 	if project_name then
 		local word = vim.fn.expand('<cword>')
 		if word and word ~= "" then
-			local output_dir = "/Users/jinma63/project/zzzjwmoutput/" .. project_name .. "/" .. word
+			local output_dir = jwMacHome .. "/project/zzzjwmoutput/" .. project_name .. "/" .. word
 			if directory_exists(output_dir) then
 				local log_path = output_dir .. "/nohup_monitor.log"
 				OpenOrSwitchToFile(log_path)
@@ -1973,7 +1975,7 @@ end tell]],
 end
 
 local claude_sessions_dir =
-	"/Users/jinma63/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+	jwMacHome .. "/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,
@@ -2193,7 +2195,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	vim.fn.setenv("JWM_CUR_TIME", tmpdate)
-	local prefix = "/Users/jinma63/project/"
+	local prefix = jwMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
 	local dir_name = rel:match("^([^/]+)")
 	if not dir_name then
@@ -2210,7 +2212,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		lf:close()
 	end
 
-	local cmd = "bash /Users/jinma63/project/common_tools/meta_script.sh "
+	local cmd = "bash " .. jwMacHome .. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
 		.. " "
 		.. tmpdate
@@ -2333,7 +2335,7 @@ end, { noremap = true, silent = true, desc = "Run meta_script from template + .b
 
 local function f10_run_lines(lines)
 	local filepath = vim.fn.expand("%:p")
-	local prefix = "/Users/jinma63/project/"
+	local prefix = jwMacHome .. "/project/"
 	local rel = filepath ~= "" and filepath:sub(#prefix + 1) or ""
 	local dir_name = rel:match("^([^/]+)") or "misc"
 
