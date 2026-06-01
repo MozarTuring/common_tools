@@ -611,7 +611,7 @@ EOF
 
     elif [[ "$1" == "remotenone" ]]; then
         cat >>jwm_configs/remote.sh <<'EOF'
-        "${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
+"${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
 EOF
         source jwm_configs/remote.sh
         export JWM_JOB_ID=$!

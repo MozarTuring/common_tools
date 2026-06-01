@@ -2181,6 +2181,7 @@ local function generate_from_template(template_path, output_path, overrides)
 		return false, "Key(s) not found in template: " .. table.concat(missing, ", ")
 	end
 
+    os.remove(output_path)
 	f = io.open(output_path, "w")
 	if not f then
 		return false, "Cannot write file: " .. output_path
