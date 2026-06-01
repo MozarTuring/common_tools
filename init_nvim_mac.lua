@@ -180,6 +180,7 @@ require("lazy").setup({
 				local exp = opts.picker.sources.explorer
 				exp.hidden = true
 				exp.ignored = true
+				exp.follow_file = true
 				exp.git_status = false
 				exp.git_untracked = false
 				exp.diagnostics = false
@@ -1279,7 +1280,21 @@ vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
 vim.keymap.set("n", ",f", function()
-	Snacks.explorer()
+	local pickers = Snacks.picker.get({ source = "explorer" })
+	if #pickers > 0 then
+		pickers[1]:close()
+	end
+	local file = vim.fn.expand("%:p")
+	local Tree = require("snacks.explorer.tree")
+	local Actions = require("snacks.explorer.actions")
+	Snacks.explorer({
+		on_show = function(picker)
+			if file ~= "" then
+				Tree:open(file)
+				Actions.update(picker, { target = file, refresh = true })
+			end
+		end,
+	})
 end, { noremap = true, desc = "Open file explorer" })
 
 vim.keymap.set("n", ",t", function()
