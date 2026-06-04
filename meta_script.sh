@@ -620,6 +620,7 @@ EOF
 "${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
 EOF
         source jwm_configs/remote.sh
+        cd $7/
         export JWM_JOB_ID=$!
         disown ${JWM_JOB_ID}
         echo "a,${remote_job_id_file}"
