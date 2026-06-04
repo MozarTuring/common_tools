@@ -120,8 +120,9 @@ require("lazy").setup({
 		},
 		-- Customize blink.cmp
 		{
-			"saghen/blink.cmp",
-			opts = function(_, opts)
+		"saghen/blink.cmp",
+		version = "1.*",
+		opts = function(_, opts)
 				-- Show hidden files in path completion
 				opts.sources = opts.sources or {}
 				opts.sources.providers = opts.sources.providers or {}
@@ -1766,6 +1767,7 @@ vim.defer_fn(function()
 		{ noremap = true, silent = true, desc = "Previous buffer" }
 	)
 	vim.keymap.set("n", "gy", "<cmd>BufferLineCycleNext<CR>", { noremap = true, silent = true, desc = "Next buffer" })
+	pcall(vim.keymap.del, { "n", "i", "x", "s" }, "<C-s>")
 	vim.keymap.set(
 		"v",
 		"<C-s>",
