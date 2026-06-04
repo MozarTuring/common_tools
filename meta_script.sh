@@ -268,7 +268,7 @@ if [[ $# -lt 3 ]]; then
     echo "project_name, $_project_name"
     _stem="${_filename%.sh}"
     _mode="${_stem%%_*}"
-    _server=$(grep '^# JWM_SERVER_NAME=' "$_abspath" | tail -1 | sed "s/^# JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
+    _server=$(grep '^JWM_SERVER_NAME=' "$_abspath" | tail -1 | sed "s/^JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
 
     # if [[ $# -eq 2 ]]; then
     #     _server=$2
