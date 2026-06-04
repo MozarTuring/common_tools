@@ -2265,7 +2265,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	})
 end
 
-vim.keymap.set("n", "<F5>", function()
+vim.keymap.set("n", "fr", function()
 	local filepath = vim.fn.expand("%:p")
 	if filepath == "" then
 		vim.notify("No file to run", vim.log.levels.WARN)
@@ -2273,7 +2273,7 @@ vim.keymap.set("n", "<F5>", function()
 	end
 
 	if not filepath:match("%.batch$") then
-		vim.notify("F5 must be pressed on a .batch file", vim.log.levels.ERROR)
+		vim.notify("must be pressed on a .batch file", vim.log.levels.ERROR)
 		return
 	end
 
