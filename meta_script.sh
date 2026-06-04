@@ -622,6 +622,7 @@ EOF
         source jwm_configs/remote.sh
         export JWM_JOB_ID=$!
         disown ${JWM_JOB_ID}
+        echo "a,${remote_job_id_file}"
         echo "$JWM_JOB_ID" >${remote_job_id_file}
         nohup bash -c "while kill -0 $JWM_JOB_ID 2>/dev/null; do sleep 10; done;  rm remote_job_id.txt" >/dev/null 2>&1 &
         disown
