@@ -328,7 +328,7 @@ if [[ $# -lt 3 ]]; then
     info_before_remote="${local_dir}/info_before_remote.txt"
     echo "branch: ${_git_branch} , commit_hash: ${last_commit}" >${info_before_remote}
 
-    echo "Running remote setup... (output: $nohup_log) on ${SERVER_NAME}"
+    echo "Running remote setup... (output: $nohup_log) on server ${SERVER_NAME}"
     ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
     # The tee "$nohup_log" writes the SSH/docker output to nohup_monitor.log and also passes it to stdout
 
@@ -351,8 +351,8 @@ if [[ $# -lt 3 ]]; then
 
     remote_job_id=$(ssh "$SERVER_NAME" "cat ${run_dir_remote_tmp}/remote_job_id.txt" 2>/dev/null)
 
+    echo "Remote job ID: $remote_job_id"
     if [ -n "${remote_job_id}" ]; then
-        echo "Remote job ID: $remote_job_id"
         echo "local dir: ${local_dir}"
 
         if [[ "$_mode" == "remoteslurm" ]]; then
