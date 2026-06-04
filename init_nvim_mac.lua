@@ -2259,7 +2259,9 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 						vim.log.levels.ERROR
 					)
 				end
-				run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+				vim.defer_fn(function()
+					run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+				end, 3000)
 			end)
 		end,
 	})
