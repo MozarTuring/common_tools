@@ -315,14 +315,15 @@ if [[ $# -lt 3 ]]; then
     sync_and_commit_repo "$_project_name"
 
     echo ${last_commit}
+    local_dir="${local_dir}/${run_id}"
+
     if [[ ${_mode} == "remotedockercompose" ]]; then
         run_id=""
     fi
+
     if [[ -z ${run_id} ]]; then
-        echo ""
         run_dir_remote_tmp=${run_dir_remote}
     else
-        local_dir="${local_dir}/${run_id}"
         run_dir_remote_tmp=${run_dir_remote}_${run_id}
     fi
 
