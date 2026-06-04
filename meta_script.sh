@@ -193,7 +193,8 @@ export HF_TOKEN=${HF_TOKEN}
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 """
 
-    if [[ $1 != "remotedockercompose" ]]; then
+    echo "$7, ${PWD}"
+    if [[ $7 != "${PWD}" ]]; then
         cp -R . $7/
         cd $7
     fi
