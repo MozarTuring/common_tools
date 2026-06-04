@@ -319,10 +319,11 @@ if [[ $# -lt 3 ]]; then
     fi
     if [[ -z ${run_id} ]]; then
         echo ""
+        run_dir_remote_tmp=${run_dir_remote}
     else
         local_dir="${local_dir}/${run_id}"
+        run_dir_remote_tmp=${run_dir_remote}_${run_id}
     fi
-    run_dir_remote_tmp=${run_dir_remote}_${run_id}
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
