@@ -628,7 +628,7 @@ EOF
         echo "$JWM_JOB_ID" >${remote_job_id_file}
         nohup bash -c "while kill -0 $JWM_JOB_ID 2>/dev/null; do sleep 10; done; sleep 5; rm remote_job_id.txt" >/dev/null 2>&1 &
         disown
-        echo "kill -9 -${JWM_JOB_ID}"
+        echo "pkill -TERM -P ${JWM_JOB_ID}"
     fi
     echo "PWD: ${PWD}"
     echo "JWM_JOB_ID: ${JWM_JOB_ID}"
