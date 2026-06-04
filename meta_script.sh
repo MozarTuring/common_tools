@@ -232,7 +232,7 @@ EOF
     #         sleep 30
     #     fi
     # fi
-    remote_job_id_file=./remote_job_id.txt
+    remote_job_id_file="$7/remote_job_id.txt"
     rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
