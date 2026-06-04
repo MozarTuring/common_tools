@@ -8,7 +8,7 @@ sync_and_commit_repo() {
 
     while IFS= read -r pattern; do
         grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
-    done < ~/project/common_tools/common_gitignore.txt
+    done <~/project/common_tools/common_gitignore.txt
     git submodule foreach 'git add -A && (git commit -m "v" || true)'
     git add -A >/dev/null
     (
@@ -306,20 +306,24 @@ if [[ $# -lt 3 ]]; then
     cd ~/project/
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
 
-    sync_and_commit_repo "common_tools"
-    sync_and_commit_repo "$_project_name"
-
-    { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
-
-    echo ${last_commit}
     local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
     run_timestamp="$2"
     run_id="${run_timestamp}"
-    local_dir="${local_dir}/${run_id}"
-    run_dir_remote_tmp=${run_dir_remote}_${run_id}
+    { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
+    sync_and_commit_repo "common_tools"
+    sync_and_commit_repo "$_project_name"
+
+    echo ${last_commit}
     if [[ ${_mode} == "remotedockercompose" ]]; then
-        run_dir_remote_tmp=${run_dir_remote}
+        run_id=""
     fi
+    if [[ -z ${run_id} ]]; then
+        echo ""
+    else
+        local_dir="${local_dir}/${run_id}"
+    fi
+    run_dir_remote_tmp=${run_dir_remote}_${run_id}
+
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
     #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
