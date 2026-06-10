@@ -1,5 +1,5 @@
 # install kitty 
-
+# install brew
 # zsh
 rm ~/.zshrc
 ln -s ${HOME}/project/common_tools/zshrc ~/.zshrc
@@ -11,6 +11,12 @@ alias rm='f() { DIR=~/111mjw_tmp_jwm/trash/$(date +%F%T) && mkdir -p "$DIR" && m
 # nvim
 mkdir -p ~/.config/nvim
 ln -s ${HOME}/project/common_tools/init_nvim_mac.lua ~/.config/nvim/init.lua
+# brew install go
+# bash ${HOME}/project/common_tools/go_grip_patch.sh # if need to use go-grip for render markdown
+brew install node # if using markdown preview to render md 
+mv ~/.local/share/nvim/lazy/markdown-preview.nvim/app/routes.js ~/.local/share/nvim/lazy/markdown-preview.nvim/app/routes.js.bak && ln -s ~/project/common_tools/lazy_nvim/markdown-preview.nvim/app/routes.js ~/.local/share/nvim/lazy/markdown-preview.nvim/app/routes.js
+
+brew install ripgrep
 
 # vscode
 rm ${HOME}/Library/Application\ Support/Code/User/settings.json

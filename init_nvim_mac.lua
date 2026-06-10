@@ -45,6 +45,16 @@ end
 --     vim.cmd('!curl -fLo ' .. tmp_path .. ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
 -- end
 
+if vim.fn.executable("rg") == 0 then
+	vim.api.nvim_echo({
+		{ "WARNING: ", "ErrorMsg" },
+		{ "ripgrep (rg) not found. File search will not work properly.\n", "WarningMsg" },
+		{ "Install with: brew install ripgrep\n\n", "Normal" },
+		{ "Press any key to continue...", "Normal" },
+	}, true, {})
+	vim.fn.getchar()
+end
+
 local function python_package_exists(pkg)
 	return os.execute("pip show " .. pkg .. " >/dev/null 2>&1") == 0
 end
@@ -159,10 +169,11 @@ require("lazy").setup({
 				opts.explorer = opts.explorer or {}
 				opts.explorer.replace_netrw = false
 
-				opts.picker = opts.picker or {}
-				opts.picker.sources = opts.picker.sources or {}
+			opts.picker = opts.picker or {}
+			opts.picker.sources = opts.picker.sources or {}
 
 				opts.picker.sources.files = opts.picker.sources.files or {}
+				opts.picker.sources.files.follow = true
 				opts.picker.sources.files.win = opts.picker.sources.files.win or {}
 				opts.picker.sources.files.win.input = opts.picker.sources.files.win.input or {}
 				opts.picker.sources.files.win.input.keys = opts.picker.sources.files.win.input.keys or {}
@@ -570,6 +581,7 @@ vim.keymap.set("n", "ff", function()
 	Snacks.picker.files({
 		hidden = true,
 		ignored = true,
+		follow = true,
 		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
 	})
 end, { desc = "Find files" })
@@ -1356,24 +1368,46 @@ end
 -- Open Glow immediately on markdown open
 --
 
--- Tell markdown-preview.nvim to use our browser opener
---vim.g.mkdp_browserfunc = "MkdpBrowserStay"
+vim.g.mkdp_browserfunc = "MkdpBrowserReuse"
 
--- Define the function in Vimscript (simplest + reliable)
---vim.cmd([[
---function! MkdpBrowserStay(url) abort
---  " macOS: open in background (do NOT steal focus)
---  call jobstart(['open', '-g', a:url], {'detach': v:true})
---endfunction
---]])
+vim.cmd([[
+function! MkdpBrowserReuse(url) abort
+  let l:script = printf(
+    \ 'tell application "Safari"' . "\n" .
+    \ '  set targetURL to "%s"' . "\n" .
+    \ '  set foundTab to false' . "\n" .
+    \ '  repeat with w in windows' . "\n" .
+    \ '    set tabIdx to 1' . "\n" .
+    \ '    repeat with t in tabs of w' . "\n" .
+    \ '      try' . "\n" .
+    \ '        set u to URL of t' . "\n" .
+    \ '        if (u starts with "http://localhost" or u starts with "http://127.0.0.1") and u contains "/page/" then' . "\n" .
+    \ '          set URL of t to targetURL' . "\n" .
+    \ '          set current tab of w to tab tabIdx of w' . "\n" .
+    \ '          set foundTab to true' . "\n" .
+    \ '          exit repeat' . "\n" .
+    \ '        end if' . "\n" .
+    \ '      end try' . "\n" .
+    \ '      set tabIdx to tabIdx + 1' . "\n" .
+    \ '    end repeat' . "\n" .
+    \ '    if foundTab then exit repeat' . "\n" .
+    \ '  end repeat' . "\n" .
+    \ '  if not foundTab then' . "\n" .
+    \ '    open location targetURL' . "\n" .
+    \ '  end if' . "\n" .
+    \ 'end tell', a:url)
+  call jobstart(['osascript', '-e', l:script], {'detach': v:true})
+endfunction
+]])
 
 vim.cmd([[
 let g:mkdp_auto_start = 0
 let g:mkdp_auto_close = 0
+let g:mkdp_browser = 'safari'
 ]])
 
 local grip_port = 6419
-local grip_bin = "/Users/maojingwei/go/bin/go-grip"
+local grip_bin = jwMacHome .. "/go/bin/go-grip"
 local grip_root = nil
 
 local function grip_running()
@@ -1410,6 +1444,77 @@ local function start_grip(root)
 	end
 end
 
+local _grip_refresh_timer = nil
+local _grip_fs_watcher = nil
+local _grip_fs_watched_path = nil
+
+local function refresh_safari_grip()
+	if not grip_root then
+		return
+	end
+	if _grip_refresh_timer then
+		_grip_refresh_timer:stop()
+	end
+	_grip_refresh_timer = vim.defer_fn(function()
+		_grip_refresh_timer = nil
+		local script = string.format(
+			[[
+tell application "Safari"
+	if (count of windows) > 0 then
+		set theURL to URL of current tab of front window
+		if theURL starts with "http://localhost:%d" then
+			set URL of current tab of front window to theURL
+		end if
+	end if
+end tell]],
+			grip_port
+		)
+		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
+	end, 300)
+end
+
+local function stop_grip_file_watcher()
+	if _grip_fs_watcher then
+		pcall(function()
+			_grip_fs_watcher:stop()
+		end)
+		pcall(function()
+			_grip_fs_watcher:close()
+		end)
+		_grip_fs_watcher = nil
+		_grip_fs_watched_path = nil
+	end
+end
+
+local function start_grip_file_watcher(filepath)
+	if _grip_fs_watched_path == filepath and _grip_fs_watcher then
+		return
+	end
+	stop_grip_file_watcher()
+	local w = vim.uv.new_fs_event()
+	if not w then
+		return
+	end
+	_grip_fs_watcher = w
+	_grip_fs_watched_path = filepath
+	w:start(filepath, {}, vim.schedule_wrap(function(err, _, events)
+		if err then
+			stop_grip_file_watcher()
+			return
+		end
+		refresh_safari_grip()
+		-- Restart watcher on rename (file replaced by atomic write)
+		if events and events.rename then
+			vim.defer_fn(function()
+				if _grip_fs_watched_path == filepath then
+					stop_grip_file_watcher()
+					start_grip_file_watcher(filepath)
+				end
+			end, 200)
+		end
+	end))
+end
+
 local function open_in_grip()
 	local file = vim.fn.expand("%:p")
 	local root = find_grip_root(file)
@@ -1430,42 +1535,38 @@ local function open_in_grip()
 	vim.defer_fn(function()
 		vim.fn.system([[osascript -e 'tell application "]] .. app .. [[" to activate']])
 	end, 600)
+	start_grip_file_watcher(file)
 end
 
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "markdown",
 	callback = function()
 		vim.opt_local.spell = false
-		vim.keymap.set("n", "m", open_in_grip, { buffer = true, desc = "Grip Preview" })
+		vim.keymap.set("n", "m", function()
+			vim.b._jw_mkdp_started = true
+			vim.cmd("MarkdownPreview")
+		end, { buffer = true, desc = "Markdown Preview" })
 	end,
 })
 
-local _grip_refresh_timer = nil
+vim.api.nvim_create_autocmd("FileChangedShellPost", {
+	pattern = "*.md",
+	callback = function()
+		if vim.fn.exists(":MarkdownPreview") == 2 then
+			if not vim.b._jw_mkdp_started then
+				vim.b._jw_mkdp_started = true
+				vim.cmd("MarkdownPreview")
+			else
+				vim.cmd("silent! doautocmd TextChanged")
+			end
+		end
+	end,
+})
+
 vim.api.nvim_create_autocmd("BufWritePost", {
 	pattern = "*.md",
 	callback = function()
-		if not grip_root then
-			return
-		end
-		if _grip_refresh_timer then
-			_grip_refresh_timer:stop()
-		end
-		_grip_refresh_timer = vim.defer_fn(function()
-			_grip_refresh_timer = nil
-			local script = string.format(
-				[[
-tell application "Safari"
-	if (count of windows) > 0 then
-		set theURL to URL of current tab of front window
-		if theURL starts with "http://localhost:%d" then
-			set URL of current tab of front window to theURL
-		end if
-	end if
-end tell]],
-				grip_port
-			)
-			vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
-		end, 300)
+		refresh_safari_grip()
 	end,
 })
 
@@ -2474,14 +2575,26 @@ vim.keymap.set("v", "<leader>r", function()
 	end)
 end, { noremap = true, silent = true, desc = "Run selected lines in terminal" })
 
-vim.keymap.set("n", "<F12>", function()
-	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
-	if line == "" then
-		vim.notify("Empty line", vim.log.levels.WARN)
-		return
+vim.keymap.set({"n", "v"}, "<F12>", function()
+	local mode = vim.fn.mode()
+	if mode == "v" or mode == "V" or mode == "\22" then
+		vim.cmd([[execute "normal! Vy"]])
+		local text = vim.fn.getreg('"'):match("^%s*(.-)%s*$")
+		if text == "" then
+			vim.notify("Empty selection", vim.log.levels.WARN)
+			return
+		end
+		run_in_terminal_app(text, "terminal")
+	else
+		vim.cmd("normal! yy")
+		local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
+		if line == "" then
+			vim.notify("Empty line", vim.log.levels.WARN)
+			return
+		end
+		run_in_terminal_app(line, "terminal")
 	end
-	run_in_terminal_app(line, "terminal")
-end, { noremap = true, silent = true, desc = "Run current line in Terminal.app" })
+end, { noremap = true, silent = true, desc = "Run current/selected lines in Terminal.app" })
 
 -- brew install --cask font-jetbrains-mono-nerd-font
 -- terminal should also use JetBrainsMono Nerd Font (or JetBrainsMono NF)
