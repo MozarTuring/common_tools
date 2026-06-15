@@ -52,3 +52,4 @@ ln -s ${HOME}/project/common_tools/gitconfig ~/.gitconfig
 ln -s ${HOME}/Desktop/baidu/zzzjwmresources ~/project/zzzjwmresources
 ln -s ${HOME}/Desktop/baidu/zzzjwmoutput ~/project/zzzjwmoutput
 ln -s ${HOME}/Desktop/baidu/project_nogit ~/project/project_nogit
+ln -s ${HOME}/Desktop/baidu/Education ~/project/Education

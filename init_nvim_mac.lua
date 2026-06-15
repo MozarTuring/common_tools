@@ -1279,6 +1279,8 @@ vim.api.nvim_set_keymap("n", "r", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-r>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-g>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<C-f>", "<Nop>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", ",", "<Nop>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", ";", "<Nop>", { noremap = true, silent = true })
 
 --keymaps
 vim.api.nvim_set_keymap("n", "<2-LeftMouse>", ":call CompileRunGcc('r')<CR>", { noremap = true, silent = true })
