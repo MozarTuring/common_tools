@@ -2328,14 +2328,15 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
 	local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
 	local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
-	vim.fn.writefile({}, log_file)
+	vim.fn.writefile({}, log_file2)
 
 	local cmd = "bash " .. jwMacHome .. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
 		.. " "
 		.. tmpdate
-	vim.fn.writefile({cmd}, log_file2, "a")
-	local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
+	vim.fn.writefile({cmd}, log_file)
+
+	local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
 
 	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 	ToggleAutoRefresh()
