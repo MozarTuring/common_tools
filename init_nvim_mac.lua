@@ -2328,15 +2328,13 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
 	local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
 	local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
-	local lf = io.open(log_file, "w")
-	if lf then
-		lf:close()
-	end
+	vim.fn.writefile({}, log_file)
 
 	local cmd = "bash " .. jwMacHome .. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
 		.. " "
 		.. tmpdate
+	vim.fn.writefile({cmd}, log_file2, "a")
 	local bg_cmd = cmd .. " > " .. vim.fn.shellescape(log_file) .. " 2>&1"
 
 	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
@@ -2363,7 +2361,9 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 					)
 				end
 				vim.defer_fn(function()
-					run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+					run_batch_sequence(template_path, output_path, batch_entries, index + 1) 
+                    -- recursive call
+
 				end, 3000)
 			end)
 		end,
