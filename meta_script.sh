@@ -324,7 +324,8 @@ if [[ $# -lt 3 ]]; then
     if [[ -z ${run_id} ]]; then
         run_dir_remote_tmp=${run_dir_remote}
     else
-        run_dir_remote_tmp=${run_dir_remote}_${run_id}
+        # run_dir_remote_tmp=${run_dir_remote}_${run_id}
+        run_dir_remote_tmp=${run_dir_remote}
     fi
 
     mkdir -p "$local_dir"

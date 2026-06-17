@@ -21,14 +21,14 @@ shift
 
 port_forward=false
 ports_before_file=""
-if [[ "$mode" == "slurm" ]]; then
-    run_dir_pre="$1"
-    shift
-    run_id="$1"
-    shift
-    proj_name="$1"
-    shift
-fi
+# if [[ "$mode" == "slurm" ]]; then
+#     run_dir_pre="$1"
+#     shift
+#     run_id="$1"
+#     shift
+#     proj_name="$1"
+#     shift
+# fi
 
 mkdir -p "$local_dir"
 
