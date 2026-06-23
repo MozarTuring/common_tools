@@ -186,12 +186,14 @@ require_env() {
 EOF
 
     export RUN_BACKGROUND_JWM=1
-    echo """
+    cat >>jwm_configs/remote.sh <<'EOF'
+# change the following based on your running preference
 export RUN_DIR_PRE=${RUN_DIR_PRE}
 export RUN_DIR_DATA=${RUN_DIR_DATA}
 export HF_TOKEN=${HF_TOKEN}
 export RUN_DIR_HOME=${RUN_DIR_HOME}
-"""
+EOF
+
 
     echo "$7, ${PWD}"
     if [[ $7 != "${PWD}" ]]; then
@@ -201,12 +203,6 @@ export RUN_DIR_HOME=${RUN_DIR_HOME}
 
     if [[ $1 == "remotedocker" ]]; then
         cat >>jwm_configs/remote.sh <<'EOF'
-# uncomment the following to define them based on your running preference
-# export RUN_DIR_PRE=
-# export RUN_DIR_DATA=
-# export HF_TOKEN=
-# export RUN_DIR_HOME=
-
 export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
 export PYTHONUNBUFFERED=1
 EOF
