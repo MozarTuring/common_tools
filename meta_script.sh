@@ -172,18 +172,18 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd ${RUN_DIR_PRE}/${RUN_PROJ}
-    cat >jwm_configs/remote.sh <<'EOF'
-set -e
-
-require_env() {
-    for var in "$@"; do
-        if [ -z "${!var}" ]; then
-            echo "Error: $var is not set" >&2
-            exit 1
-        fi
-    done
-}
-EOF
+#     cat >jwm_configs/remote.sh <<'EOF'
+# set -e
+#
+# require_env() {
+#     for var in "$@"; do
+#         if [ -z "${!var}" ]; then
+#             echo "Error: $var is not set" >&2
+#             exit 1
+#         fi
+#     done
+# }
+# EOF
 
     export RUN_BACKGROUND_JWM=1
     cat >>jwm_configs/remote.sh <<'EOF'
