@@ -172,8 +172,10 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd ${RUN_DIR_PRE}/${RUN_PROJ}
-#     cat >jwm_configs/remote.sh <<'EOF'
-# set -e
+cat >jwm_configs/remote.sh <<'EOF'
+set -e
+
+EOF
 #
 # require_env() {
 #     for var in "$@"; do
@@ -183,8 +185,6 @@ _remote_setup() {
 #         fi
 #     done
 # }
-# EOF
-
     export RUN_BACKGROUND_JWM=1
     cat >>jwm_configs/remote.sh <<'EOF'
 # change the following based on your running preference
