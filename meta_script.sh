@@ -186,7 +186,8 @@ EOF
 #     done
 # }
     export RUN_BACKGROUND_JWM=1
-    cat >>jwm_configs/remote.sh <<'EOF'
+    # no '' around EOF, it will expand vars
+    cat >>jwm_configs/remote.sh <<EOF
 # change the following based on your running preference
 export RUN_DIR_PRE="$4"
 export RUN_PROJ="$2"
