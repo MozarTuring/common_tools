@@ -198,8 +198,8 @@ require("lazy").setup({
 				exp.diagnostics = false
 				exp.auto_close = true
 				exp.jump = { close = true }
-				exp.matcher = { fuzzy = false }
-				exp.win = exp.win or {}
+			exp.matcher = { fuzzy = false }
+			exp.win = exp.win or {}
 				exp.win.list = exp.win.list or {}
 				exp.win.list.keys = exp.win.list.keys or {}
 				local keys = exp.win.list.keys
@@ -1294,6 +1294,41 @@ vim.api.nvim_set_keymap("n", "sy", ":lua copy_normal_lines()<CR>", { noremap = t
 vim.cmd("source ~/project/common_tools/init_nvim.vim")
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
+-- Reverse explorer sort: files first, Z-A within each group
+vim.defer_fn(function()
+	local Tree = require("snacks.explorer.tree")
+	local mt = getmetatable(Tree)
+	if mt and mt.__index and mt.__index.walk then
+		local orig_walk = mt.__index.walk
+		mt.__index.walk = function(self, node, fn, opts)
+			local abort = fn(node)
+			if abort ~= nil then
+				return abort
+			end
+			local children = vim.tbl_values(node.children)
+			table.sort(children, function(a, b)
+				if a.dir ~= b.dir then
+					return a.dir
+				end
+				return a.name > b.name
+			end)
+			for c, child in ipairs(children) do
+				child.last = c == #children
+				abort = false
+				if child.dir and (child.open or (opts and opts.all)) then
+					abort = self:walk(child, fn, opts)
+				else
+					abort = fn(child)
+				end
+				if abort then
+					return true
+				end
+			end
+			return false
+		end
+	end
+end, 100)
+
 vim.keymap.set("n", ",f", function()
 	local pickers = Snacks.picker.get({ source = "explorer" })
 	if #pickers > 0 then

@@ -188,10 +188,9 @@ EOF
     export RUN_BACKGROUND_JWM=1
     cat >>jwm_configs/remote.sh <<'EOF'
 # change the following based on your running preference
-export RUN_DIR_PRE=${RUN_DIR_PRE}
-export RUN_DIR_DATA=${RUN_DIR_DATA}
-export HF_TOKEN=${HF_TOKEN}
-export RUN_DIR_HOME=${RUN_DIR_HOME}
+export RUN_DIR_PRE="$4"
+export RUN_PROJ="$2"
+
 EOF
 
 
