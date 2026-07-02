@@ -182,7 +182,13 @@ while [[ ${finish_flag} == 0 ]]; do
         ((total += 5))
         sleep 5
         if ! is_job_running; then
-            sleep 5
+            if [[ "$mode" == "slurm" ]]; then
+                echo "sleep 15"
+                sleep 15
+            else
+                echo "sleep 5"
+                sleep 5
+            fi
             wait_for_ssh
             sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
             [[ "$mode" == "slurm" ]] && print_slurm_summary

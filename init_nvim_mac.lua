@@ -79,7 +79,12 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
 	spec = {
 		-- add LazyVim and import its plugins
-		{ "LazyVim/LazyVim", import = "lazyvim.plugins", version = "15.*", opts = { autoformat = false, colorscheme = "vscode" } },
+		{
+			"LazyVim/LazyVim",
+			import = "lazyvim.plugins",
+			version = "15.*",
+			opts = { autoformat = false, colorscheme = "vscode" },
+		},
 		-- import/override with your plugins
 		{ import = "plugins" },
 		-- Disable LazyVim's gy LSP keymap so we can use it for buffer cycling
@@ -130,9 +135,9 @@ require("lazy").setup({
 		},
 		-- Customize blink.cmp
 		{
-		"saghen/blink.cmp",
-		version = "1.*",
-		opts = function(_, opts)
+			"saghen/blink.cmp",
+			version = "1.*",
+			opts = function(_, opts)
 				-- Show hidden files in path completion
 				opts.sources = opts.sources or {}
 				opts.sources.providers = opts.sources.providers or {}
@@ -169,8 +174,8 @@ require("lazy").setup({
 				opts.explorer = opts.explorer or {}
 				opts.explorer.replace_netrw = false
 
-			opts.picker = opts.picker or {}
-			opts.picker.sources = opts.picker.sources or {}
+				opts.picker = opts.picker or {}
+				opts.picker.sources = opts.picker.sources or {}
 
 				opts.picker.sources.files = opts.picker.sources.files or {}
 				opts.picker.sources.files.follow = true
@@ -198,8 +203,8 @@ require("lazy").setup({
 				exp.diagnostics = false
 				exp.auto_close = true
 				exp.jump = { close = true }
-			exp.matcher = { fuzzy = false }
-			exp.win = exp.win or {}
+				exp.matcher = { fuzzy = false }
+				exp.win = exp.win or {}
 				exp.win.list = exp.win.list or {}
 				exp.win.list.keys = exp.win.list.keys or {}
 				local keys = exp.win.list.keys
@@ -1353,7 +1358,7 @@ vim.keymap.set("n", ",t", function()
 	local curfile = vim.fn.expand("%:p")
 	local project_name = curfile:match(jwMacHome .. "/project/([^/]+)/jwm_configs/")
 	if project_name then
-		local word = vim.fn.expand('<cword>')
+		local word = vim.fn.expand("<cword>")
 		if word and word ~= "" then
 			local output_dir = jwMacHome .. "/project/zzzjwmoutput/" .. project_name .. "/" .. word
 			if directory_exists(output_dir) then
@@ -1534,22 +1539,26 @@ local function start_grip_file_watcher(filepath)
 	end
 	_grip_fs_watcher = w
 	_grip_fs_watched_path = filepath
-	w:start(filepath, {}, vim.schedule_wrap(function(err, _, events)
-		if err then
-			stop_grip_file_watcher()
-			return
-		end
-		refresh_safari_grip()
-		-- Restart watcher on rename (file replaced by atomic write)
-		if events and events.rename then
-			vim.defer_fn(function()
-				if _grip_fs_watched_path == filepath then
-					stop_grip_file_watcher()
-					start_grip_file_watcher(filepath)
-				end
-			end, 200)
-		end
-	end))
+	w:start(
+		filepath,
+		{},
+		vim.schedule_wrap(function(err, _, events)
+			if err then
+				stop_grip_file_watcher()
+				return
+			end
+			refresh_safari_grip()
+			-- Restart watcher on rename (file replaced by atomic write)
+			if events and events.rename then
+				vim.defer_fn(function()
+					if _grip_fs_watched_path == filepath then
+						stop_grip_file_watcher()
+						start_grip_file_watcher(filepath)
+					end
+				end, 200)
+			end
+		end)
+	)
 end
 
 local function open_in_grip()
@@ -2140,8 +2149,8 @@ end tell]],
 	end
 end
 
-local claude_sessions_dir =
-	jwMacHome .. "project/project_nogit/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+local claude_sessions_dir = jwMacHome
+	.. "project/project_nogit/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,
@@ -2332,7 +2341,7 @@ local function generate_from_template(template_path, output_path, overrides)
 		return false, "Key(s) not found in template: " .. table.concat(missing, ", ")
 	end
 
-    os.remove(output_path)
+	os.remove(output_path)
 	f = io.open(output_path, "w")
 	if not f then
 		return false, "Cannot write file: " .. output_path
@@ -2349,72 +2358,132 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end
 
 	local entry = batch_entries[index]
-	vim.notify(
-		string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw),
-		vim.log.levels.INFO
-	)
-
-	local ok, err = generate_from_template(template_path, output_path, vim.deepcopy(entry.overrides))
-	if not ok then
-		vim.notify("Batch stopped: " .. err, vim.log.levels.ERROR)
-		return
-	end
-
+	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. output_path .. " "
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
-	vim.fn.setenv("JWM_CUR_TIME", tmpdate)
-	local prefix = jwMacHome .. "/project/"
-	local rel = output_path:sub(#prefix + 1)
-	local dir_name = rel:match("^([^/]+)")
-	if not dir_name then
-		vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
-		return
+	local full_cmd = cmd_base .. tmpdate
+	vim.fn.setreg("+", full_cmd)
+
+	local prompt_lines = {
+		"",
+		string.format("  Batch [%d/%d]", index, #batch_entries),
+		"",
+		"  " .. entry.raw,
+		"",
+		"  Command: " .. full_cmd,
+		"",
+		"  Enter = run,  s = skip,  q/Esc = cancel remaining",
+	}
+
+	local pbuf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, prompt_lines)
+	vim.api.nvim_set_option_value("modifiable", false, { buf = pbuf })
+	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = pbuf })
+
+	local width = 0
+	for _, l in ipairs(prompt_lines) do
+		if #l > width then
+			width = #l
+		end
 	end
-	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
-	vim.fn.mkdir(log_dir, "p")
-	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
-	local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
-	local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
-	vim.fn.writefile({}, log_file2)
+	width = math.min(math.max(width + 4, 40), vim.o.columns - 4)
+	local height = math.min(#prompt_lines, vim.o.lines - 6)
 
-	local cmd = "bash " .. jwMacHome .. "/project/common_tools/meta_script.sh "
-		.. vim.fn.shellescape(output_path)
-		.. " "
-		.. tmpdate
-	vim.fn.writefile({cmd}, log_file)
-
-	local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
-
-	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-	ToggleAutoRefresh()
-	local log_buf = vim.api.nvim_get_current_buf()
-
-	vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
-		on_exit = function(_, code)
-			vim.schedule(function()
-				if code == 0 then
-					if vim.api.nvim_buf_is_valid(log_buf) then
-						vim.api.nvim_buf_delete(log_buf, { force = true })
-					end
-					os.execute("chmod a-w " .. vim.fn.shellescape(output_path))
-					vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
-					ToggleAutoRefresh()
-					vim.notify(
-						string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries)
-					)
-				else
-					vim.notify(
-						string.format("Batch [%d/%d] failed (exit %d)", index, #batch_entries, code),
-						vim.log.levels.ERROR
-					)
-				end
-				vim.defer_fn(function()
-					run_batch_sequence(template_path, output_path, batch_entries, index + 1) 
-                    -- recursive call
-
-				end, 3000)
-			end)
-		end,
+	local pwin = vim.api.nvim_open_win(pbuf, true, {
+		relative = "editor",
+		row = math.floor((vim.o.lines - height) / 2),
+		col = math.floor((vim.o.columns - width) / 2),
+		width = width,
+		height = height,
+		style = "minimal",
+		border = "rounded",
+		title = string.format(" Batch [%d/%d] ", index, #batch_entries),
+		title_pos = "center",
 	})
+
+	local function close_prompt()
+		if vim.api.nvim_win_is_valid(pwin) then
+			vim.api.nvim_win_close(pwin, true)
+		end
+	end
+
+	vim.keymap.set("n", "<CR>", function()
+		close_prompt()
+
+		local ok, err = generate_from_template(template_path, output_path, vim.deepcopy(entry.overrides))
+		if not ok then
+			vim.notify("Batch stopped: " .. err, vim.log.levels.ERROR)
+			return
+		end
+		vim.notify(string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw), vim.log.levels.INFO)
+		vim.fn.setenv("JWM_CUR_TIME", tmpdate)
+		local prefix = jwMacHome .. "/project/"
+		local rel = output_path:sub(#prefix + 1)
+		local dir_name = rel:match("^([^/]+)")
+		if not dir_name then
+			vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
+			return
+		end
+		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
+		vim.fn.mkdir(log_dir, "p")
+		vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
+		local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
+		local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
+		vim.fn.writefile({}, log_file2)
+
+		local cmd = "bash "
+			.. jwMacHome
+			.. "/project/common_tools/meta_script.sh "
+			.. vim.fn.shellescape(output_path)
+			.. " "
+			.. tmpdate
+		vim.fn.writefile({ cmd }, log_file)
+
+		local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
+
+		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+		ToggleAutoRefresh()
+		local log_buf = vim.api.nvim_get_current_buf()
+
+		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
+			on_exit = function(_, code)
+				vim.schedule(function()
+					if code == 0 then
+						if vim.api.nvim_buf_is_valid(log_buf) then
+							vim.api.nvim_buf_delete(log_buf, { force = true })
+						end
+						os.execute("chmod a-w " .. vim.fn.shellescape(output_path))
+						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
+						ToggleAutoRefresh()
+						vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
+					else
+						vim.notify(
+							string.format("Batch [%d/%d] failed (exit %d)", index, #batch_entries, code),
+							vim.log.levels.ERROR
+						)
+					end
+					vim.defer_fn(function()
+						run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+					end, 3000)
+				end)
+			end,
+		})
+	end, { buffer = pbuf, nowait = true })
+
+	vim.keymap.set("n", "s", function()
+		close_prompt()
+		vim.notify(string.format("Skipped batch [%d/%d]", index, #batch_entries))
+		run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+	end, { buffer = pbuf, nowait = true })
+
+	vim.keymap.set("n", "q", function()
+		close_prompt()
+		vim.notify("Batch cancelled")
+	end, { buffer = pbuf, nowait = true })
+
+	vim.keymap.set("n", "<Esc>", function()
+		close_prompt()
+		vim.notify("Batch cancelled")
+	end, { buffer = pbuf, nowait = true })
 end
 
 vim.keymap.set("n", "fr", function()
@@ -2447,60 +2516,13 @@ vim.keymap.set("n", "fr", function()
 		return
 	end
 
+
 	if #entries == 0 then
 		vim.notify("Batch file is empty (no valid entries)", vim.log.levels.WARN)
 		return
 	end
 
-	local tmpdate = os.date("%Y%m%d_%H%M%S")
-	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. output_path .. " "
-	local preview_lines = { "" }
-	for i, _ in ipairs(entries) do
-		local ts = (i == 1) and tmpdate or "<pending>"
-		preview_lines[#preview_lines + 1] = string.format("  [%d] %s%s", i, cmd_base, ts)
-	end
-	preview_lines[#preview_lines + 1] = ""
-	preview_lines[#preview_lines + 1] = string.format("Total: %d run(s).  Press Enter to run, q to cancel.", #entries)
-
-	vim.fn.setreg("+", cmd_base .. tmpdate)
-
-	local pbuf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, preview_lines)
-	vim.api.nvim_set_option_value("modifiable", false, { buf = pbuf })
-	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = pbuf })
-
-	local width = 0
-	for _, l in ipairs(preview_lines) do
-		if #l > width then width = #l end
-	end
-	width = math.min(math.max(width + 4, 40), vim.o.columns - 4)
-	local height = math.min(#preview_lines, vim.o.lines - 6)
-
-	local pwin = vim.api.nvim_open_win(pbuf, true, {
-		relative = "editor",
-		row = math.floor((vim.o.lines - height) / 2),
-		col = math.floor((vim.o.columns - width) / 2),
-		width = width,
-		height = height,
-		style = "minimal",
-		border = "rounded",
-		title = " Batch Preview ",
-		title_pos = "center",
-	})
-
-	local function close_preview()
-		if vim.api.nvim_win_is_valid(pwin) then
-			vim.api.nvim_win_close(pwin, true)
-		end
-	end
-
-	vim.keymap.set("n", "<CR>", function()
-		close_preview()
-		run_batch_sequence(template_path, output_path, entries, 1)
-	end, { buffer = pbuf, nowait = true })
-
-	vim.keymap.set("n", "q", close_preview, { buffer = pbuf, nowait = true })
-	vim.keymap.set("n", "<Esc>", close_preview, { buffer = pbuf, nowait = true })
+	run_batch_sequence(template_path, output_path, entries, 1)
 end, { noremap = true, silent = true, desc = "Run meta_script from template + .batch file" })
 
 local function f10_run_lines(lines)
@@ -2624,7 +2646,7 @@ vim.keymap.set("v", "<leader>r", function()
 	end)
 end, { noremap = true, silent = true, desc = "Run selected lines in terminal" })
 
-vim.keymap.set({"n", "v"}, "<F12>", function()
+vim.keymap.set({ "n", "v" }, "<F12>", function()
 	local mode = vim.fn.mode()
 	if mode == "v" or mode == "V" or mode == "\22" then
 		vim.cmd([[execute "normal! Vy"]])
