@@ -2359,7 +2359,38 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 
 	local entry = batch_entries[index]
 	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. output_path .. " "
+
+	local ok, err = generate_from_template(template_path, output_path, vim.deepcopy(entry.overrides))
+	if not ok then
+		vim.notify("Batch stopped: " .. err, vim.log.levels.ERROR)
+		return
+	end
+
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
+	vim.fn.setenv("JWM_CUR_TIME", tmpdate)
+	local prefix = jwMacHome .. "/project/"
+	local rel = output_path:sub(#prefix + 1)
+	local dir_name = rel:match("^([^/]+)")
+	if not dir_name then
+		vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
+		return
+	end
+	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
+	vim.fn.mkdir(log_dir, "p")
+	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
+	local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
+	local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
+	vim.fn.writefile({}, log_file2)
+
+	local cmd = "bash "
+		.. jwMacHome
+		.. "/project/common_tools/meta_script.sh "
+		.. vim.fn.shellescape(output_path)
+		.. " "
+		.. tmpdate
+	vim.fn.writefile({ cmd }, log_file)
+
+	local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
 	local full_cmd = cmd_base .. tmpdate
 	vim.fn.setreg("+", full_cmd)
 
@@ -2408,37 +2439,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 
 	vim.keymap.set("n", "<CR>", function()
 		close_prompt()
-
-		local ok, err = generate_from_template(template_path, output_path, vim.deepcopy(entry.overrides))
-		if not ok then
-			vim.notify("Batch stopped: " .. err, vim.log.levels.ERROR)
-			return
-		end
 		vim.notify(string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw), vim.log.levels.INFO)
-		vim.fn.setenv("JWM_CUR_TIME", tmpdate)
-		local prefix = jwMacHome .. "/project/"
-		local rel = output_path:sub(#prefix + 1)
-		local dir_name = rel:match("^([^/]+)")
-		if not dir_name then
-			vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
-			return
-		end
-		local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
-		vim.fn.mkdir(log_dir, "p")
-		vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
-		local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
-		local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
-		vim.fn.writefile({}, log_file2)
-
-		local cmd = "bash "
-			.. jwMacHome
-			.. "/project/common_tools/meta_script.sh "
-			.. vim.fn.shellescape(output_path)
-			.. " "
-			.. tmpdate
-		vim.fn.writefile({ cmd }, log_file)
-
-		local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
 
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		ToggleAutoRefresh()
