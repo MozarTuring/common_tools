@@ -209,5 +209,6 @@
     "python.analysis.reportGeneralTypeIssues": "none",
     "chat.disableAIFeatures": true,
     "workbench.editor.enablePreview": false,
-    "window.autoDetectColorScheme": false
+    "window.autoDetectColorScheme": false,
+    "diffEditor.ignoreTrimWhitespace": false
 }

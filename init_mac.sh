@@ -1,8 +1,14 @@
-# install kitty 
-# install brew
+# install kitty, brew, cursor 
+brew install texlive
 # zsh
-rm ~/.zshrc
-ln -s ${HOME}/project/common_tools/zshrc ~/.zshrc
+# rm ~/.zshrc
+# ln -s ${HOME}/project/common_tools/zshrc ~/.zshrc
+
+
+# use bash rather than zsh
+chsh -s /bin/bash
+
+echo "source ~/project/common_tools/bashrc" >> ${HOME}/.bash_profile
 
 mkdir -p ~/111mjw_tmp_jwm
 alias rm='f() { DIR=~/111mjw_tmp_jwm/trash/$(date +%F%T) && mkdir -p "$DIR" && mv "$@" "$DIR"; }; f'
@@ -52,4 +58,11 @@ ln -s ${HOME}/project/common_tools/gitconfig ~/.gitconfig
 ln -s ${HOME}/Desktop/baidu/zzzjwmresources ~/project/zzzjwmresources
 ln -s ${HOME}/Desktop/baidu/zzzjwmoutput ~/project/zzzjwmoutput
 ln -s ${HOME}/Desktop/baidu/project_nogit ~/project/project_nogit
-ln -s ${HOME}/Desktop/baidu/Education ~/project/Education
+ln -s ${HOME}/Desktop/baidu/Education/Liu ~/project/Liu
+
+# claude
+curl -fsSL https://claude.ai/install.sh | bash
+ln -s ${HOME}/project/project_nogit/claude_settings/.claude ~/.claude
+ln -s ${HOME}/project/project_nogit/claude_settings/.claude.json ~/.claude.json
+
+# latex

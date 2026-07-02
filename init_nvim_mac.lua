@@ -164,7 +164,7 @@ require("lazy").setup({
 			"folke/snacks.nvim",
 			opts = function(_, opts)
 				opts.notifier = opts.notifier or {}
-				opts.notifier.timeout = 500
+				opts.notifier.timeout = 2000
 
 				opts.explorer = opts.explorer or {}
 				opts.explorer.replace_netrw = false
@@ -423,7 +423,7 @@ require("lazy").setup({
 				vim.g.vimtex_compiler_method = "latexmk"
 				vim.g.vimtex_compiler_latexmk = {
 					aux_dir = "latex_compilation",
-					out_dir = "",
+					out_dir = ".",
 					options = {
 						"-synctex=1", -- enable synctex for inverse sync (pdf -> tex)
 						"-interaction=nonstopmode",
@@ -1779,6 +1779,17 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 vim.lsp.enable("pyright")
 vim.lsp.enable("lua_ls")
 
+vim.lsp.config("ltex", {
+	filetypes = { "tex", "latex", "bib" },
+	settings = {
+		ltex = {
+			language = "en-US",
+			additionalRules = { enablePickyRules = true },
+		},
+	},
+})
+vim.lsp.enable("ltex")
+
 vim.keymap.set("n", "gj", vim.lsp.buf.definition, { noremap = true, silent = true })
 
 -- require("Comment").setup({
@@ -2130,7 +2141,7 @@ end tell]],
 end
 
 local claude_sessions_dir =
-	jwMacHome .. "/project/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+	jwMacHome .. "project/project_nogit/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slides</title>
+<script>
+MathJax = {
+  tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: sans-serif; background: #000; }
+.slide {
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+  background: #fff;
+  color: #000;
+  border-bottom: 1px solid #000;
+}
+.slide.active { display: flex; }
+.slide h1 { font-size: 3em; margin-bottom: 0.5em; text-align: center; }
+.slide h2 { font-size: 2em; margin-bottom: 0.5em; text-align: center; }
+.slide p { font-size: 1.4em; margin-bottom: 0.4em; text-align: center; }
+.slide ul { font-size: 1.3em; text-align: left; margin-top: 0.5em; }
+.slide li { margin-bottom: 0.3em; }
+.slide img { max-width: 80%; max-height: 60vh; margin-top: 20px; }
+.nav { position: fixed; bottom: 20px; right: 20px; font-size: 1em; color: #666; }
+</style>
+</head>
+<body>
+
+<!-- Slide 1: Title -->
+<div class="slide active">
+  <h1>Presentation Title</h1>
+  <p>Author Name</p>
+  <p>Date</p>
+</div>
+
+<!-- Slide 2: Text -->
+<div class="slide">
+  <h2>Section Title</h2>
+  <ul>
+    <li>Point one</li>
+    <li>Point two</li>
+    <li>Point three</li>
+  </ul>
+</div>
+
+<!-- Slide 3: Image -->
+<div class="slide">
+  <h2>Image Slide</h2>
+  <img src="path/to/image.png" alt="description">
+</div>
+
+<!-- Slide 4: End -->
+<div class="slide">
+  <h1>Thank You</h1>
+</div>
+
+<div class="nav">
+  <span id="counter"></span>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+let current = 0;
+
+function show(n) {
+  slides[current].classList.remove('active');
+  current = (n + slides.length) % slides.length;
+  slides[current].classList.add('active');
+  document.getElementById('counter').textContent = (current + 1) + ' / ' + slides.length;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') show(current + 1);
+  if (e.key === 'ArrowLeft') show(current - 1);
+});
+
+show(0);
+</script>
+</body>
+</html>
