@@ -249,7 +249,7 @@ if [[ $# -lt 3 ]]; then
         for port in "${ports[@]}"; do
             tmp=$(lsof -t -i :"$port" 2>/dev/null || true)
             # [[ -n $tmp ]] && kill -9 $tmp
-            ssh -o ControlPath=none -f -N -L "${port}:localhost:${port}" \
+            ssh -o ConnectTimeout=5 -o ControlPath=none -f -N -L "${port}:localhost:${port}" \
                 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
                 -o ExitOnForwardFailure=yes "$host" && echo "$port succeed" || echo "Port $port tunnel failed/active"
 
