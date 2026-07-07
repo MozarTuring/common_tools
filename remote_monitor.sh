@@ -153,6 +153,7 @@ sync_remote() {
     local _rsync_out _rsync_rc=0
     _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f" 2>/dev/null |
         rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
+    # $() this will be a child process and it will show the same commnd as parent in ps -ef output
     if [[ $_rsync_rc -ne 0 ]]; then
         echo "$_rsync_out"
         return $_rsync_rc

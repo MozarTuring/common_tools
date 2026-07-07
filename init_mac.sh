@@ -1,4 +1,5 @@
 # install kitty, brew, cursor 
+# brew install pngpaste
 brew install texlive
 # zsh
 # rm ~/.zshrc
@@ -66,3 +67,6 @@ ln -s ${HOME}/project/project_nogit/claude_settings/.claude ~/.claude
 ln -s ${HOME}/project/project_nogit/claude_settings/.claude.json ~/.claude.json
 
 # latex
+# skim setting so that cmd+shift+click on pdf will go to correspoding line in tex file
+# Command: /Users/jinma63/project/common_tools/skim_inverse.sh
+# Arguments: %line "%file"

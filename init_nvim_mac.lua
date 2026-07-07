@@ -235,59 +235,60 @@ require("lazy").setup({
 					desc = "yy=copy name, yb=copy abs path",
 				}
 
-				keys["c"] = {
-					function(self)
-						local pickers = Snacks.picker.get({ source = "explorer" })
-						if #pickers == 0 then
+			keys["c"] = {
+				function(self)
+					local pickers = Snacks.picker.get({ source = "explorer" })
+					if #pickers == 0 then
+						return
+					end
+					local picker = pickers[1]
+					local item = picker:current()
+					if not item or not item.file then
+						return
+					end
+					local sel = vim.tbl_map(Snacks.picker.util.path, picker:selected())
+					if #sel > 0 then
+						local dir = picker:dir()
+						Snacks.picker.util.copy(sel, dir)
+						picker.list:set_selected()
+						picker:find()
+						return
+					end
+					local uv = vim.uv or vim.loop
+					local cursor_dir
+					if vim.fn.isdirectory(item.file) == 1 then
+						cursor_dir = vim.fn.fnamemodify(item.file, ":p"):gsub("/$", "")
+					else
+						cursor_dir = vim.fn.fnamemodify(item.file, ":p:h")
+					end
+					Snacks.input({
+						prompt = "Copy source path into " .. cursor_dir,
+						completion = "file",
+					}, function(value)
+						if not value or value:find("^%s*$") then
 							return
 						end
-						local picker = pickers[1]
-						local item = picker:current()
-						if not item or not item.file then
+						local src = vim.fs.normalize(vim.fn.expand(value))
+						local src_stat = uv.fs_stat(src)
+						if not src_stat then
+							Snacks.notify.warn("Source not found:\n- `" .. src .. "`")
 							return
 						end
-						local sel = vim.tbl_map(Snacks.picker.util.path, picker:selected())
-						if #sel > 0 then
-							local dir = picker:dir()
-							Snacks.picker.util.copy(sel, dir)
-							picker.list:set_selected()
-							picker:find()
+						local src_name = vim.fn.fnamemodify(src, ":t")
+						local to = cursor_dir .. "/" .. src_name
+						if uv.fs_stat(to) then
+							Snacks.notify.warn("File already exists:\n- `" .. to .. "`")
 							return
 						end
-						local fname = vim.fn.fnamemodify(item.file, ":t")
-						local cwd = vim.loop.cwd()
-						Snacks.input({
-							prompt = "Copy " .. fname .. " to (relative to cwd)",
-							completion = "file",
-						}, function(value)
-							if not value or value:find("^%s*$") then
-								return
-							end
-							local uv = vim.uv or vim.loop
-							local to
-							if value:sub(1, 1) == "/" or value:sub(1, 1) == "~" then
-								to = vim.fs.normalize(vim.fn.expand(value))
-							else
-								to = vim.fs.normalize(cwd .. "/" .. value)
-							end
-							local stat = uv.fs_stat(to)
-							if stat and stat.type == "directory" then
-								to = to .. "/" .. fname
-							end
-							if uv.fs_stat(to) then
-								Snacks.notify.warn("File already exists:\n- `" .. to .. "`")
-								return
-							end
-							local to_dir = vim.fs.dirname(to)
-							if not uv.fs_stat(to_dir) then
-								vim.fn.mkdir(to_dir, "p")
-							end
-							Snacks.picker.util.copy_path(item.file, to)
-							picker:find()
-						end)
-					end,
-					desc = "Copy file to destination",
-				}
+						Snacks.picker.util.copy_path(src, to)
+						local Tree = require("snacks.explorer.tree")
+						local Actions = require("snacks.explorer.actions")
+						Tree:open(to)
+						Actions.update(picker, { target = to, refresh = true })
+					end)
+				end,
+				desc = "Copy source into cursor dir",
+			}
 
 				keys["<cr>"] = {
 					function()
@@ -420,15 +421,18 @@ require("lazy").setup({
 		{ "HakonHarnes/img-clip.nvim" },
 		{
 			"lervag/vimtex",
-			init = function()
-				vim.g.vimtex_quickfix_mode = 0
-				vim.g.vimtex_view_method = "skim"
+		init = function()
+			vim.fn.serverstart("/tmp/nvim_vimtex")
+			vim.g.vimtex_quickfix_mode = 0
+			vim.g.vimtex_view_method = "skim"
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
 				vim.g.vimtex_view_skim_activate = 1 -- bring Skim to front on VimtexView
 				vim.g.vimtex_compiler_method = "latexmk"
+				local fixed_out = "/Users/jinma63/project/zzzjwmoutput/latex_compilation"
+				vim.fn.mkdir(fixed_out, "p")
 				vim.g.vimtex_compiler_latexmk = {
-					aux_dir = "latex_compilation",
-					out_dir = ".",
+					aux_dir = fixed_out,
+					out_dir = fixed_out,
 					options = {
 						"-synctex=1", -- enable synctex for inverse sync (pdf -> tex)
 						"-interaction=nonstopmode",
@@ -440,20 +444,14 @@ require("lazy").setup({
 				vim.api.nvim_create_autocmd("User", {
 					pattern = "VimtexEventCompileSuccess",
 					callback = function()
+						vim.fn.system({
+							"osascript", "-e",
+							'tell application "Skim" to tell every document to revert',
+						})
 						vim.cmd("VimtexView")
 
-						local tex_file = vim.fn.expand("%:p")
-						local tex_dir = vim.fn.fnamemodify(tex_file, ":h")
-						local base_name = vim.fn.fnamemodify(tex_file, ":t:r")
-						local synctex = tex_dir .. "/" .. base_name .. ".synctex.gz"
-						if vim.fn.filereadable(synctex) == 1 then
-							local dest = tex_dir .. "/latex_compilation"
-							vim.fn.mkdir(dest, "p")
-							os.rename(synctex, dest .. "/" .. base_name .. ".synctex.gz")
-						end
-
 						-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
-						local handle = io.popen('ls "' .. tex_dir .. '"/pdflatex*.fls 2>/dev/null')
+						local handle = io.popen('ls "' .. fixed_out .. '"/pdflatex*.fls 2>/dev/null')
 						if handle then
 							for f in handle:lines() do
 								os.remove(f)
@@ -467,13 +465,68 @@ require("lazy").setup({
 					end,
 				})
 
-				-- Close Skim when quitting Neovim
-				vim.api.nvim_create_autocmd("VimLeavePre", {
-					callback = function()
-						vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
-					end,
-				})
-			end,
+			-- Close Skim when quitting Neovim
+			vim.api.nvim_create_autocmd("VimLeavePre", {
+				callback = function()
+					vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
+				end,
+			})
+
+			-- Reload buffer when tex file is modified on disk (e.g. by external editor).
+			-- latexmk continuous mode (\ll) watches the file on disk and recompiles
+			-- automatically; we only need checktime so neovim picks up the new content.
+			local _tex_watchers = {}
+
+			local function stop_tex_watcher(path)
+				local w = _tex_watchers[path]
+				if w then
+					pcall(function() w:stop() end)
+					pcall(function() w:close() end)
+					_tex_watchers[path] = nil
+				end
+			end
+
+			local function start_tex_watcher(buf, path)
+				if _tex_watchers[path] then return end
+				local w = vim.uv.new_fs_event()
+				if not w then return end
+				_tex_watchers[path] = w
+				w:start(path, {}, vim.schedule_wrap(function(err, _, events)
+					if err then
+						stop_tex_watcher(path)
+						return
+					end
+					if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
+						vim.api.nvim_buf_call(buf, function()
+							vim.cmd("checktime")
+						end)
+					end
+					if events and events.rename then
+						vim.defer_fn(function()
+							stop_tex_watcher(path)
+							if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
+								start_tex_watcher(buf, path)
+							end
+						end, 300)
+					end
+				end))
+			end
+
+			vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+				pattern = "*.tex",
+				callback = function(ev)
+					local path = vim.api.nvim_buf_get_name(ev.buf)
+					if path ~= "" then start_tex_watcher(ev.buf, path) end
+				end,
+			})
+
+			vim.api.nvim_create_autocmd("BufDelete", {
+				pattern = "*.tex",
+				callback = function(ev)
+					stop_tex_watcher(vim.api.nvim_buf_get_name(ev.buf))
+				end,
+			})
+		end,
 		},
 		{
 			"Mofiqul/vscode.nvim",
@@ -1647,6 +1700,13 @@ require("img-clip").setup({
 		dir_path = "jw_md_imgs",
 		relative_to_current_file = true,
 		prompt_for_file_name = false,
+	},
+	filetypes = {
+		tex = {
+			dir_path = "figures",
+			relative_to_current_file = true,
+			template = "\\includegraphics[width=0.85\\linewidth]{$FILE_PATH}",
+		},
 	},
 })
 
