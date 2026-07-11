@@ -1637,6 +1637,21 @@ local function open_in_grip()
 	start_grip_file_watcher(file)
 end
 
+vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave" }, {
+	pattern = "*.tex",
+	callback = function(ev)
+		local buf = ev.buf
+		if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].modified and vim.bo[buf].buftype == "" then
+			local name = vim.api.nvim_buf_get_name(buf)
+			if name ~= "" and vim.fn.filereadable(name) == 1 then
+				vim.api.nvim_buf_call(buf, function()
+					vim.cmd("silent w")
+				end)
+			end
+		end
+	end,
+})
+
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "markdown",
 	callback = function()
@@ -1704,8 +1719,9 @@ require("img-clip").setup({
 	filetypes = {
 		tex = {
 			dir_path = "figures",
-			relative_to_current_file = true,
-			template = "\\includegraphics[width=0.85\\linewidth]{$FILE_PATH}",
+			relative_to_current_file = false,
+			use_absolute_path = true,
+			template = "\\includegraphics[width=\\linewidth, height=0.5\\textheight, keepaspectratio]{$FILE_PATH}",
 		},
 	},
 })
