@@ -172,7 +172,7 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd ${RUN_DIR_PRE}/${RUN_PROJ}
-cat >jwm_configs/remote.sh <<'EOF'
+cat >jwm_configs/remote_tmps/remote.sh <<'EOF'
 set -e
 
 require_env() {
@@ -188,7 +188,7 @@ EOF
 
     export RUN_BACKGROUND_JWM=1
     # no '' around EOF, it will expand vars
-    cat >>jwm_configs/remote.sh <<EOF
+    cat >>jwm_configs/remote_tmps/remote.sh <<EOF
 # change the following based on your running preference
 export RUN_DIR_PRE="$4"
 export RUN_PROJ="$2"
@@ -203,14 +203,14 @@ EOF
     fi
 
     if [[ $1 == "remotedocker" ]]; then
-        cat >>jwm_configs/remote.sh <<'EOF'
+        cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
 export PYTHONUNBUFFERED=1
 EOF
     fi
 
     if [[ $1 == "remotedockercompose" ]]; then
-        cat >>jwm_configs/remote.sh <<'EOF'
+        cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 # uncomment the following to define them based on your running preference
 # export HF_TOKEN="fill in your huggingface token"
 
@@ -233,8 +233,8 @@ EOF
     rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
-    cat jwm_configs/${_manual_file} >>jwm_configs/remote.sh
-    sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/remote.sh
+    cat jwm_configs/${_manual_file} >>jwm_configs/remote_tmps/remote.sh
+    sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/remote_tmps/remote.sh
 
 }
 
@@ -340,8 +340,8 @@ if [[ $# -lt 3 ]]; then
     ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
     # The tee "$nohup_log" writes the SSH/docker output to nohup_monitor.log and also passes it to stdout
 
-    rsync -av "$SERVER_NAME":"${run_dir_remote_tmp}/jwm_configs/remote.sh" "./${_project_name}/jwm_configs/"
-    echo "remote.sh updated"
+    rsync -av "$SERVER_NAME":"${run_dir_remote_tmp}/jwm_configs/remote_tmps/" "./${_project_name}/jwm_configs/remote_tmps/"
+    echo "remote_tmps/ updated"
 
     _ssh_rc=${PIPESTATUS[0]}
     if [[ $_ssh_rc -ne 0 ]]; then
@@ -402,7 +402,7 @@ elif [[ "$1" == "remote"* ]]; then
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
         rm job-*.out || echo "no job-*.out"
-        cat >>jwm_configs/remote.sh <<'EOF'
+        cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 
 if [[ -z "${SBATCH_OUT:-}" ]]; then
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
@@ -422,24 +422,24 @@ echo ${JWM_CONDAENV}
 conda activate ${JWM_CONDAENV}
 fi
 
-""" | cat - ${JWM_SLURM_FILE} > tmp_${JWM_SLURM_FILE}
+""" | cat - ${JWM_SLURM_FILE} > remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=job-%j.out --error=job-%j.out"&&
 EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
         if [[ "${5}" == "berzeliusampere" ]]; then
-            cat >>jwm_configs/remote.sh <<'EOF'
+            cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --signal=TERM@90 -A berzelius-2026-50 --partition=berzelius"
 EOF
 
         elif [[ "${5}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
 
-            cat >>jwm_configs/remote.sh <<'EOF'
+            cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
 EOF
         else
-            cat >>jwm_configs/remote.sh <<'EOF'
+            cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
         if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
             export JWM_GPU_TYPE=A40
             echo "A40 available"
@@ -467,23 +467,23 @@ EOF
 EOF
 
         fi
-        cat >>jwm_configs/remote.sh <<'EOF'
+        cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 
-echo ${sbatch_args} tmp_${JWM_SLURM_FILE}
-SBATCH_OUT=$(sbatch ${sbatch_args} tmp_${JWM_SLURM_FILE}) || {
+echo ${sbatch_args} remote_tmps/${JWM_SLURM_FILE}
+SBATCH_OUT=$(sbatch ${sbatch_args} remote_tmps/${JWM_SLURM_FILE}) || {
     return 1 2>/dev/null
     exit 1
 }
 fi
 EOF
 
-        echo "start run remote.sh"
-        source jwm_configs/remote.sh
+        echo "start run remote_tmps/remote.sh"
+        source jwm_configs/remote_tmps/remote.sh
         JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         echo "$JWM_JOB_ID" >${remote_job_id_file}
 
     elif [[ "$1" == "remotedockercompose" ]]; then
-        cat >>jwm_configs/remote.sh <<'EOF'
+        cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
     docker compose ${DOCKER_ARGS} up --force-recreate -d
 else
@@ -491,9 +491,9 @@ else
 fi
 EOF
 
-        echo "start run remote.sh"
-        cat jwm_configs/remote.sh
-        source jwm_configs/remote.sh
+        echo "start run remote_tmps/remote.sh"
+        cat jwm_configs/remote_tmps/remote.sh
+        source jwm_configs/remote_tmps/remote.sh
         cd "$4"/"$2"
         echo "current dir ${PWD}"
         # cd - >/dev/null
@@ -618,7 +618,7 @@ EOF
         done
 
     elif [[ "$1" == "remotedocker" ]]; then
-        cat >>jwm_configs/remote.sh <<'EOF'
+        cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
     docker run "${DOCKER_RUN_ARGS[@]}"
 else
@@ -626,7 +626,7 @@ else
 fi
 EOF
 
-        source jwm_configs/remote.sh
+        source jwm_configs/remote_tmps/remote.sh
         echo "docker rm -f ${JWM_JOB_ID}"
         echo "$JWM_JOB_ID" >${remote_job_id_file}
         nohup bash -c "docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp remote_job_id.txt" >/dev/null 2>&1 &
@@ -634,10 +634,10 @@ EOF
         echo "docker_container_started"
 
     elif [[ "$1" == "remotenone" ]]; then
-        cat >>jwm_configs/remote.sh <<'EOF'
+        cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 "${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
 EOF
-        source jwm_configs/remote.sh
+        source jwm_configs/remote_tmps/remote.sh
         cd $7/
         export JWM_JOB_ID=$!
         disown ${JWM_JOB_ID}
