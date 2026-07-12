@@ -35,6 +35,23 @@ sync_and_commit_repo() {
     return $_sync_rc
 }
 
+common_port_forward() {
+    set1=("greatrawr" 18900)
+    set2=("ferragon" 9800 3031)
+    for array_ref in set1[@] set2[@]; do
+        current=("${!array_ref}")
+        host="${current[0]}"
+        ports=("${current[@]:1}")
+        for port in "${ports[@]}"; do
+            tmp=$(lsof -t -i :"$port" 2>/dev/null || true)
+            # [[ -n $tmp ]] && kill -9 $tmp
+            ssh -o ConnectTimeout=$1 -o ControlPath=none -f -N -L "${port}:localhost:${port}" \
+                -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
+                -o ExitOnForwardFailure=yes "$host" && echo "$port succeed" || echo "Port $port tunnel failed/active"
+
+        done
+    done
+}
 if false; then
     sudo chmod -R a+rwX /data/huggingface_cache
     sudo setfacl -R -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
@@ -242,21 +259,7 @@ EOF
 if [[ $# -lt 3 ]]; then
     echo "JWM_CUR_TIME, ${JWM_CUR_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
-    set1=("greatrawr" 18900)
-    set2=("ferragon" 9800 3031)
-    for array_ref in set1[@] set2[@]; do
-        current=("${!array_ref}")
-        host="${current[0]}"
-        ports=("${current[@]:1}")
-        for port in "${ports[@]}"; do
-            tmp=$(lsof -t -i :"$port" 2>/dev/null || true)
-            # [[ -n $tmp ]] && kill -9 $tmp
-            ssh -o ConnectTimeout=5 -o ControlPath=none -f -N -L "${port}:localhost:${port}" \
-                -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
-                -o ExitOnForwardFailure=yes "$host" && echo "$port succeed" || echo "Port $port tunnel failed/active"
-
-        done
-    done
+    # common_port_forward 10
     _abspath="$1"
     echo "abspath, $_abspath"
     _filename=$(basename "$_abspath")
@@ -408,8 +411,7 @@ elif [[ "$1" == "remote"* ]]; then
 
 if [[ -z "${SBATCH_OUT:-}" ]]; then
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
-echo """
-#!/bin/bash
+echo '#!/bin/bash
 
 (while true; do echo "nvidia-smi"; nvidia-smi; sleep 300; done) &
 
@@ -424,7 +426,7 @@ echo ${JWM_CONDAENV}
 conda activate ${JWM_CONDAENV}
 fi
 
-""" | cat - ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
+' | cat - ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=job-%j.out --error=job-%j.out"&&
 EOF
