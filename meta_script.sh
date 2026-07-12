@@ -190,7 +190,7 @@ _remote_setup() {
     _manual_file="${6}"
     cd ${RUN_DIR_PRE}/${RUN_PROJ}
     mkdir -p jwm_configs/remote_tmps
-cat >jwm_configs/remote_tmps/remote.sh <<'EOF'
+    cat >jwm_configs/remote_tmps/remote.sh <<'EOF'
 set -e
 
 require_env() {
@@ -203,7 +203,6 @@ done
 }
 EOF
 
-
     export RUN_BACKGROUND_JWM=1
     # no '' around EOF, it will expand vars
     cat >>jwm_configs/remote_tmps/remote.sh <<EOF
@@ -212,7 +211,6 @@ export RUN_DIR_PRE="$4"
 export RUN_PROJ="$2"
 
 EOF
-
 
     echo "$7, ${PWD}"
     if [[ $7 != "${PWD}" ]]; then
@@ -235,7 +233,7 @@ EOF
 EOF
     fi
     # if [[ $1 == "remotedocker" ]]; then
-    #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${_manual_file}" | tail -1)"
+    #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/remote_tmps/${_manual_file}" | tail -1)"
     #     clearflag=0
     #     for _ctn in "${JWM_CONTAINERS[@]}"; do
     #         echo "removing ${_ctn}"
@@ -251,7 +249,7 @@ EOF
     rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
-    cat jwm_configs/${_manual_file} >>jwm_configs/remote_tmps/remote.sh
+    cat jwm_configs/remote_tmps/${_manual_file} >>jwm_configs/remote_tmps/remote.sh
     sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/remote_tmps/remote.sh
 
 }
@@ -260,16 +258,15 @@ if [[ $# -lt 3 ]]; then
     echo "JWM_CUR_TIME, ${JWM_CUR_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
     # common_port_forward 10
-    _abspath="$1"
-    echo "abspath, $_abspath"
-    _filename=$(basename "$_abspath")
-    echo "filename, $_filename"
-    _project_dir=$(dirname "$(dirname "$_abspath")")
+    echo "abspath, $1"
+    _manual_file=$(basename "$1")
+    echo "filename, $_manual_file"
+    _project_dir=$(cd "$(dirname "$1")"/../../ && pwd)
+
     _project_name=$(basename "$_project_dir")
     echo "project_name, $_project_name"
-    _stem="${_filename%.sh}"
-    _mode="${_stem%%_*}"
-    _server=$(grep '^JWM_SERVER_NAME=' "$_abspath" | tail -1 | sed "s/^JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
+    _mode="${_manual_file%.sh}"
+    _server=$(grep '^JWM_SERVER_NAME=' "$1" | tail -1 | sed "s/^JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
 
     # if [[ $# -eq 2 ]]; then
     #     _server=$2
@@ -278,7 +275,7 @@ if [[ $# -lt 3 ]]; then
     case "$_mode" in
     remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
     *)
-        echo "ERROR: unknown mode '$_mode' from filename '$_filename'"
+        echo "ERROR: unknown mode '$_mode' from filename '$_manual_file'"
         exit 1
         ;;
     esac
@@ -288,7 +285,6 @@ if [[ $# -lt 3 ]]; then
         exit 1
     fi
     export SERVER_NAME="$_server"
-    _manual_file="$_filename"
     if [[ "${SERVER_NAME}" == "juwels" || "${SERVER_NAME}" == "jusuf" ]]; then
         export run_dir_pre=/p/project1/trustllm-eu/mao4
     elif [[ ${SERVER_NAME} == "custodian@"* ]]; then

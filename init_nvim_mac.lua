@@ -2463,6 +2463,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. vim.fn.shellescape(output_path)
 		.. " "
 		.. tmpdate
+    -- here shellescape is to correct interpret path with space
 	vim.fn.writefile({ cmd }, log_file)
 
 	local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
@@ -2578,7 +2579,7 @@ vim.keymap.set("n", "fr", function()
 	local stem = vim.fn.fnamemodify(filepath, ":t:r")
 
 	local template_path = dir .. "/" .. stem .. "_template.sh"
-	local output_path = dir .. "/" .. stem .. ".sh"
+	local output_path = dir .. "/remote_tmps/" .. stem .. ".sh"
 	local batch_file = filepath
 
 	if not file_exists(template_path) then
