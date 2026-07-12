@@ -172,6 +172,7 @@ _remote_setup() {
     fi
     _manual_file="${6}"
     cd ${RUN_DIR_PRE}/${RUN_PROJ}
+    mkdir -p jwm_configs/remote_tmps
 cat >jwm_configs/remote_tmps/remote.sh <<'EOF'
 set -e
 
@@ -340,6 +341,7 @@ if [[ $# -lt 3 ]]; then
     ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp}" 2>&1 | tee "$nohup_log"
     # The tee "$nohup_log" writes the SSH/docker output to nohup_monitor.log and also passes it to stdout
 
+    mkdir -p ./${_project_name}/jwm_configs/remote_tmps
     rsync -av "$SERVER_NAME":"${run_dir_remote_tmp}/jwm_configs/remote_tmps/" "./${_project_name}/jwm_configs/remote_tmps/"
     echo "remote_tmps/ updated"
 
