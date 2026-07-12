@@ -175,16 +175,17 @@ _remote_setup() {
 cat >jwm_configs/remote.sh <<'EOF'
 set -e
 
+require_env() {
+for var in "$@"; do
+    if [ -z "${!var}" ]; then
+        echo "Error: $var is not set" >&2
+        exit 1
+    fi
+done
+}
 EOF
-#
-# require_env() {
-#     for var in "$@"; do
-#         if [ -z "${!var}" ]; then
-#             echo "Error: $var is not set" >&2
-#             exit 1
-#         fi
-#     done
-# }
+
+
     export RUN_BACKGROUND_JWM=1
     # no '' around EOF, it will expand vars
     cat >>jwm_configs/remote.sh <<EOF
@@ -403,10 +404,25 @@ elif [[ "$1" == "remote"* ]]; then
         cat >>jwm_configs/remote.sh <<'EOF'
 
 if [[ -z "${SBATCH_OUT:-}" ]]; then
-if [[ -z ${JWM_SLURM_FILE} || -z ${JWM_RUN_TIME} || -z ${JWM_NODES_NUM} ]]; then
-    echo "not defined"
-    exit
+require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
+echo """
+#!/bin/bash
+
+(while true; do echo "nvidia-smi"; nvidia-smi; sleep 300; done) &
+
+module --force purge
+if [[ -n "${JWM_MODULES}" ]];then
+    echo ${JWM_MODULES}
+    module load ${JWM_MODULES}
 fi
+
+if [[ -n "${JWM_CONDAENV}" ]];then
+echo ${JWM_CONDAENV}
+conda activate ${JWM_CONDAENV}
+fi
+
+""" | cat - ${JWM_SLURM_FILE} > tmp_${JWM_SLURM_FILE}
+
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=job-%j.out --error=job-%j.out"&&
 EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
@@ -452,8 +468,8 @@ EOF
         fi
         cat >>jwm_configs/remote.sh <<'EOF'
 
-echo ${sbatch_args} ${JWM_SLURM_FILE}
-SBATCH_OUT=$(sbatch ${sbatch_args} ${JWM_SLURM_FILE}) || {
+echo ${sbatch_args} tmp_${JWM_SLURM_FILE}
+SBATCH_OUT=$(sbatch ${sbatch_args} tmp_${JWM_SLURM_FILE}) || {
     return 1 2>/dev/null
     exit 1
 }

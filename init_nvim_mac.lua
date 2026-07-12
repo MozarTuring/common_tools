@@ -2001,16 +2001,15 @@ vim.defer_fn(function()
 		{ noremap = true, silent = true, desc = "Previous buffer" }
 	)
 	vim.keymap.set("n", "gy", "<cmd>BufferLineCycleNext<CR>", { noremap = true, silent = true, desc = "Next buffer" })
-	pcall(vim.keymap.del, { "n", "i", "x", "s" }, "<C-s>")
 	vim.keymap.set(
 		"v",
-		"<C-s>",
+		"<leader>s",
 		":call MyReplace()<CR>",
 		{ noremap = true, silent = true, desc = "Search and replace selection" }
 	)
 	vim.keymap.set(
 		"n",
-		"<C-s>",
+		"<leader>s",
 		":call MyReplaceNormal()<CR>",
 		{ noremap = true, silent = true, desc = "Search and replace (prompt both)" }
 	)
