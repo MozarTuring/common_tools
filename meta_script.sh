@@ -424,7 +424,7 @@ echo ${JWM_CONDAENV}
 conda activate ${JWM_CONDAENV}
 fi
 
-""" | cat - ${JWM_SLURM_FILE} > remote_tmps/${JWM_SLURM_FILE}
+""" | cat - ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=job-%j.out --error=job-%j.out"&&
 EOF
@@ -471,8 +471,8 @@ EOF
         fi
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 
-echo ${sbatch_args} remote_tmps/${JWM_SLURM_FILE}
-SBATCH_OUT=$(sbatch ${sbatch_args} remote_tmps/${JWM_SLURM_FILE}) || {
+echo ${sbatch_args} jwm_configs/remote_tmps/${JWM_SLURM_FILE}
+SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote_tmps/${JWM_SLURM_FILE}) || {
     return 1 2>/dev/null
     exit 1
 }
