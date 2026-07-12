@@ -310,7 +310,7 @@ if [[ $# -lt 3 ]]; then
     sync_and_commit_repo "common_tools"
     sync_and_commit_repo "$_project_name"
 
-    rsync -a ./tmp_data/ "$SERVER_NAME":${run_dir_remote}/remote_data/${_project_name}/
+    rsync -a ./tmp_data/ "$SERVER_NAME":${run_dir_pre}/remote_data/${_project_name}/
     rm -rf ./tmp_data/*
 
     echo ${last_commit}
