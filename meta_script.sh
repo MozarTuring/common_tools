@@ -621,6 +621,9 @@ EOF
 
     elif [[ "$1" == "remotedocker" ]]; then
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
+if [[ ${image_name} == "*notebook" ]]; then
+    DOCKER_RUN_ARGS=(--gpus all --ipc host --network host -v "${JWM_DATA_DIR}":/data -v ./results:/app/results ${image_name})
+fi
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
     docker run "${DOCKER_RUN_ARGS[@]}"
 else
