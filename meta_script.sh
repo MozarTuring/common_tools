@@ -621,13 +621,12 @@ EOF
 
     elif [[ "$1" == "remotedocker" ]]; then
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
-echo "image_name, ${image_name}"
-if [[ ${image_name} == *"notebook" ]]; then
-    docker rm -f ${image_name}
+if [[ ${notebook_flag} == 1 ]]; then
+    docker rm -f ${image_name}_notebook
     echo "ARGS_AFTER_ENTRY:"
     echo "${ARGS_AFTER_ENTRY[@]}"
     sleep 10
-    DOCKER_RUN_ARGS=(--name "${image_name}" -p 18889:18889 "${DOCKER_RUN_ARGS[@]}")
+    DOCKER_RUN_ARGS=(--name "${image_name}_notebook" -p 18889:18889 --entrypoint /bin/bash "${DOCKER_RUN_ARGS[@]}" -c "jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root")
 
 else
     DOCKER_RUN_ARGS=("${DOCKER_RUN_ARGS[@]}" "${ARGS_AFTER_ENTRY[@]}")
