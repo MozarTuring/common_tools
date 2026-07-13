@@ -113,11 +113,8 @@ is_job_running() {
     if [[ $rc -ne 0 && $rc -ne 1 ]]; then
         return 0
     fi
-    # if [[ "$mode" == "slurm" ]]; then
-    #     [[ -n "$output" ]]
-    # else
-    #     [[ "$output" == "true" ]]
-    # fi
+    [[ "$output" == "true" ]]
+    # if output is true then return 0, which indicated success status; otherwise, return 1, which indicates fail status
 }
 
 
