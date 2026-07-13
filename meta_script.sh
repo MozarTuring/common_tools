@@ -409,7 +409,7 @@ if [[ -z "${SBATCH_OUT:-}" ]]; then
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
 echo '#!/bin/bash
 
-(while true; do echo "nvidia-smi"; nvidia-smi; sleep 300; done) &
+(while true; do echo "CPU Usage: $(vmstat 1 2 | tail -1 | awk '{print 100 - $15}')% | Total CPUs: $(nproc)"; nvidia-smi; sleep 300; done) &
 
 module --force purge
 if [[ -n "${JWM_MODULES}" ]];then

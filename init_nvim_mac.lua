@@ -168,8 +168,12 @@ require("lazy").setup({
 		{
 			"folke/snacks.nvim",
 			opts = function(_, opts)
-				opts.notifier = opts.notifier or {}
-				opts.notifier.timeout = 2000
+			opts.notifier = opts.notifier or {}
+			opts.notifier.timeout = 2000
+			opts.styles = opts.styles or {}
+			opts.styles.notification = opts.styles.notification or {}
+			opts.styles.notification.wo = opts.styles.notification.wo or {}
+			opts.styles.notification.wo.wrap = true
 
 				opts.explorer = opts.explorer or {}
 				opts.explorer.replace_netrw = false
@@ -2586,6 +2590,8 @@ vim.keymap.set("n", "fr", function()
 		vim.notify("No template file found: " .. template_path, vim.log.levels.WARN)
 		return
 	end
+
+	vim.fn.mkdir(vim.fn.fnamemodify(output_path, ":h"), "p")
 
 	local entries, parse_err = parse_batch_file(batch_file)
 	if not entries then
