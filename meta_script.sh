@@ -35,23 +35,6 @@ sync_and_commit_repo() {
     return $_sync_rc
 }
 
-common_port_forward() {
-    set1=("greatrawr" 18900)
-    set2=("ferragon" 9800 3031)
-    for array_ref in set1[@] set2[@]; do
-        current=("${!array_ref}")
-        host="${current[0]}"
-        ports=("${current[@]:1}")
-        for port in "${ports[@]}"; do
-            tmp=$(lsof -t -i :"$port" 2>/dev/null || true)
-            # [[ -n $tmp ]] && kill -9 $tmp
-            ssh -o ConnectTimeout=$1 -o ControlPath=none -f -N -L "${port}:localhost:${port}" \
-                -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
-                -o ExitOnForwardFailure=yes "$host" && echo "$port succeed" || echo "Port $port tunnel failed/active"
-
-        done
-    done
-}
 if false; then
     sudo chmod -R a+rwX /data/huggingface_cache
     sudo setfacl -R -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
@@ -159,13 +142,12 @@ dockerfile_to_def() {
 }
 
 _remote_setup() {
-    echo "$1, $2, $3, $4, $5, $6, $7"
+    echo "$1, $2, commit id $3, $4, $5, $6, $7"
     export RUN_DIR_PRE="$4"
     export RUN_DIR_HOME="$(dirname "${RUN_DIR_PRE}")"
     source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
     export RUN_PROJ="$2"
     export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/"${RUN_PROJ%_*}"
-    export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
 
     if [[ -d /data && $1 == "remotedocker"* ]]; then
@@ -257,7 +239,6 @@ EOF
 if [[ $# -lt 3 ]]; then
     echo "JWM_CUR_TIME, ${JWM_CUR_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
-    # common_port_forward 10
     echo "abspath, $1"
     _manual_file=$(basename "$1")
     echo "filename, $_manual_file"
@@ -302,6 +283,8 @@ if [[ $# -lt 3 ]]; then
     fi
 
     cd ~/project/
+    bash common_tools/common_port_forward.sh
+
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
 
     local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
