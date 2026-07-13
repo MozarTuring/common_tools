@@ -625,12 +625,15 @@ echo "image_name, ${image_name}"
 if [[ ${image_name} == *"notebook" ]]; then
     docker rm -f ${image_name}
     sleep 10
-    DOCKER_RUN_ARGS=(--name ${image_name} --gpus all --ipc host -p 18889:18889 -v "${JWM_DATA_DIR}":/data -v ./results:/app/results ${image_name})
-fi
-if [ -z ${RUN_BACKGROUND_JWM} ]; then
-    docker run "${DOCKER_RUN_ARGS[@]}"
+    DOCKER_RUN_ARGS="--name ${image_name} -p 18889:18889 ${DOCKER_RUN_ARGS[@]}"
 else
-    export JWM_JOB_ID=$(docker run -d "${DOCKER_RUN_ARGS[@]}")
+    DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS[@]} ${ARGS_AFTER_ENTRY[@]}"
+fi
+echo "docker run args, ${DOCKER_RUN_ARGS}"
+if [ -z ${RUN_BACKGROUND_JWM} ]; then
+    docker run "${DOCKER_RUN_ARGS}"
+else
+    export JWM_JOB_ID=$(docker run -d "${DOCKER_RUN_ARGS}")
 fi
 EOF
 
