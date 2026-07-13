@@ -624,6 +624,8 @@ EOF
 echo "image_name, ${image_name}"
 if [[ ${image_name} == *"notebook" ]]; then
     docker rm -f ${image_name}
+    echo "ARGS_AFTER_ENTRY:"
+    echo "${ARGS_AFTER_ENTRY[@]}"
     sleep 10
     DOCKER_RUN_ARGS=(--name "${image_name}" -p 18889:18889 "${DOCKER_RUN_ARGS[@]}")
 
