@@ -164,7 +164,7 @@ _remote_setup() {
     export RUN_DIR_HOME="$(dirname "${RUN_DIR_PRE}")"
     source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
     export RUN_PROJ="$2"
-    export RUN_DIR_DATA=${RUN_DIR_PRE}/remote_data/"${RUN_PROJ%_*}"
+    export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/"${RUN_PROJ%_*}"
     export JWM_COMMIT_ID_L="$3"
     export SERVER_NAME="${5##*@}"
 
