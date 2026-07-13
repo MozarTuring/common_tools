@@ -108,46 +108,18 @@ wait_for_ssh() {
 
 is_job_running() {
     local output rc
-    if [[ "$mode" == "slurm" ]]; then
-        output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue --job=${job_id} --noheader 2>/dev/null" 2>/dev/null)
-        rc=$?
-    elif [[ "$mode" == "docker" || "$mode" == "none" ]]; then
-        output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "test -f ${remote_dir}/remote_job_id.txt && echo true || echo false" 2>/dev/null)
-        rc=$?
-    fi
+    output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "test -f ${remote_dir}/${job_id}.txt && echo true || echo false" 2>/dev/null)
+    rc=$?
     if [[ $rc -ne 0 && $rc -ne 1 ]]; then
         return 0
     fi
-    if [[ "$mode" == "slurm" ]]; then
-        [[ -n "$output" ]]
-    else
-        [[ "$output" == "true" ]]
-    fi
+    # if [[ "$mode" == "slurm" ]]; then
+    #     [[ -n "$output" ]]
+    # else
+    #     [[ "$output" == "true" ]]
+    # fi
 }
 
-# --- slurm: wait for job to enter RUNNING state ---
-if [[ "$mode" == "slurm" ]]; then
-    echo "Waiting for slurm job to start running (job ID: $job_id)..."
-    while true; do
-        sleep 10
-        all_states=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue --job=${job_id} --noheader -o '%T' 2>/dev/null" 2>/dev/null)
-        _ssh_rc=$?
-        if [[ $_ssh_rc -eq 255 ]]; then
-            echo "$(date '+%H:%M:%S') - SSH connection lost, retrying..."
-            wait_for_ssh
-            continue
-        fi
-        if [[ -z "$all_states" ]]; then
-            echo "Job no longer in queue (may have finished or failed instantly)."
-            break
-        elif echo "$all_states" | grep -q "RUNNING"; then
-            echo "Job is now RUNNING."
-            echo "$all_states" | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}'
-            break
-        fi
-        echo "$(date '+%H:%M:%S') - $(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')"
-    done
-fi
 
 sync_remote() {
     local _rsync_out _rsync_rc=0
@@ -175,7 +147,7 @@ while [[ ${finish_flag} == 0 ]]; do
     echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
-    [[ "$mode" == "slurm" ]] && print_slurm_summary
+    # [[ "$mode" == "slurm" ]] && print_slurm_summary
     fetch_new_content 2>/dev/null || true
 
     total=0
@@ -183,19 +155,14 @@ while [[ ${finish_flag} == 0 ]]; do
         ((total += 5))
         sleep 5
         if ! is_job_running; then
-            if [[ "$mode" == "slurm" ]]; then
-                echo "sleep 15"
-                sleep 15
-            else
-                echo "sleep 5"
-                sleep 5
-            fi
+            echo "sleep 5"
+            sleep 5
             wait_for_ssh
             sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
-            [[ "$mode" == "slurm" ]] && print_slurm_summary
+            # [[ "$mode" == "slurm" ]] && print_slurm_summary
             fetch_new_content 2>/dev/null || true
 
-            echo "DONE: Remote job finished (${mode} id: ${job_id}). Output saved to: ${local_dir}"
+            echo "DONE: Remote job finished (id: ${job_id}). Output saved to: ${local_dir}"
 
             finish_flag=1
             sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}

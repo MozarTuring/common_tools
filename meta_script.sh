@@ -246,7 +246,7 @@ EOF
     #     fi
     # fi
     remote_job_id_file="$7/remote_job_id.txt"
-    rm ${remote_job_id_file} 2>/dev/null || true
+    # rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
     cat jwm_configs/remote_tmps/${_manual_file} >>jwm_configs/remote_tmps/remote.sh
@@ -396,6 +396,7 @@ if [[ $# -lt 3 ]]; then
 elif [[ "$1" == "remote"* ]]; then
     _remote_setup "$@"
     if [[ "$1" == "remoteslurm" ]]; then
+        sinfo # show partitions
         # Show all QOS policies and their limits
         sacctmgr show qos format=Name,MaxWall
         # Show your specific QOS association
@@ -481,7 +482,23 @@ EOF
         source jwm_configs/remote_tmps/remote.sh
         JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         echo "$JWM_JOB_ID" >${remote_job_id_file}
+        while true; do
+            sleep 10
+            all_states=$(squeue --job=${JWM_JOB_ID} --noheader -o '%T' 2>/dev/null)
+            if [[ -z "$all_states" ]]; then
+                echo "Job no longer in queue (may have finished or failed instantly)."
+                break
+            elif echo "$all_states" | grep -q "RUNNING"; then
+                echo "Job is now RUNNING."
+                echo "$all_states" | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}'
+                break
+            fi
+            echo "$(date '+%H:%M:%S') - $(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')"
+        done
 
+        echo "1" >"${JWM_JOB_ID}".txt
+
+        sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
     elif [[ "$1" == "remotedockercompose" ]]; then
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
@@ -624,6 +641,7 @@ EOF
 echo "image_name, ${image_name}"
 if [[ ${image_name} == *"notebook" ]]; then
     docker rm -f ${image_name}
+    sleep 10
     DOCKER_RUN_ARGS=(--gpus all --ipc host --network host -v "${JWM_DATA_DIR}":/data -v ./results:/app/results ${image_name})
 fi
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
@@ -636,7 +654,9 @@ EOF
         source jwm_configs/remote_tmps/remote.sh
         echo "docker rm -f ${JWM_JOB_ID}"
         echo "$JWM_JOB_ID" >${remote_job_id_file}
-        nohup bash -c "docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp remote_job_id.txt" >/dev/null 2>&1 &
+        echo "1" >"${JWM_JOB_ID}".txt
+
+        nohup bash -c "docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp ${JWM_JOB_ID}.txt" >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
 
@@ -648,9 +668,10 @@ EOF
         cd $7/
         export JWM_JOB_ID=$!
         disown ${JWM_JOB_ID}
-        echo "a,${remote_job_id_file}"
         echo "$JWM_JOB_ID" >${remote_job_id_file}
-        nohup bash -c "while kill -0 $JWM_JOB_ID 2>/dev/null; do sleep 10; done; sleep 5; rm remote_job_id.txt" >/dev/null 2>&1 &
+        echo "1" >"${JWM_JOB_ID}".txt
+
+        nohup bash -c "while kill -0 $JWM_JOB_ID 2>/dev/null; do sleep 10; done; sleep 5; rm ${JWM_JOB_ID}.txt" >/dev/null 2>&1 &
         disown
         echo "pkill -TERM -P ${JWM_JOB_ID}"
     fi
