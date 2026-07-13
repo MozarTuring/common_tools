@@ -623,6 +623,7 @@ EOF
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 echo "image_name, ${image_name}"
 if [[ ${image_name} == *"notebook" ]]; then
+    docker rm -f ${image_name}
     DOCKER_RUN_ARGS=(--gpus all --ipc host --network host -v "${JWM_DATA_DIR}":/data -v ./results:/app/results ${image_name})
 fi
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
