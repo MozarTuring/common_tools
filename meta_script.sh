@@ -485,8 +485,10 @@ EOF
     elif [[ "$1" == "remotedockercompose" ]]; then
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
+    docker compose down && docker compose build --no-cache
     docker compose ${DOCKER_ARGS} up --force-recreate -d
 else
+    docker compose down && docker compose build --no-cache
     docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
 fi
 EOF
