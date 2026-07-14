@@ -54,7 +54,7 @@ fetch_new_content() {
                     echo "${fname} ${safe_lines}" >>"$_log_state_file"
                 fi
             elif [[ "$safe_lines" == "$prev_lines" ]]; then
-                sed -n "${safe_lines}p" "${fname}"
+                sed -n "${cur_lines}p" "${fname}"
             fi
             break
         fi
