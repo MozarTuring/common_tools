@@ -379,7 +379,6 @@ elif [[ "$1" == "remote"* ]]; then
     shift
     export RUN_DIR_PRE="$1"
     echo "RUN_DIR_PRE, ${RUN_DIR_PRE}"
-    exit
     shift
     export SERVER_NAME="${1##*@}"
     shift
@@ -508,6 +507,7 @@ EOF
         cat jwm_configs/remote_tmps/remote.sh
         source jwm_configs/remote_tmps/remote.sh
         cd "${RUN_DIR_PRE}"/"${RUN_PROJ}"
+        echo "${RUN_DIR_PRE}"/"${RUN_PROJ}"
         echo "current dir ${PWD}"
         # cd - >/dev/null
         export COMPOSE_DIR="llm_services/${MODEL_DIR}"
