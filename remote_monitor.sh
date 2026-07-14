@@ -123,7 +123,7 @@ sync_remote() {
     _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f" 2>/dev/null |
         rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
     # $() this will be a child process and it will show the same commnd as parent in ps -ef output
-    cp ${local_dir}/*.ipynb $HOME/project/${_project_name}/
+    find "${local_dir}" -maxdepth 1 -name "*.ipynb" -exec cp {} "$HOME/project/${_project_name}/" \;
     if [[ $_rsync_rc -ne 0 ]]; then
         echo "$_rsync_out"
         return $_rsync_rc
