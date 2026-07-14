@@ -186,8 +186,8 @@ EOF
     # no '' around EOF, it will expand vars
     cat >>jwm_configs/remote_tmps/remote.sh <<EOF
 # change the following based on your running preference
-export RUN_DIR_PRE="$4"
-export RUN_PROJ="$2"
+export RUN_DIR_PRE="${RUN_DIR_PRE}"
+export RUN_PROJ="${RUN_PROJ}"
 
 EOF
 
