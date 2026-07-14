@@ -36,12 +36,13 @@ fetch_new_content() {
     local files=("job-${job_id}_1.out" "job-${job_id}.out" "job_out.log")
     for fname in "${files[@]}"; do
         if [[ -f ${fname} ]]; then
-            # echo "fetch from ${fname}"
+            echo "fetch from ${fname}"
             local prev_lines
             prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
             prev_lines=${prev_lines:-0}
             local cur_lines safe_lines
             cur_lines=$(awk 'END {print NR}' "${fname}")
+            echo "cur_lines, ${cur_lines}"
             safe_lines=$(( cur_lines > 0 ? cur_lines - 1 : 0 ))
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen 
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
