@@ -33,7 +33,7 @@ print_slurm_summary() {
 fetch_new_content() {
     cd ${local_dir}/jwmlogs/${JWM_RUN_START_TIME}/
     _log_state_file=".log_state" && touch "$_log_state_file"
-    local files=("job-${job_id}_1.out" "job-${job_id}*.out" "job_out.log")
+    local files=("job-${job_id}_1.out" "job-${job_id}.out" "job_out.log")
     for fname in "${files[@]}"; do
         if [[ -f ${fname} ]]; then
             local prev_lines
@@ -51,6 +51,7 @@ fetch_new_content() {
                     echo "${fname} ${cur_lines}" >>"$_log_state_file"
                 fi
             fi
+            break
         fi
     done
 }
