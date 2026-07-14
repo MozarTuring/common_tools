@@ -228,6 +228,27 @@ EOF
     # rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
+    cat >jwm_configs/remote_tmps/slurm_header.sh <<'SLURM_HEADER'
+#!/bin/bash
+
+(while true; do echo "CPU Usage: $(vmstat 1 2 | tail -1 | awk '{print 100 - $15}')% | Total CPUs: $(nproc)"; nvidia-smi; sleep 300; done) &
+
+
+
+module --force purge
+if [[ -n "${JWM_MODULES}" ]];then
+    echo ${JWM_MODULES}
+    module load ${JWM_MODULES}
+fi
+
+if [[ -n "${JWM_CONDAENV}" ]];then
+echo ${JWM_CONDAENV}
+conda activate ${JWM_CONDAENV}
+fi
+
+
+SLURM_HEADER
+
     cat jwm_configs/remote_tmps/${_manual_file} >>jwm_configs/remote_tmps/remote.sh
     sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/remote_tmps/remote.sh
 
@@ -399,24 +420,8 @@ elif [[ "$1" == "remote"* ]]; then
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 
-if [[ -z "${SBATCH_OUT:-}" ]]; then
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
-echo '#!/bin/bash
-
-(while true; do echo "CPU Usage: $(vmstat 1 2 | tail -1 | awk '{print 100 - $15}')% | Total CPUs: $(nproc)"; nvidia-smi; sleep 300; done) &
-
-module --force purge
-if [[ -n "${JWM_MODULES}" ]];then
-    echo ${JWM_MODULES}
-    module load ${JWM_MODULES}
-fi
-
-if [[ -n "${JWM_CONDAENV}" ]];then
-echo ${JWM_CONDAENV}
-conda activate ${JWM_CONDAENV}
-fi
-
-' | cat - ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
+cat jwm_configs/remote_tmps/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out"&&
 EOF
@@ -468,7 +473,6 @@ SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote_tmps/${JWM_SLURM_FILE}) ||
     return 1 2>/dev/null
     exit 1
 }
-fi
 EOF
 
         echo "start run remote_tmps/remote.sh"
