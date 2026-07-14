@@ -626,7 +626,7 @@ if [[ ${notebook_flag} == 1 ]]; then
     echo "${ARGS_AFTER_ENTRY[@]}"
     docker rm -f ${image_name}_notebook
     sleep 5
-    DOCKER_RUN_ARGS=(--name "${image_name}_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token='' --NewsApp.enabled=False")
+    DOCKER_RUN_ARGS=(--name "${image_name}_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token='' --LabApp.news_url=''")
 else
     DOCKER_RUN_ARGS=("${DOCKER_RUN_ARGS[@]}" "${ARGS_AFTER_ENTRY[@]}")
 fi
