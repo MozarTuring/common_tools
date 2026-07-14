@@ -38,7 +38,7 @@ fetch_new_content() {
         if [[ -f ${fname} ]]; then
             echo "fetch from ${fname}"
             local prev_lines
-            prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
+            prev_lines=$(awk -v f="${fname}" '$1 == f {print $2}' "$_log_state_file")
             prev_lines=${prev_lines:-0}
             local cur_lines safe_lines
             cur_lines=$(awk 'END {print NR}' "${fname}")
