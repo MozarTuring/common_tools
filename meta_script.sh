@@ -477,16 +477,30 @@ EOF
         echo "$JWM_JOB_ID" >${remote_job_id_file}
         while true; do
             sleep 10
-            all_states=$(squeue --job=${JWM_JOB_ID} --noheader -o '%T' 2>/dev/null)
+
+            all_states=$(squeue --job="${JWM_JOB_ID}" --noheader -o '%T' 2>/dev/null)
+
             if [[ -z "$all_states" ]]; then
                 echo "Job no longer in queue (may have finished or failed instantly)."
                 break
-            elif echo "$all_states" | grep -q "RUNNING"; then
-                echo "Job is now RUNNING."
-                echo "$all_states" | sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}'
-                break
             fi
-            echo "$(date '+%H:%M:%S') - $(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')"
+
+            # Format the state counts safely handling multiple lines
+            state_counts=$(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')
+
+            if echo "$all_states" | grep -q "RUNNING"; then
+                # Optional: Only break if NO parts of the job are left pending
+                if ! echo "$all_states" | grep -q "PENDING"; then
+                    echo "Job is now fully RUNNING."
+                    echo "  $state_counts"
+                    break
+                else
+                    echo "$(date '+%H:%M:%S') - Job partially running: $state_counts"
+                fi
+            else
+                echo "$(date '+%H:%M:%S') - $state_counts"
+            fi
+
         done
 
         echo "1" >"${JWM_JOB_ID}".txt
