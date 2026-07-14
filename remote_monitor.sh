@@ -44,7 +44,7 @@ fetch_new_content() {
             cur_lines=$(awk 'END {print NR}' "${fname}")
             # echo "cur_lines, ${cur_lines}"
             safe_lines=$((cur_lines > 0 ? cur_lines - 1 : 0))
-            if [[ $1 == "finish" ]]; then
+            if [[ "$1" == "finish" ]]; then
                 safe_lines=${cur_lines}
             fi
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
@@ -136,7 +136,7 @@ while [[ ${finish_flag} == 0 ]]; do
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
-    fetch_new_content
+    fetch_new_content "notfinish"
     # 2>/dev/null || true
 
     total=0
