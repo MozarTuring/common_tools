@@ -36,22 +36,21 @@ fetch_new_content() {
     local files=("job-${job_id}_1.out" "job-${job_id}.out" "job_out.log")
     for fname in "${files[@]}"; do
         if [[ -f ${fname} ]]; then
-            echo "fetch from ${fname}"
-            cat ${fname}
-            echo "fetch end"
+            # echo "fetch from ${fname}"
             local prev_lines
             prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
             prev_lines=${prev_lines:-0}
-            local cur_lines
-            cur_lines=$(wc -l <"${fname}" | tr -d '[:space:]')
-            [[ "$cur_lines" -lt "$prev_lines" ]] && prev_lines=0
-            if [[ "$cur_lines" -gt "$prev_lines" ]]; then
+            local cur_lines safe_lines
+            cur_lines=$(awk 'END {print NR}' "${fname}")
+            safe_lines=$(( cur_lines > 0 ? cur_lines - 1 : 0 ))
+            # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen 
+            if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
-                sed -n "${new_start},${cur_lines}p" "${fname}"
+                sed -n "${new_start},${safe_lines}p" "${fname}"
                 if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
-                    sed -i '' "s/^${fname} .*/${fname} ${cur_lines}/" "$_log_state_file"
+                    sed -i '' "s/^${fname} .*/${fname} ${safe_lines}/" "$_log_state_file"
                 else
-                    echo "${fname} ${cur_lines}" >>"$_log_state_file"
+                    echo "${fname} ${safe_lines}" >>"$_log_state_file"
                 fi
             fi
             break
