@@ -371,12 +371,15 @@ if [[ $# -lt 3 ]]; then
     fi
 elif [[ "$1" == "remote"* ]]; then
     export _mode=$1
+    echo "_mode, ${_mode}"
     shift
     export RUN_PROJ="$1"
     shift
     export JWM_COMMIT_ID="$1"
     shift
     export RUN_DIR_PRE="$1"
+    echo "RUN_DIR_PRE, ${RUN_DIR_PRE}"
+    exit
     shift
     export SERVER_NAME="${1##*@}"
     shift
