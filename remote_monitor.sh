@@ -37,6 +37,8 @@ fetch_new_content() {
     for fname in "${files[@]}"; do
         if [[ -f ${fname} ]]; then
             echo "fetch from ${fname}"
+            cat ${fname}
+            echo "fetch end"
             local prev_lines
             prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
             prev_lines=${prev_lines:-0}
