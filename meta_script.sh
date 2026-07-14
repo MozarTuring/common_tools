@@ -291,7 +291,7 @@ if [[ $# -lt 3 ]]; then
     sync_and_commit_repo "common_tools"
     sync_and_commit_repo "$_project_name"
 
-    local tmp_path=${run_dir_pre}/remote_data/${_project_name}
+    tmp_path=${run_dir_pre}/remote_data/${_project_name}
     rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$SERVER_NAME":${tmp_path}/
 
     rm -rf ./tmp_data/*
