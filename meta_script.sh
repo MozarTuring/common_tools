@@ -495,16 +495,19 @@ EOF
     elif [[ "${_mode}" == "remotedockercompose" ]]; then
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 if [ -z ${RUN_BACKGROUND_JWM} ]; then
-    eval "${JWM_COMPOSE_PRE}"
+    if [[ -n ${JWM_COMPOSE_PRE} ]]; then
+        eval "${JWM_COMPOSE_PRE}"
+    fi
     docker compose ${DOCKER_ARGS} up --force-recreate -d
 else
-    eval "${JWM_COMPOSE_PRE}"
+    if [[ -n ${JWM_COMPOSE_PRE} ]]; then
+        eval "${JWM_COMPOSE_PRE}"
+    fi
     docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
 fi
 EOF
 
         echo "start run remote_tmps/remote.sh"
-        cat jwm_configs/remote_tmps/remote.sh
         source jwm_configs/remote_tmps/remote.sh
         cd "${RUN_DIR_PRE}"/"${RUN_PROJ}"
         echo "${RUN_DIR_PRE}"/"${RUN_PROJ}"
