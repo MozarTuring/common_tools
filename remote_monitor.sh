@@ -129,7 +129,8 @@ while [[ ${finish_flag} == 0 ]]; do
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
-    fetch_new_content 2>/dev/null || true
+    fetch_new_content
+    # 2>/dev/null || true
 
     total=0
     while [[ total -lt ${_interval} ]]; do
@@ -141,7 +142,8 @@ while [[ ${finish_flag} == 0 ]]; do
             wait_for_ssh
             sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
             # [[ "$mode" == "slurm" ]] && print_slurm_summary
-            fetch_new_content 2>/dev/null || true
+            fetch_new_content
+            # 2>/dev/null || true
 
             echo "DONE: Remote job finished (id: ${job_id}). Output saved to: ${local_dir}"
 
