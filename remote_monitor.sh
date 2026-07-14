@@ -43,8 +43,11 @@ fetch_new_content() {
             local cur_lines safe_lines
             cur_lines=$(awk 'END {print NR}' "${fname}")
             # echo "cur_lines, ${cur_lines}"
-            safe_lines=$(( cur_lines > 0 ? cur_lines - 1 : 0 ))
-            # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen 
+            safe_lines=$((cur_lines > 0 ? cur_lines - 1 : 0))
+            if [[ $1 == "finish" ]]; then
+                safe_lines=${cur_lines}
+            fi
+            # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
                 sed -n "${new_start},${safe_lines}p" "${fname}"
@@ -141,12 +144,12 @@ while [[ ${finish_flag} == 0 ]]; do
         ((total += 5))
         sleep 5
         if ! is_job_running; then
-            echo "sleep 15"
-            sleep 15
+            echo "job ends, sleep 5"
+            sleep 5
             wait_for_ssh
             sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
             # [[ "$mode" == "slurm" ]] && print_slurm_summary
-            fetch_new_content
+            fetch_new_content "finish"
             # 2>/dev/null || true
 
             echo "DONE: Remote job finished (id: ${job_id}). Output saved to: ${local_dir}"
