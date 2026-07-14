@@ -2446,7 +2446,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
-	vim.fn.setenv("JWM_CUR_TIME", tmpdate)
+	vim.fn.setenv("JWM_RUN_START_TIME", tmpdate)
 	local prefix = jwMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
 	local dir_name = rel:match("^([^/]+)")

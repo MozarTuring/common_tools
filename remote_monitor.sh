@@ -18,18 +18,10 @@ remote_dir="$1"
 shift
 local_dir="$1"
 shift
+JWM_RUN_START_TIME="$1"
 
 port_forward=false
 ports_before_file=""
-# if [[ "$mode" == "slurm" ]]; then
-#     run_dir_pre="$1"
-#     shift
-#     run_id="$1"
-#     shift
-#     proj_name="$1"
-#     shift
-# fi
-
 mkdir -p "$local_dir"
 
 print_slurm_summary() {
@@ -38,34 +30,26 @@ print_slurm_summary() {
         true
 }
 
-_log_state_file=""
 fetch_new_content() {
-    [[ -z "$_log_state_file" ]] && _log_state_file="${local_dir}/.log_state" && touch "$_log_state_file"
-    local files=()
-    if [[ -e "${local_dir}/job-${job_id}_1.out" ]]; then
-        files=("${local_dir}/job-${job_id}_1.out")
-    else
-        for f in "${local_dir}"/job-${job_id}*.out "${local_dir}"/job_out.log; do
-            [[ -e "$f" ]] && files+=("$f")
-        done
-    fi
-    [[ ${#files[@]} -eq 0 ]] && return 0
-    for f in "${files[@]}"; do
-        local fname
-        fname=$(basename "$f")
-        local prev_lines
-        prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
-        prev_lines=${prev_lines:-0}
-        local cur_lines
-        cur_lines=$(wc -l <"$f" | tr -d '[:space:]')
-        [[ "$cur_lines" -lt "$prev_lines" ]] && prev_lines=0
-        if [[ "$cur_lines" -gt "$prev_lines" ]]; then
-            local new_start=$((prev_lines + 1))
-            sed -n "${new_start},${cur_lines}p" "$f"
-            if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
-                sed -i '' "s/^${fname} .*/${fname} ${cur_lines}/" "$_log_state_file"
-            else
-                echo "${fname} ${cur_lines}" >>"$_log_state_file"
+    cd ${local_dir}/jwmlogs/${JWM_RUN_START_TIME}/
+    [[ -z "$_log_state_file" ]] && _log_state_file=".log_state" && touch "$_log_state_file"
+    local files=("job-${job_id}_1.out" "job-${job_id}*.out" "job_out.log")
+    for fname in "${files[@]}"; do
+        if [[ -f ${fname} ]]; then
+            local prev_lines
+            prev_lines=$(grep "^${fname} " "$_log_state_file" 2>/dev/null | awk '{print $2}')
+            prev_lines=${prev_lines:-0}
+            local cur_lines
+            cur_lines=$(wc -l <"${fname}" | tr -d '[:space:]')
+            [[ "$cur_lines" -lt "$prev_lines" ]] && prev_lines=0
+            if [[ "$cur_lines" -gt "$prev_lines" ]]; then
+                local new_start=$((prev_lines + 1))
+                sed -n "${new_start},${cur_lines}p" "${fname}"
+                if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
+                    sed -i '' "s/^${fname} .*/${fname} ${cur_lines}/" "$_log_state_file"
+                else
+                    echo "${fname} ${cur_lines}" >>"$_log_state_file"
+                fi
             fi
         fi
     done
@@ -116,7 +100,6 @@ is_job_running() {
     [[ "$output" == "true" ]]
     # if output is true then return 0, which indicated success status; otherwise, return 1, which indicates fail status
 }
-
 
 sync_remote() {
     local _rsync_out _rsync_rc=0
