@@ -390,6 +390,7 @@ elif [[ "$1" == "remote"* ]]; then
     _remote_setup
     if [[ "${_mode}" == "remoteslurm" ]]; then
         sinfo # show partitions
+        sinfo -a -o "%N %G %f %m"
         # Show all QOS policies and their limits
         sacctmgr show qos format=Name,MaxWall
         # Show your specific QOS association
@@ -401,7 +402,7 @@ elif [[ "$1" == "remote"* ]]; then
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
 cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
 
-sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out"&&
+sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_GRES}"
 EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
         if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
