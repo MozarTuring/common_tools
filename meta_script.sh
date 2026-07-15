@@ -23,12 +23,12 @@ sync_and_commit_repo() {
         fi
     )
     last_commit=$(git rev-parse HEAD)
-    if [[ -n "$SERVER_NAME" ]]; then
+    if [[ -n "$server_name" ]]; then
         _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
         _remote_proj="${repo_path}_${_git_branch}"
-        run_dir_remote="${run_dir_pre}/${_remote_proj}"
+        run_dir_remote="${run_dir_home}/project_remote_jwm/${_remote_proj}"
         echo "remote dir: ${run_dir_remote}"
-        rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$SERVER_NAME":${run_dir_remote}/
+        rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
     fi
     local _sync_rc=$?
     cd - >/dev/null
@@ -142,9 +142,8 @@ dockerfile_to_def() {
 }
 
 _remote_setup() {
-    export RUN_DIR_HOME="$(dirname "${RUN_DIR_PRE}")"
-    source ${RUN_DIR_PRE}/common_tools_jingwei/common_tokens.sh
-    export JWM_DATA_DIR=${RUN_DIR_PRE}/remote_data/"${RUN_PROJ%_*}"
+    source ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/common_tokens.sh
+    export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
     mkdir -p ${JWM_DATA_DIR}
 
     if [[ -d /data && ${_mode} == "remotedocker"* ]]; then
@@ -166,7 +165,7 @@ _remote_setup() {
             systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && ln -s /data/docker ${tmpcache} && systemctl --user restart docker && echo "hard remove, check"
         fi
     fi
-    cd ${RUN_DIR_PRE}/${RUN_PROJ}
+    cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
     mkdir -p jwmlogs/${JWM_RUN_START_TIME}
     mkdir -p jwm_configs/remote_tmps
     cat >jwm_configs/remote_tmps/remote.sh <<'EOF'
@@ -186,7 +185,7 @@ EOF
     # no '' around EOF, it will expand vars
     cat >>jwm_configs/remote_tmps/remote.sh <<EOF
 # change the following based on your running preference
-export RUN_DIR_PRE="${RUN_DIR_PRE}"
+export RUN_DIR_HOME="${RUN_DIR_HOME}"
 export RUN_PROJ="${RUN_PROJ}"
 
 EOF
@@ -228,27 +227,6 @@ EOF
     # rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
-    cat >jwm_configs/remote_tmps/slurm_header.sh <<'SLURM_HEADER'
-#!/bin/bash
-
-(while true; do echo "CPU Usage: $(vmstat 1 2 | tail -1 | awk '{print 100 - $15}')% | Total CPUs: $(nproc)"; nvidia-smi; sleep 300; done) &
-
-
-
-module --force purge
-if [[ -n "${JWM_MODULES}" ]];then
-    echo ${JWM_MODULES}
-    module load ${JWM_MODULES}
-fi
-
-if [[ -n "${JWM_CONDAENV}" ]];then
-echo ${JWM_CONDAENV}
-conda activate ${JWM_CONDAENV}
-fi
-
-
-SLURM_HEADER
-
     cat jwm_configs/remote_tmps/${_manual_file} >>jwm_configs/remote_tmps/remote.sh
     sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/remote_tmps/remote.sh
 
@@ -283,27 +261,27 @@ if [[ $# -lt 3 ]]; then
         echo "ERROR:  must contain the server name "
         exit 1
     fi
-    export SERVER_NAME="$_server"
-    if [[ "${SERVER_NAME}" == "juwels" || "${SERVER_NAME}" == "jusuf" ]]; then
-        export run_dir_pre=/p/project1/trustllm-eu/mao4
-    elif [[ ${SERVER_NAME} == "custodian@"* ]]; then
-        export run_dir_pre=/home/custodian/project_remote_jwm
-    elif [[ ${SERVER_NAME} == "ferragon" || ${SERVER_NAME} == "greatrawr" || ${SERVER_NAME} == "balawar" ]]; then
-        export run_dir_pre=/home/jinma/project_remote_jwm
+    export server_name="$_server"
+    if [[ "${server_name}" == "juwels" || "${server_name}" == "jusuf" ]]; then
+        export run_dir_home=/p/project1/trustllm-eu/mao4
+    elif [[ ${server_name} == "custodian@"* ]]; then
+        export run_dir_home=/home/custodian
+    elif [[ ${server_name} == "ferragon" || ${server_name} == "greatrawr" || ${server_name} == "balawar" ]]; then
+        export run_dir_home=/home/jinma
 
-    elif [[ ${SERVER_NAME} == "alvis"* ]]; then
-        export run_dir_pre=/cephyr/users/shuyir/Alvis/project_remote_jwm
-    elif [[ ${SERVER_NAME} == "berzelius"* ]]; then
-        export run_dir_pre=/home/x_jinma/project_remote_jwm
+    elif [[ ${server_name} == "alvis"* ]]; then
+        export run_dir_home=/cephyr/users/shuyir/Alvis
+    elif [[ ${server_name} == "berzelius"* ]]; then
+        export run_dir_home=/home/x_jinma
     else
-        echo "ERROR: unknown server '$SERVER_NAME'"
+        echo "ERROR: unknown server '$server_name'"
         exit 1
     fi
 
     cd ~/project/
     bash common_tools/common_port_forward.sh
 
-    ssh -o ConnectTimeout=10 -o BatchMode=yes "$SERVER_NAME" true
+    ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" true
 
     local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
     run_timestamp="$2"
@@ -312,8 +290,8 @@ if [[ $# -lt 3 ]]; then
     sync_and_commit_repo "common_tools"
     sync_and_commit_repo "$_project_name"
 
-    tmp_path=${run_dir_pre}/remote_data/${_project_name}
-    rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$SERVER_NAME":${tmp_path}/
+    tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
+    rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
 
     rm -rf ./tmp_data/*
 
@@ -333,23 +311,23 @@ if [[ $# -lt 3 ]]; then
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
-    #     ssh "$SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
+    #     ssh "$server_name" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     # fi
 
     info_before_remote="${local_dir}/info_before_remote.txt"
     echo "branch: ${_git_branch} , commit_hash: ${last_commit}" >${info_before_remote}
 
-    echo "Running remote setup... (output: $nohup_log) on server ${SERVER_NAME}"
-    ssh "$SERVER_NAME" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_pre}/common_tools_jingwei/meta_script.sh ${_mode} ${run_dir_remote#${run_dir_pre}/} ${last_commit} ${run_dir_pre} $SERVER_NAME ${_manual_file} ${run_dir_remote_tmp} ${JWM_RUN_START_TIME}" 2>&1 | tee "$nohup_log"
+    echo "Running remote setup... (output: $nohup_log) on server ${server_name}"
+    ssh "$server_name" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote_tmp} ${JWM_RUN_START_TIME}" 2>&1 | tee "$nohup_log"
     # The tee "$nohup_log" writes the SSH/docker output to nohup_monitor.log and also passes it to stdout
 
     mkdir -p ./${_project_name}/jwm_configs/remote_tmps
-    rsync -av "$SERVER_NAME":"${run_dir_remote_tmp}/jwm_configs/remote_tmps/" "./${_project_name}/jwm_configs/remote_tmps/"
+    rsync -av "$server_name":"${run_dir_remote_tmp}/jwm_configs/remote_tmps/" "./${_project_name}/jwm_configs/remote_tmps/"
     echo "remote_tmps/ updated"
 
     _ssh_rc=${PIPESTATUS[0]}
     if [[ $_ssh_rc -ne 0 ]]; then
-        echo "ERROR: remote setup on $SERVER_NAME failed (exit code $_ssh_rc)"
+        echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
         exit $_ssh_rc
     fi
 
@@ -362,13 +340,13 @@ if [[ $# -lt 3 ]]; then
         exit 0
     fi
 
-    remote_job_id=$(ssh "$SERVER_NAME" "cat ${run_dir_remote_tmp}/remote_job_id.txt" 2>/dev/null)
+    remote_job_id=$(ssh "$server_name" "cat ${run_dir_remote_tmp}/remote_job_id.txt" 2>/dev/null)
 
     echo "Remote job ID: $remote_job_id"
     if [ -n "${remote_job_id}" ]; then
         echo "local dir: ${local_dir}"
 
-        monitor_args=(${_mode} "$SERVER_NAME" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir" "${JWM_RUN_START_TIME}")
+        monitor_args=(${_mode} "$server_name" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir" "${JWM_RUN_START_TIME}")
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
         echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
@@ -388,7 +366,7 @@ if [[ $# -lt 3 ]]; then
         # wait "$tail_pid" 2>/dev/null || true
         # echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
     else
-        echo "FAILED: remote setup on $SERVER_NAME failed."
+        echo "FAILED: remote setup on $server_name failed."
     fi
 elif [[ "$1" == "remote"* ]]; then
     export _mode=$1
@@ -398,8 +376,8 @@ elif [[ "$1" == "remote"* ]]; then
     shift
     export JWM_COMMIT_ID="$1"
     shift
-    export RUN_DIR_PRE="$1"
-    echo "RUN_DIR_PRE, ${RUN_DIR_PRE}"
+    export RUN_DIR_HOME="$1"
+    echo "RUN_DIR_HOME, ${RUN_DIR_HOME}"
     shift
     export SERVER_NAME="${1##*@}"
     shift
@@ -421,7 +399,7 @@ elif [[ "$1" == "remote"* ]]; then
         cat >>jwm_configs/remote_tmps/remote.sh <<'EOF'
 
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
-cat jwm_configs/remote_tmps/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
+cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out"&&
 EOF
@@ -527,8 +505,8 @@ EOF
 
         echo "start run remote_tmps/remote.sh"
         source jwm_configs/remote_tmps/remote.sh
-        cd "${RUN_DIR_PRE}"/"${RUN_PROJ}"
-        echo "${RUN_DIR_PRE}"/"${RUN_PROJ}"
+        cd "${RUN_DIR_HOME}/project_remote_jwm"/"${RUN_PROJ}"
+        echo "${RUN_DIR_HOME}/project_remote_jwm"/"${RUN_PROJ}"
         echo "current dir ${PWD}"
         # cd - >/dev/null
         export COMPOSE_DIR="llm_services/${MODEL_DIR}"
@@ -536,7 +514,7 @@ EOF
             export COMPOSE_DIR="./"
         fi
 
-        _compose_dir="${COMPOSE_DIR:-${RUN_DIR_PRE}/${RUN_PROJ}}"
+        _compose_dir="${COMPOSE_DIR:-${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}}"
         trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
         _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
         _has_rebuilt=false

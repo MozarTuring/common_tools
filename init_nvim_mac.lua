@@ -1042,6 +1042,38 @@ end
 
 function myWriteFile()
 	local file_path = vim.fn.expand("%:p")
+
+	if vim.fn.expand("%:e") == "tex" then
+		local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+		local has_begin_doc = false
+		for _, line in ipairs(lines) do
+			if line:match("\\begin{document}") then
+				has_begin_doc = true
+				break
+			end
+		end
+		if not has_begin_doc then
+			local header_lines = {}
+			local hf = io.open("/Users/jinma63/project/common_tools/tex_header.txt", "r")
+			if hf then
+				for l in hf:lines() do
+					header_lines[#header_lines + 1] = l
+				end
+				hf:close()
+			end
+			local tail_lines = {}
+			local tf = io.open("/Users/jinma63/project/common_tools/tex_tail.txt", "r")
+			if tf then
+				for l in tf:lines() do
+					tail_lines[#tail_lines + 1] = l
+				end
+				tf:close()
+			end
+			vim.api.nvim_buf_set_lines(0, 0, 0, false, header_lines)
+			vim.api.nvim_buf_set_lines(0, -1, -1, false, tail_lines)
+		end
+	end
+
 	vim.cmd("silent w")
 
 	if vim.fn.expand("%:e") == "tex" then

@@ -1,0 +1,19 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[numbers]{natbib}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+\hypersetup{colorlinks=true, citecolor=blue, urlcolor=blue}
+
+\title{}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+
+
+
