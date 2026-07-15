@@ -47,7 +47,7 @@ fetch_new_content() {
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
-                sed -n "${new_start},${safe_lines}p" "${fname}" | awk -v CR=$'\r' '{ if (index($0, CR)) { n=split($0,a,CR); for(i=1;i<=n;i++) if(a[i]!=""){print a[i];break} } else print }'
+                sed -n "${new_start},${safe_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { if (!pb) { pb=1; print } next } NF { pb=0; print }'
                 if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
                     sed -i '' "s/^${fname} .*/${fname} ${safe_lines}/" "$_log_state_file"
                 else
@@ -127,39 +127,27 @@ jobsfile=$HOME/project/${_project_name}/jwm_configs/jobs.txt
 grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 # --- main monitoring loop ---
 _check_count=0
-finish_flag=0
-while [[ ${finish_flag} == 0 ]]; do
+while true; do
+    is_job_running
+    run_flag=$?
+
     _check_count=$((_check_count + 1))
     _capped=$((_check_count < 12 ? _check_count : 11))
     _interval=$((((_capped - 1) / 5 + 1) * 10))
     echo "
 === $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
+    sleep ${_interval}
+
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
     fetch_new_content
     # 2>/dev/null || true
 
-    total=0
-    while [[ total -lt ${_interval} ]]; do
-        ((total += 5))
-        sleep 5
-        if ! is_job_running; then
-            echo "job ends, sleep 5"
-            sleep 5
-            wait_for_ssh
-            sync_remote || echo "WARNING: final rsync failed, results may be incomplete"
-            # [[ "$mode" == "slurm" ]] && print_slurm_summary
-            fetch_new_content
-            # 2>/dev/null || true
-
-            echo "DONE: Remote job finished (id: ${job_id}). Output saved to: ${local_dir}"
-
-            finish_flag=1
-            sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
-            echo "current dir ${PWD}"
-            break
-        fi
-    done
+    if ! ${run_flag}; then
+        sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
+        echo "DONE: Remote job finished (id: ${job_id})."
+        break
+    fi
 done
