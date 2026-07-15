@@ -31,7 +31,13 @@ print_slurm_summary() {
 }
 
 fetch_new_content() {
-    cd "${local_dir}/jwmlogs/${JWM_RUN_START_TIME}/"
+    local tmppath="${local_dir}/jwmlogs/${JWM_RUN_START_TIME}/"
+    if [[ -d ${tmppath} ]]; then
+        cd "${local_dir}/jwmlogs/${JWM_RUN_START_TIME}/"
+    else
+        echo "no log yet"
+        return 0
+    fi
     _log_state_file=".log_state" && touch "$_log_state_file"
     local files=("job-${job_id}_1.out" "job-${job_id}.out" "job_out.log")
     for fname in "${files[@]}"; do
