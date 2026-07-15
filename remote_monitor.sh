@@ -47,7 +47,7 @@ fetch_new_content() {
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
-                sed -n "${new_start},${safe_lines}p" "${fname}" | awk -v CR=$'\r' 'index($0, CR) { sub(CR ".*", ""); } {print}'
+                sed -n "${new_start},${safe_lines}p" "${fname}" | awk -v CR=$'\r' '{ if (index($0, CR)) { n=split($0,a,CR); for(i=1;i<=n;i++) if(a[i]!=""){print a[i];break} } else print }'
                 if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
                     sed -i '' "s/^${fname} .*/${fname} ${safe_lines}/" "$_log_state_file"
                 else
