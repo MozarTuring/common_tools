@@ -54,7 +54,7 @@ fetch_new_content() {
                     echo "${fname} ${safe_lines}" >>"$_log_state_file"
                 fi
             elif [[ "$safe_lines" == "$prev_lines" ]]; then
-                sed -n "${cur_lines}p" "${fname}"
+                sed -n "${cur_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { if (!pb) { pb=1; print } next } NF { pb=0; print }'
             fi
             break
         fi
@@ -128,8 +128,7 @@ grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 # --- main monitoring loop ---
 _check_count=0
 while true; do
-    is_job_running
-    run_flag=$?
+    is_job_running && run_flag=0 || run_flag=$?
 
     _check_count=$((_check_count + 1))
     _capped=$((_check_count < 12 ? _check_count : 11))
