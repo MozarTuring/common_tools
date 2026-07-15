@@ -145,7 +145,7 @@ while true; do
     fetch_new_content
     # 2>/dev/null || true
 
-    if ! ${run_flag}; then
+    if [[ $run_flag -ne 0 ]]; then
         sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
         echo "DONE: Remote job finished (id: ${job_id})."
         break
