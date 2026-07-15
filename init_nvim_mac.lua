@@ -370,10 +370,10 @@ require("lazy").setup({
 					if bufname ~= "" and vim.fn.filereadable(bufname) == 0 then
 						return false
 					end
-					local ext = vim.fn.expand("%:e")
-					if ext == "tex" then
-						return false
-					end
+				local ext = vim.fn.expand("%:e")
+				if ext == "tex" or ext == "bib" then
+					return false
+				end
 					return true
 				end,
 			},
@@ -430,7 +430,7 @@ require("lazy").setup({
 			vim.g.vimtex_quickfix_mode = 0
 			vim.g.vimtex_view_method = "skim"
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
-				vim.g.vimtex_view_skim_activate = 1 -- bring Skim to front on VimtexView
+				vim.g.vimtex_view_skim_activate = 0 -- don't steal focus from Neovim
 				vim.g.vimtex_compiler_method = "latexmk"
 				local fixed_out = "/Users/jinma63/project/zzzjwmoutput/latex_compilation"
 				vim.fn.mkdir(fixed_out, "p")
@@ -448,13 +448,29 @@ require("lazy").setup({
 				vim.api.nvim_create_autocmd("User", {
 					pattern = "VimtexEventCompileSuccess",
 					callback = function()
-						vim.fn.system({
-							"osascript", "-e",
-							'tell application "Skim" to tell every document to revert',
-						})
-						vim.cmd("VimtexView")
+					vim.fn.system({
+						"osascript", "-e",
+						'tell application "Skim" to tell every document to revert',
+					})
+					vim.cmd("VimtexView")
 
-						-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
+					vim.fn.system({
+						"osascript", "-e",
+						table.concat({
+							'tell application "Skim"',
+							'  tell front document',
+							'    set view settings to {scale factor:2.0, auto scales:false}',
+							'  end tell',
+							'end tell',
+						}, "\n"),
+					})
+
+					vim.fn.system({
+						"osascript", "-e",
+						'tell application "kitty" to activate',
+					})
+
+					-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
 						local handle = io.popen('ls "' .. fixed_out .. '"/pdflatex*.fls 2>/dev/null')
 						if handle then
 							for f in handle:lines() do
@@ -1025,20 +1041,24 @@ function CopyRelativePathToClipboard()
 end
 
 function myWriteFile()
-	--    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-	--        if vim.api.nvim_buf_is_loaded(buf) and vim.api.nvim_buf_get_option(buf, 'modified') then
-	--            local bufname = vim.api.nvim_buf_get_name(buf)
-	--            vim.api.nvim_buf_command(buf, 'silent w')
-	--        end
-	--    end
-	local file_path = vim.fn.expand("%:p") -- Gets the full path of the current file
-	-- Check the directory and execute specific shell commands
+	local file_path = vim.fn.expand("%:p")
 	vim.cmd("silent w")
+
+	if vim.fn.expand("%:e") == "tex" then
+		local tex_dir = vim.fn.fnamemodify(file_path, ":h")
+		for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+			if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].modified and vim.bo[buf].buftype == "" then
+				local bname = vim.api.nvim_buf_get_name(buf)
+				if bname:match("%.bib$") and vim.fn.fnamemodify(bname, ":h") == tex_dir then
+					vim.api.nvim_buf_call(buf, function()
+						vim.cmd("silent w")
+					end)
+				end
+			end
+		end
+	end
+
 	if is_in_inp_dir(file_path, "/home/maojingwei/project/common_tools") then
-		-- Execute the command using jwclone
-		--        tmp = "jwclone " .. file_path .. " 42"
-		--        vim.cmd('!' .. tmp)
-		--        os.execute("jwclone " .. file_path .. " 42")
 	end
 end
 
@@ -1641,20 +1661,6 @@ local function open_in_grip()
 	start_grip_file_watcher(file)
 end
 
-vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave" }, {
-	pattern = "*.tex",
-	callback = function(ev)
-		local buf = ev.buf
-		if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].modified and vim.bo[buf].buftype == "" then
-			local name = vim.api.nvim_buf_get_name(buf)
-			if name ~= "" and vim.fn.filereadable(name) == 1 then
-				vim.api.nvim_buf_call(buf, function()
-					vim.cmd("silent w")
-				end)
-			end
-		end
-	end,
-})
 
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "markdown",
