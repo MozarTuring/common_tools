@@ -47,7 +47,7 @@ fetch_new_content() {
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
-                sed -n "${new_start},${safe_lines}p" "${fname}" | awk '/\r/ && /%\|/ { sub(/\r.*/, ""); print; next } {print}'
+                sed -n "${new_start},${safe_lines}p" "${fname}" | awk -v CR=$'\r' 'index($0, CR) { sub(CR ".*", ""); } {print}'
                 if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
                     sed -i '' "s/^${fname} .*/${fname} ${safe_lines}/" "$_log_state_file"
                 else
@@ -110,7 +110,7 @@ is_job_running() {
 sync_remote() {
     local _rsync_out _rsync_rc=0
     _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f" 2>/dev/null |
-        rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=$?
+        rsync -av --files-from=- "$host":"${remote_dir}/jwm*" "$local_dir/" 2>&1) || _rsync_rc=$?
     # $() this will be a child process and it will show the same commnd as parent in ps -ef output
     find "${local_dir}" -maxdepth 1 -name "*.ipynb" -exec cp {} "$HOME/project/${_project_name}/" \;
     if [[ $_rsync_rc -ne 0 ]]; then
@@ -131,7 +131,9 @@ while [[ ${finish_flag} == 0 ]]; do
     _check_count=$((_check_count + 1))
     _capped=$((_check_count < 12 ? _check_count : 11))
     _interval=$((((_capped - 1) / 5 + 1) * 10))
-    echo "=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ==="
+    echo "
+=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
+"
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
