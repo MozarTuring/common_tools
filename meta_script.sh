@@ -319,20 +319,20 @@ if [[ $# -lt 3 ]]; then
     echo "branch: ${_git_branch} , commit_hash: ${last_commit}" >${info_before_remote}
 
     echo "Running remote setup... (output: $nohup_log) on server ${server_name}"
-    ssh "$server_name" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote_tmp} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1
+    # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
+    _ssh_rc=0
+    ssh "$server_name" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote_tmp} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 || _ssh_rc=$?
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
-    _ssh_rc=$?
     mkdir -p ./${_project_name}/jwm_configs/${_mode}/remote_tmps
     rsync -av "$server_name":"${run_dir_remote_tmp}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
     echo "${_mode}/remote_tmps/ updated"
-
 
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
         exit $_ssh_rc
     fi
 
-        if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
+    if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
         source "$_project_name/jwm_configs/local_after.sh"
     fi
 
