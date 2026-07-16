@@ -1384,7 +1384,7 @@ vim.api.nvim_set_keymap("n", "W", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "X", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "Y", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "Z", "<Nop>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "P", "o<Esc>p", { noremap = true, silent = true, desc = "Paste to next line" })
+vim.api.nvim_set_keymap("n", ";p", "o<Esc>p", { noremap = true, silent = true, desc = "Paste to next line" })
 vim.api.nvim_set_keymap("n", "t", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<c-o>", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<space>", "<Nop>", { noremap = true, silent = true })
@@ -2612,17 +2612,17 @@ vim.keymap.set("n", "fr", function()
 		return
 	end
 
-	if not filepath:match("%.batch$") then
-		vim.notify("must be pressed on a .batch file", vim.log.levels.ERROR)
+	local dir = vim.fn.fnamemodify(filepath, ":h")
+	local template_path, output_path, batch_file
+
+	if not filepath:match("/jwm_configs/remoteslurm/batch[^/]*%.sh$") then
+		vim.notify("must be pressed on a batch*.sh file in remoteslurm", vim.log.levels.ERROR)
 		return
 	end
 
-	local dir = vim.fn.fnamemodify(filepath, ":h")
-	local stem = vim.fn.fnamemodify(filepath, ":t:r")
-
-	local template_path = dir .. "/" .. stem .. "_template.sh"
-	local output_path = dir .. "/remote_tmps/" .. stem .. ".sh"
-	local batch_file = filepath
+	template_path = dir .. "/template.sh"
+	output_path = dir .. "/remote_tmps/local.sh"
+	batch_file = filepath
 
 	if not file_exists(template_path) then
 		vim.notify("No template file found: " .. template_path, vim.log.levels.WARN)
