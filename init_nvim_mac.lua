@@ -2495,10 +2495,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 	vim.fn.mkdir(log_dir, "p")
 	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
-	-- local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
 	local log_file = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
-	local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
-	vim.fn.writefile({}, log_file2)
 
 	local cmd = "bash "
 		.. jwMacHome
@@ -2562,18 +2559,12 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		ToggleAutoRefresh()
-		local log_buf = vim.api.nvim_get_current_buf()
 
 		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
 			on_exit = function(_, code)
 				vim.schedule(function()
 					if code == 0 then
-						if vim.api.nvim_buf_is_valid(log_buf) then
-							vim.api.nvim_buf_delete(log_buf, { force = true })
-						end
 						os.execute("chmod a-w " .. vim.fn.shellescape(output_path))
-						vim.cmd("tabnew " .. vim.fn.fnameescape(log_file2))
-						ToggleAutoRefresh()
 						vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
 					else
 						vim.notify(
