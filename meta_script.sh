@@ -280,7 +280,7 @@ if [[ $# -lt 3 ]]; then
     fi
 
     cd ~/project/
-    bash common_tools/common_port_forward.sh
+    # bash common_tools/common_port_forward.sh
 
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" true
 
