@@ -190,10 +190,10 @@ export RUN_PROJ="${RUN_PROJ}"
 
 EOF
 
-    echo "${JWM_RUN_DIR_REMOTE_TMP}, ${PWD}"
-    if [[ ${JWM_RUN_DIR_REMOTE_TMP} != "${PWD}" ]]; then
-        cp -R . ${JWM_RUN_DIR_REMOTE_TMP}/
-        cd ${JWM_RUN_DIR_REMOTE_TMP}
+    echo "${JWM_RUN_DIR_REMOTE}, ${PWD}"
+    if [[ ${JWM_RUN_DIR_REMOTE} != "${PWD}" ]]; then
+        cp -R . ${JWM_RUN_DIR_REMOTE}/
+        cd ${JWM_RUN_DIR_REMOTE}
     fi
 
     if [[ ${_mode} == "remotedocker" ]]; then
@@ -223,7 +223,7 @@ EOF
     #         sleep 30
     #     fi
     # fi
-    remote_job_id_file="${JWM_RUN_DIR_REMOTE_TMP}/remote_job_id.txt"
+    remote_job_id_file="${JWM_RUN_DIR_REMOTE}/remote_job_id.txt"
     # rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
@@ -303,12 +303,6 @@ if [[ $# -lt 3 ]]; then
         run_id=""
     fi
 
-    if [[ -z ${run_id} ]]; then
-        run_dir_remote_tmp=${run_dir_remote}
-    else
-        # run_dir_remote_tmp=${run_dir_remote}_${run_id}
-        run_dir_remote_tmp=${run_dir_remote}
-    fi
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
@@ -321,10 +315,10 @@ if [[ $# -lt 3 ]]; then
     echo "Running remote setup... (output: $nohup_log) on server ${server_name}"
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
-    ssh "$server_name" "mkdir -p ${run_dir_remote} && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote_tmp} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 || _ssh_rc=$?
+    ssh "$server_name" "mkdir -p ${run_dir_remote}/jwm_configs/${_mode}/remote_tmps && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 || _ssh_rc=$?
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
     mkdir -p ./${_project_name}/jwm_configs/${_mode}/remote_tmps
-    rsync -av "$server_name":"${run_dir_remote_tmp}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
+    rsync -av "$server_name":"${run_dir_remote}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
     echo "${_mode}/remote_tmps/ updated"
 
     if [[ $_ssh_rc -ne 0 ]]; then
@@ -341,13 +335,13 @@ if [[ $# -lt 3 ]]; then
         exit 0
     fi
 
-    remote_job_id=$(ssh "$server_name" "cat ${run_dir_remote_tmp}/remote_job_id.txt" 2>/dev/null)
+    remote_job_id=$(ssh "$server_name" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
 
     echo "Remote job ID: $remote_job_id"
     if [ -n "${remote_job_id}" ]; then
         echo "local dir: ${local_dir}"
 
-        monitor_args=(${_mode} "$server_name" "$remote_job_id" "$run_dir_remote_tmp" "$local_dir" "${JWM_RUN_START_TIME}")
+        monitor_args=(${_mode} "$server_name" "$remote_job_id" "$run_dir_remote" "$local_dir" "${JWM_RUN_START_TIME}")
 
         echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
         echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
@@ -384,7 +378,7 @@ elif [[ "$1" == "remote"* ]]; then
     shift
     export _manual_file=$1
     shift
-    export JWM_RUN_DIR_REMOTE_TMP=$1
+    export JWM_RUN_DIR_REMOTE=$1
     shift
     export JWM_RUN_START_TIME=$1
 
@@ -664,7 +658,7 @@ EOF
 "${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
 EOF
         source jwm_configs/${_mode}/remote_tmps/remote.sh
-        cd ${JWM_RUN_DIR_REMOTE_TMP}/
+        cd ${JWM_RUN_DIR_REMOTE}/
         export JWM_JOB_ID=$!
         disown ${JWM_JOB_ID}
         echo "$JWM_JOB_ID" >${remote_job_id_file}
