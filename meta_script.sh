@@ -636,9 +636,9 @@ EOF
 if [[ ${notebook_flag} == 1 ]]; then
     echo "ARGS_AFTER_ENTRY:"
     echo "${ARGS_AFTER_ENTRY[@]}"
-    docker rm -f ${image_name}_notebook
+    docker rm -f jwm_notebook
     sleep 5
-    DOCKER_RUN_ARGS=(--name "${image_name}_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''")
+    DOCKER_RUN_ARGS=(--name "jwm_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''")
 else
     DOCKER_RUN_ARGS=("${DOCKER_RUN_ARGS[@]}" "${ARGS_AFTER_ENTRY[@]}")
 fi

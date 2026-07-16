@@ -2607,7 +2607,7 @@ vim.keymap.set("n", "fr", function()
 	local dir = vim.fn.fnamemodify(filepath, ":h")
 	local template_path, output_path, batch_file
 
-	if not filepath:match("/jwm_configs/remoteslurm/batch[^/]*%.sh$") then
+	if not filepath:match("/jwm_configs/remote[^/]*%/batch[^/]*%.sh$") then
 		vim.notify("must be pressed on a batch*.sh file in remoteslurm", vim.log.levels.ERROR)
 		return
 	end
