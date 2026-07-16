@@ -2495,7 +2495,8 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
 	vim.fn.mkdir(log_dir, "p")
 	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
-	local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
+	-- local log_file = log_dir .. "/" .. tmpdate .. "/tmplocaljwm.log"
+	local log_file = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
 	local log_file2 = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
 	vim.fn.writefile({}, log_file2)
 
