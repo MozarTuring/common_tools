@@ -205,7 +205,7 @@ EOF
 
     if [[ ${_mode} == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
-alias conda="${RUN_DIR_HOME}/miniconda3/bin/conda"
+eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
 EOF
     fi
 
