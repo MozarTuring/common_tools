@@ -190,11 +190,11 @@ export RUN_PROJ="${RUN_PROJ}"
 
 EOF
 
-    echo "${JWM_RUN_DIR_REMOTE}, ${PWD}"
-    if [[ ${JWM_RUN_DIR_REMOTE} != "${PWD}" ]]; then
-        cp -R . ${JWM_RUN_DIR_REMOTE}/
-        cd ${JWM_RUN_DIR_REMOTE}
-    fi
+    # echo "${JWM_RUN_DIR_REMOTE}, ${PWD}"
+    # if [[ ${JWM_RUN_DIR_REMOTE} != "${PWD}" ]]; then
+    #     cp -R . ${JWM_RUN_DIR_REMOTE}/
+    #     cd ${JWM_RUN_DIR_REMOTE}
+    # fi
 
     if [[ ${_mode} == "remotedocker" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
@@ -302,7 +302,6 @@ if [[ $# -lt 3 ]]; then
     if [[ ${_mode} == "remotedockercompose" ]]; then
         run_id=""
     fi
-
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
@@ -655,7 +654,7 @@ EOF
 
     elif [[ "${_mode}" == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
-"${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
+"nohup ${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
 EOF
         source jwm_configs/${_mode}/remote_tmps/remote.sh
         cd ${JWM_RUN_DIR_REMOTE}/

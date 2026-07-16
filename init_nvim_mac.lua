@@ -2430,20 +2430,19 @@ local function generate_from_template(template_path, output_path, overrides)
 
 	for i, l in ipairs(lines) do
 		for key, value in pairs(overrides) do
-			if l == key .. "=" then
-				lines[i] = key .. "=" .. value
+			local prefix_export = "export " .. key .. "="
+			local prefix_comment = "# " .. key .. "="
+			local prefix_plain = key .. "="
+			if l:sub(1, #prefix_export) == prefix_export then
+				lines[i] = prefix_export .. value
 				overrides[key] = nil
 				break
-			elseif l == "# " .. key .. "=" then
-				lines[i] = "# " .. key .. "=" .. value
+			elseif l:sub(1, #prefix_comment) == prefix_comment then
+				lines[i] = prefix_comment .. value
 				overrides[key] = nil
 				break
-			elseif l == "export " .. key .. "=" then
-				lines[i] = "export " .. key .. "=" .. value
-				overrides[key] = nil
-				break
-			elseif l == "# export " .. key .. "=" then
-				lines[i] = "# export " .. key .. "=" .. value
+			elseif l:sub(1, #prefix_plain) == prefix_plain then
+				lines[i] = prefix_plain .. value
 				overrides[key] = nil
 				break
 			end
