@@ -203,6 +203,12 @@ export PYTHONUNBUFFERED=1
 EOF
     fi
 
+    if [[ ${_mode} == "remotenone" ]]; then
+        cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
+export conda="${RUN_DIR_HOME}/miniconda3/bin/conda"
+EOF
+    fi
+
     if [[ ${_mode} == "remotedockercompose" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
 # uncomment the following to define them based on your running preference
