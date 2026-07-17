@@ -207,6 +207,11 @@ EOF
     if [[ ${_mode} == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
 eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
+if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
+    conda create -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda cuda-nvcc -c nvidia -y
+fi
+    export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
+    export PATH=${CUDA_HOME}/bin:${PATH}
 EOF
     fi
 
