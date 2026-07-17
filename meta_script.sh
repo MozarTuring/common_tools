@@ -669,6 +669,9 @@ EOF
     elif [[ "${_mode}" == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
 echo ${PWD}
+if [[ ${notebook_flag} == 1 ]]; then
+JWM_RUN_COMMAND="jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
+fi
 nohup bash -c "${JWM_RUN_COMMAND}"  > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
 export JWM_JOB_ID=$!
 EOF
