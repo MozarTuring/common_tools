@@ -119,7 +119,7 @@ sync_remote() {
         rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=${PIPESTATUS[0]}
 
     # $() this will be a child process and it will show the same commnd as parent in ps -ef output
-    find "${local_dir}/jwm_configs" -maxdepth 1 -name "*.ipynb" -exec cp {} "$HOME/project/${_project_name}/" \;
+    find "${local_dir}/jwm_configs" -maxdepth 1 -name "*.ipynb" -exec cp {} "$HOME/project/${_project_name}/jwm_configs/" \;
     if [[ $_rsync_rc -ne 0 ]]; then
         echo "$_rsync_out"
         return $_rsync_rc

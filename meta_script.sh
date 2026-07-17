@@ -669,6 +669,7 @@ EOF
     elif [[ "${_mode}" == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
 echo ${PWD}
+echo ${JWM_RUN_COMMAND}
 if [[ ${notebook_flag} == 1 ]]; then
     kill $(pgrep -f "port=18889")
     sleep 5
