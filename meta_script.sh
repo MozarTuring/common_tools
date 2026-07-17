@@ -668,11 +668,11 @@ EOF
 
     elif [[ "${_mode}" == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
-nohup "${JWM_RUN_COMMAND}"  > job_out.log 2>&1 &
+nohup "${JWM_RUN_COMMAND}"  > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
+export JWM_JOB_ID=$!
 EOF
-        source jwm_configs/${_mode}/remote_tmps/remote.sh
         cd ${JWM_RUN_DIR_REMOTE}/
-        export JWM_JOB_ID=$!
+        source jwm_configs/${_mode}/remote_tmps/remote.sh
         disown ${JWM_JOB_ID}
         echo "$JWM_JOB_ID" >${remote_job_id_file}
         echo "1" >"${JWM_JOB_ID}".txt
