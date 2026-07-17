@@ -115,7 +115,7 @@ is_job_running() {
 
 sync_remote() {
     local _rsync_out _rsync_rc=0
-    _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find ./jwm* -newer .submit_marker -type f" 2>/dev/null |
+    _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
         rsync -av --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=${PIPESTATUS[0]}
 
     rsync -dv --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
