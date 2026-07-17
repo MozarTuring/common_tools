@@ -212,6 +212,8 @@ if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
 fi
     export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
     export PATH=${CUDA_HOME}/bin:${PATH}
+    export CPATH=${CUDA_HOME}/targets/x86_64-linux/include:${CPATH}
+    export LD_LIBRARY_PATH=${CUDA_HOME}/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
 EOF
     fi
 
