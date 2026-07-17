@@ -678,7 +678,7 @@ EOF
         echo "$JWM_JOB_ID" >${remote_job_id_file}
         echo "1" >"${JWM_JOB_ID}".txt
 
-        nohup bash -c "while kill -0 $JWM_JOB_ID 2>/dev/null; do sleep 10; done; sleep 5; rm ${JWM_JOB_ID}.txt" >/dev/null 2>&1 &
+        nohup bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh ${JWM_JOB_ID} >>jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
         echo "pkill -TERM -P ${JWM_JOB_ID}"
     fi
