@@ -668,7 +668,7 @@ EOF
 
     elif [[ "${_mode}" == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
-"nohup ${JWM_RUN_COMMAND[@]}"  > job_out.log 2>&1 &
+nohup "${JWM_RUN_COMMAND}"  > job_out.log 2>&1 &
 EOF
         source jwm_configs/${_mode}/remote_tmps/remote.sh
         cd ${JWM_RUN_DIR_REMOTE}/
