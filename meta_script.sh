@@ -28,7 +28,7 @@ sync_and_commit_repo() {
         _remote_proj="${repo_path}_${_git_branch}"
         run_dir_remote="${run_dir_home}/project_remote_jwm/${_remote_proj}"
         echo "remote dir: ${run_dir_remote}"
-        rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
+        rsync -az --skip-compress=zip:gz:jpg:mp4 --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
     fi
     local _sync_rc=$?
     cd - >/dev/null
@@ -179,6 +179,8 @@ for var in "$@"; do
     fi
 done
 }
+
+
 EOF
 
     export RUN_BACKGROUND_JWM=1
@@ -203,7 +205,7 @@ export PYTHONUNBUFFERED=1
 EOF
     fi
 
-# ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+    # ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
     if [[ ${_mode} == "remotenone" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
 eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
@@ -237,8 +239,6 @@ EOF
     #         sleep 30
     #     fi
     # fi
-    remote_job_id_file="${JWM_RUN_DIR_REMOTE}/remote_job_id.txt"
-    # rm ${remote_job_id_file} 2>/dev/null || true
     touch ".submit_marker"
 
     cat jwm_configs/${_mode}/remote_tmps/${_manual_file} >>jwm_configs/${_mode}/remote_tmps/remote.sh
@@ -331,8 +331,8 @@ if [[ $# -lt 3 ]]; then
     ssh "$server_name" "mkdir -p ${run_dir_remote}/jwm_configs/${_mode}/remote_tmps && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 || _ssh_rc=$?
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
     mkdir -p ./${_project_name}/jwm_configs/${_mode}/remote_tmps
-    rsync -av "$server_name":"${run_dir_remote}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
-    echo "${_mode}/remote_tmps/ updated"
+    rsync -a "$server_name":"${run_dir_remote}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
+    rsync -a --remove-source-files "$server_name":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
 
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
@@ -348,7 +348,7 @@ if [[ $# -lt 3 ]]; then
         exit 0
     fi
 
-    remote_job_id=$(ssh "$server_name" "cat ${run_dir_remote}/remote_job_id.txt" 2>/dev/null)
+    remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
     echo "Remote job ID: $remote_job_id"
     if [ -n "${remote_job_id}" ]; then
@@ -356,7 +356,6 @@ if [[ $# -lt 3 ]]; then
 
         monitor_args=(${_mode} "$server_name" "$remote_job_id" "$run_dir_remote" "$local_dir" "${JWM_RUN_START_TIME}")
 
-        echo "Launching background monitor for $remote_job_id (log: $nohup_log)"
         echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
 
         nohup bash ~/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
@@ -465,7 +464,15 @@ EOF
         echo "start run ${_mode}/remote_tmps/remote.sh"
         source jwm_configs/${_mode}/remote_tmps/remote.sh
         JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-        echo "$JWM_JOB_ID" >${remote_job_id_file}
+        while true; do
+            if [[ ! -f "remote_job_id.txt" ]]; then
+                echo "$JWM_JOB_ID" >"remote_job_id.txt"
+                break
+            fi
+            sleep 2
+            echo "wait for remote_job_id.txt to be deleted"
+        done
+
         while true; do
             sleep 10
 
@@ -659,7 +666,15 @@ EOF
 
         source jwm_configs/${_mode}/remote_tmps/remote.sh
         echo "docker rm -f ${JWM_JOB_ID}"
-        echo "$JWM_JOB_ID" >${remote_job_id_file}
+        while true; do
+            if [[ ! -f "remote_job_id.txt" ]]; then
+                echo "$JWM_JOB_ID" >"remote_job_id.txt"
+                break
+            fi
+            sleep 2
+            echo "wait for remote_job_id.txt to be deleted"
+        done
+
         echo "1" >"${JWM_JOB_ID}".txt
 
         nohup bash -c "cd jwmlogs/${JWM_RUN_START_TIME}/ && docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp ../../${JWM_JOB_ID}.txt" >/dev/null 2>&1 &
@@ -678,13 +693,19 @@ fi
 nohup bash -c "${JWM_RUN_COMMAND}"  > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
 export JWM_JOB_ID=$!
 EOF
-        cd ${JWM_RUN_DIR_REMOTE}/
         source jwm_configs/${_mode}/remote_tmps/remote.sh
         disown ${JWM_JOB_ID}
-        echo "$JWM_JOB_ID" >${remote_job_id_file}
+        while true; do
+            if [[ ! -f "remote_job_id.txt" ]]; then
+                echo "$JWM_JOB_ID" >"remote_job_id.txt"
+                break
+            fi
+            sleep 2
+            echo "wait for remote_job_id.txt to be deleted"
+        done
         echo "1" >"${JWM_JOB_ID}".txt
 
-        nohup bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh ${JWM_JOB_ID} >>jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
+        nohup bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh ${JWM_JOB_ID} >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
         echo "pkill -TERM -P ${JWM_JOB_ID}"
     fi
