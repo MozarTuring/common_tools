@@ -53,14 +53,14 @@ fetch_new_content() {
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
-                sed -n "${new_start},${safe_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { if (!pb) { pb=1; print } next } NF { pb=0; print }'
+                sed -n "${new_start},${safe_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
                 if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
                     sed -i '' "s/^${fname} .*/${fname} ${safe_lines}/" "$_log_state_file"
                 else
                     echo "${fname} ${safe_lines}" >>"$_log_state_file"
                 fi
             elif [[ "$safe_lines" == "$prev_lines" ]]; then
-                sed -n "${cur_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { if (!pb) { pb=1; print } next } NF { pb=0; print }'
+                sed -n "${cur_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
             fi
             break
         fi
