@@ -329,7 +329,7 @@ if [[ $# -lt 3 ]]; then
     echo "Running remote setup... (output: $nohup_log) on server ${server_name}"
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
-    ssh "$server_name" "mkdir -p ${run_dir_remote}/jwm_configs/${_mode}/remote_tmps && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 || _ssh_rc=$?
+    timeout ${3600} ssh -o ConnectTimeout=10 "$server_name" "mkdir -p ${run_dir_remote}/jwm_configs/${_mode}/remote_tmps && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 || _ssh_rc=$?
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
     mkdir -p ./${_project_name}/jwm_configs/${_mode}/remote_tmps
     rsync -a "$server_name":"${run_dir_remote}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
@@ -509,17 +509,10 @@ EOF
         sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
     elif [[ "${_mode}" == "remotedockercompose" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
-if [ -z ${RUN_BACKGROUND_JWM} ]; then
-    if [[ -n ${JWM_COMPOSE_PRE} ]]; then
-        eval "${JWM_COMPOSE_PRE}"
-    fi
-    docker compose ${DOCKER_ARGS} up --force-recreate
-else
-    if [[ -n ${JWM_COMPOSE_PRE} ]]; then
-        eval "${JWM_COMPOSE_PRE}"
-    fi
-    docker compose ${DOCKER_ARGS} up --force-recreate 2>&1
+if [[ -n ${JWM_COMPOSE_PRE} ]]; then
+    eval "${JWM_COMPOSE_PRE}"
 fi
+docker compose ${DOCKER_ARGS} up --force-recreate 2>&1
 EOF
 
         echo "start run ${_mode}/remote_tmps/remote.sh"
