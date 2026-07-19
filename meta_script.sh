@@ -693,7 +693,7 @@ echo ${JWM_RUN_COMMAND}
 if [[ ${notebook_flag} == 1 ]]; then
     kill $(pgrep -f "port=18889")
     sleep 5
-    JWM_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
+    JWM_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
 fi
 nohup bash -c "${JWM_RUN_COMMAND}"  > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
 export JWM_JOB_ID=$!
