@@ -60,7 +60,10 @@ fetch_new_content() {
                     echo "${fname} ${safe_lines}" >>"$_log_state_file"
                 fi
             elif [[ "$safe_lines" == "$prev_lines" ]]; then
-                sed -n "${cur_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
+                if [[ "$safe_lines" != "$final_lines" ]]; then
+                    final_lines="$safe_lines"
+                    sed -n "${cur_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
+                fi
             fi
             break
         fi
@@ -115,17 +118,13 @@ is_job_running() {
 
 sync_remote() {
     local _rsync_out _rsync_rc=0
-    _rsync_out=$(ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
-        rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1) || _rsync_rc=${PIPESTATUS[0]}
+    ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
+        rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
     rsync -d --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
-    # $() this will be a child process and it will show the same commnd as parent in ps -ef output
+    # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
     rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/" "$HOME/project/${_project_name}/jwm_configs/"
-    if [[ $_rsync_rc -ne 0 ]]; then
-        echo "$_rsync_out"
-        return $_rsync_rc
-    fi
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
