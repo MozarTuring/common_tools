@@ -28,7 +28,14 @@ sync_and_commit_repo() {
         _remote_proj="${repo_path}_${_git_branch}"
         run_dir_remote="${run_dir_home}/project_remote_jwm/${_remote_proj}"
         echo "remote dir: ${run_dir_remote}"
-        rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
+        if [[ ${_remote_proj} == "vllm_service" ]]; then
+            strings=("greatrawr" "ferragon")
+            for server_name in "${strings[@]}"; do
+                rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
+            done
+        else
+            rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
+        fi
     fi
     local _sync_rc=$?
     cd - >/dev/null
@@ -331,10 +338,11 @@ if [[ $# -lt 3 ]]; then
     _ssh_rc=0
     ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
     _ssh_pid=$!
-    ( sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log" ) &
+    (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     _timer_pid=$!
     wait "$_ssh_pid" 2>/dev/null || _ssh_rc=$?
-    kill "$_timer_pid" 2>/dev/null; wait "$_timer_pid" 2>/dev/null || true
+    kill "$_timer_pid" 2>/dev/null
+    wait "$_timer_pid" 2>/dev/null || true
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
     mkdir -p ./${_project_name}/jwm_configs/${JWM_MODE}/remote_tmps
     rsync -a "$server_name":"${run_dir_remote}/jwm_configs/${JWM_MODE}/remote_tmps/" "./${_project_name}/jwm_configs/${JWM_MODE}/remote_tmps/"
@@ -522,9 +530,7 @@ sleep 1
 JWM_JOB_ID=$(docker compose ps -q)
 echo "docker rm -f ${JWM_JOB_ID}"
 EOF
-# Without -d, the docker compose up process would stay in the foreground, streaming container logs until you hit Ctrl+C or the containers stop.
-
-
+        # Without -d, the docker compose up process would stay in the foreground, streaming container logs until you hit Ctrl+C or the containers stop.
 
         echo "start run ${JWM_MODE}/remote_tmps/remote.sh"
         source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
@@ -657,7 +663,7 @@ EOF
             source "$_after_hook"
             echo "after hook finished"
         fi
- 
+
     elif [[ "${JWM_MODE}" == "remotedocker" ]]; then
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 if [[ ${notebook_flag} == 1 ]]; then

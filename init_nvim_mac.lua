@@ -2548,7 +2548,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		"",
 		"  Command: " .. full_cmd,
 		"",
-		"  Enter = run,  any other key = cancel",
+		"  Enter = run,  Esc = cancel",
 	}
 
 	local pbuf = vim.api.nvim_create_buf(false, true)
@@ -2577,10 +2577,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		title_pos = "center",
 	})
 
-	local ns_id = vim.api.nvim_create_namespace("batch_prompt_keys_" .. pbuf)
-
 	local function close_prompt()
-		vim.on_key(nil, ns_id)
 		if vim.api.nvim_win_is_valid(pwin) then
 			vim.api.nvim_win_close(pwin, true)
 		end
@@ -2591,19 +2588,10 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		start_run()
 	end, { buffer = pbuf, nowait = true })
 
-	vim.on_key(function(key)
-		if vim.api.nvim_get_current_buf() ~= pbuf then
-			return
-		end
-		local cr = vim.api.nvim_replace_termcodes("<CR>", true, false, true)
-		if key == cr then
-			return
-		end
-		vim.schedule(function()
-			close_prompt()
-			vim.notify("Batch cancelled")
-		end)
-	end, ns_id)
+	vim.keymap.set("n", "<Esc>", function()
+		close_prompt()
+		vim.notify("Batch cancelled")
+	end, { buffer = pbuf, nowait = true })
 end
 
 vim.keymap.set("n", "fr", function()
