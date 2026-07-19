@@ -327,7 +327,6 @@ if [[ $# -lt 3 ]]; then
     info_before_remote="${local_dir}/info_before_remote.txt"
     echo "branch: ${_git_branch} , commit_hash: ${last_commit}" >${info_before_remote}
 
-    echo "Running remote setup... (output: $nohup_log) on server ${server_name}"
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
     ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
