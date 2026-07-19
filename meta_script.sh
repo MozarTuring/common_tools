@@ -350,7 +350,7 @@ if [[ $# -lt 3 ]]; then
     fi
 
     if [[ "$JWM_MODE" == "remotedockercompose" ]]; then
-        echo "local $JWM_MODE done"
+        echo "$JWM_MODE local done"
         exit 0
     fi
 
@@ -729,7 +729,7 @@ EOF
     fi
     echo "PWD: ${PWD}"
     echo "JWM_JOB_ID: ${JWM_JOB_ID}"
-    echo "ssh of ${JWM_MODE} done"
+    echo "${JWM_MODE} remote done"
 
 else
     echo "ERROR: unrecognized arguments. Usage:"
