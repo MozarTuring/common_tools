@@ -168,6 +168,7 @@ _remote_setup() {
     cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
     mkdir -p jwmlogs/${JWM_RUN_START_TIME}
     mkdir -p jwm_configs/${_mode}/remote_tmps
+    sleep 1
     cat >jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
 set -e
 
@@ -463,6 +464,8 @@ EOF
 
         echo "start run ${_mode}/remote_tmps/remote.sh"
         source jwm_configs/${_mode}/remote_tmps/remote.sh
+        cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+
         JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
@@ -521,8 +524,8 @@ EOF
 
         echo "start run ${_mode}/remote_tmps/remote.sh"
         source jwm_configs/${_mode}/remote_tmps/remote.sh
+
         cd "${RUN_DIR_HOME}/project_remote_jwm"/"${RUN_PROJ}"
-        echo "${RUN_DIR_HOME}/project_remote_jwm"/"${RUN_PROJ}"
         echo "current dir ${PWD}"
         # cd - >/dev/null
         export COMPOSE_DIR="llm_services/${MODEL_DIR}"
@@ -665,6 +668,8 @@ fi
 EOF
 
         source jwm_configs/${_mode}/remote_tmps/remote.sh
+        cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+
         echo "docker rm -f ${JWM_JOB_ID}"
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
@@ -695,6 +700,8 @@ export JWM_JOB_ID=$!
 EOF
         source jwm_configs/${_mode}/remote_tmps/remote.sh
         disown ${JWM_JOB_ID}
+        cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
                 echo "$JWM_JOB_ID" >"remote_job_id.txt"
