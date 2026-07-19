@@ -40,6 +40,7 @@ fetch_new_content() {
     fi
     _log_state_file=".log_state" && touch "$_log_state_file"
     local files=("job-${job_id}_1.out" "job-${job_id}.out" "job_out.log")
+    final_lines="-1"
     for fname in "${files[@]}"; do
         if [[ -f ${fname} ]]; then
             # echo "fetch from ${fname}"
