@@ -521,6 +521,7 @@ fi
 docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
 sleep 1
 JWM_JOB_ID=$(docker compose ps -q)
+echo "docker rm -f ${JWM_JOB_ID}"
 EOF
 # Without -d, the docker compose up process would stay in the foreground, streaming container logs until you hit Ctrl+C or the containers stop.
 
