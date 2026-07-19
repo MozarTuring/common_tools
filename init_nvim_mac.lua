@@ -2509,6 +2509,37 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local full_cmd = cmd_base .. tmpdate
 	vim.fn.setreg("+", full_cmd)
 
+	local function start_run()
+		vim.notify(string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw), vim.log.levels.INFO)
+
+		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+		ToggleAutoRefresh()
+
+		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
+			on_exit = function(_, code)
+				vim.schedule(function()
+					if code == 0 then
+						os.execute("chmod a-w " .. vim.fn.shellescape(output_path))
+						vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
+					else
+						vim.notify(
+							string.format("Batch [%d/%d] failed (exit %d)", index, #batch_entries, code),
+							vim.log.levels.ERROR
+						)
+					end
+					vim.defer_fn(function()
+						run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+					end, 3000)
+				end)
+			end,
+		})
+	end
+
+	if index > 1 then
+		start_run()
+		return
+	end
+
 	local prompt_lines = {
 		"",
 		string.format("  Batch [%d/%d]", index, #batch_entries),
@@ -2517,7 +2548,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		"",
 		"  Command: " .. full_cmd,
 		"",
-		"  Enter = run,  s = skip,  q/Esc = cancel remaining",
+		"  Enter = run,  any other key = cancel",
 	}
 
 	local pbuf = vim.api.nvim_create_buf(false, true)
@@ -2546,7 +2577,10 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		title_pos = "center",
 	})
 
+	local ns_id = vim.api.nvim_create_namespace("batch_prompt_keys_" .. pbuf)
+
 	local function close_prompt()
+		vim.on_key(nil, ns_id)
 		if vim.api.nvim_win_is_valid(pwin) then
 			vim.api.nvim_win_close(pwin, true)
 		end
@@ -2554,46 +2588,22 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 
 	vim.keymap.set("n", "<CR>", function()
 		close_prompt()
-		vim.notify(string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw), vim.log.levels.INFO)
-
-		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-		ToggleAutoRefresh()
-
-		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
-			on_exit = function(_, code)
-				vim.schedule(function()
-					if code == 0 then
-						os.execute("chmod a-w " .. vim.fn.shellescape(output_path))
-						vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
-					else
-						vim.notify(
-							string.format("Batch [%d/%d] failed (exit %d)", index, #batch_entries, code),
-							vim.log.levels.ERROR
-						)
-					end
-					vim.defer_fn(function()
-						run_batch_sequence(template_path, output_path, batch_entries, index + 1)
-					end, 3000)
-				end)
-			end,
-		})
+		start_run()
 	end, { buffer = pbuf, nowait = true })
 
-	vim.keymap.set("n", "s", function()
-		close_prompt()
-		vim.notify(string.format("Skipped batch [%d/%d]", index, #batch_entries))
-		run_batch_sequence(template_path, output_path, batch_entries, index + 1)
-	end, { buffer = pbuf, nowait = true })
-
-	vim.keymap.set("n", "q", function()
-		close_prompt()
-		vim.notify("Batch cancelled")
-	end, { buffer = pbuf, nowait = true })
-
-	vim.keymap.set("n", "<Esc>", function()
-		close_prompt()
-		vim.notify("Batch cancelled")
-	end, { buffer = pbuf, nowait = true })
+	vim.on_key(function(key)
+		if vim.api.nvim_get_current_buf() ~= pbuf then
+			return
+		end
+		local cr = vim.api.nvim_replace_termcodes("<CR>", true, false, true)
+		if key == cr then
+			return
+		end
+		vim.schedule(function()
+			close_prompt()
+			vim.notify("Batch cancelled")
+		end)
+	end, ns_id)
 end
 
 vim.keymap.set("n", "fr", function()
