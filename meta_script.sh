@@ -333,7 +333,6 @@ if [[ $# -lt 3 ]]; then
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
     mkdir -p ./${_project_name}/jwm_configs/${_mode}/remote_tmps
     rsync -a "$server_name":"${run_dir_remote}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
-    rsync -a --remove-source-files "$server_name":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
 
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
@@ -349,6 +348,7 @@ if [[ $# -lt 3 ]]; then
         exit 0
     fi
 
+    rsync -a --remove-source-files "$server_name":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
     echo "Remote job ID: $remote_job_id"
@@ -513,12 +513,12 @@ if [ -z ${RUN_BACKGROUND_JWM} ]; then
     if [[ -n ${JWM_COMPOSE_PRE} ]]; then
         eval "${JWM_COMPOSE_PRE}"
     fi
-    docker compose ${DOCKER_ARGS} up --force-recreate -d
+    docker compose ${DOCKER_ARGS} up --force-recreate
 else
     if [[ -n ${JWM_COMPOSE_PRE} ]]; then
         eval "${JWM_COMPOSE_PRE}"
     fi
-    docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
+    docker compose ${DOCKER_ARGS} up --force-recreate 2>&1
 fi
 EOF
 
@@ -533,121 +533,127 @@ EOF
             export COMPOSE_DIR="./"
         fi
 
-        _compose_dir="${COMPOSE_DIR:-${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}}"
-        trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
-        _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        _has_rebuilt=false
-        _loop_start=$(date +%s)
-        _startup_grace=200
+        # _compose_dir="${COMPOSE_DIR:-${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}}"
+        # trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
+        # _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        # _has_rebuilt=false
+        # _loop_start=$(date +%s)
+        # _startup_grace=200
+        #
+        # while true; do
+        #     mapfile -t _containers < <(docker compose -f "${_compose_dir}/docker-compose.yml" ps -a --format '{{.Name}}' 2>/dev/null)
+        #     if [ ${#_containers[@]} -eq 0 ]; then
+        #         echo "ERROR: No containers found for compose project in ${_compose_dir}."
+        #         break
+        #     fi
+        #
+        #     _all_healthy=true
+        #     _any_failed=false
+        #     _failed_container=""
+        #
+        #     printf "\n--- Container Status ($(date +%H:%M:%S)) ---\n"
+        #     printf "%-30s %-12s %-12s\n" "CONTAINER" "STATUS" "HEALTH"
+        #     printf "%-30s %-12s %-12s\n" "-----" "------" "------"
+        #
+        #     for _cname in "${_containers[@]}"; do
+        #         _cstatus=$(docker inspect --format='{{.State.Status}}' "$_cname" 2>/dev/null) || _cstatus="not_found"
+        #         _chealth=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no_healthcheck{{end}}' "$_cname" 2>/dev/null) || _chealth="unknown"
+        #         _cerror=$(docker inspect --format='{{.State.Error}}' "$_cname" 2>/dev/null) || _cerror=""
+        #
+        #         printf "%-30s %-12s %-12s\n" "$_cname" "$_cstatus" "$_chealth"
+        #
+        #         _elapsed=$(($(date +%s) - _loop_start))
+        #         if [[ "$_cstatus" == "exited" || "$_cstatus" == "dead" || "$_cstatus" == "restarting" ]]; then
+        #             _any_failed=true
+        #             _failed_container="$_cname"
+        #         elif [[ "$_chealth" == "unhealthy" && $_elapsed -ge $_startup_grace ]]; then
+        #             _any_failed=true
+        #             _failed_container="$_cname"
+        #         fi
+        #
+        #         if [[ "$_cstatus" == "created" && -n "$_cerror" ]]; then
+        #             _any_failed=true
+        #             _failed_container="$_cname"
+        #         fi
+        #
+        #         if [[ "$_chealth" != "healthy" && "$_chealth" != "no_healthcheck" ]]; then
+        #             _all_healthy=false
+        #         fi
+        #         if [[ "$_cstatus" != "running" ]]; then
+        #             _all_healthy=false
+        #         fi
+        #     done
+        #
+        #     if $_any_failed; then
+        #         echo ""
+        #         _cfailed_error=$(docker inspect --format='{{.State.Error}}' "$_failed_container" 2>/dev/null)
+        #         if [[ -n "$_cfailed_error" ]]; then
+        #             echo "ERROR: Container '${_failed_container}' failed to start: ${_cfailed_error}"
+        #             break
+        #         fi
+        #         _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
+        #         if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
+        #             echo "Recoverable error detected in '${_failed_container}' — rebuilding image using no-cache mode..."
+        #             docker rm -f "$_failed_container" 2>/dev/null || true
+        #             docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
+        #             _has_rebuilt=true
+        #             _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        #             sleep 5
+        #             continue
+        #         fi
+        #         echo "ERROR: Container '${_failed_container}' is in a bad state. Logs:"
+        #         echo "$_cfailed_logs"
+        #         break
+        #     fi
+        #
+        #     # rebuild for restarting too many times
+        #     if ! $_any_failed; then
+        #         for _cname in "${_containers[@]}"; do
+        #             _crestart=$(docker inspect --format='{{.RestartCount}}' "$_cname" 2>/dev/null) || _crestart=0
+        #             if [[ "$_crestart" -ge 3 ]]; then
+        #                 _any_failed=true
+        #                 _failed_container="$_cname"
+        #                 echo "Container '${_cname}' has restarted ${_crestart} times — treating as failed."
+        #                 _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
+        #                 if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
+        #                     echo "Recoverable error detected in '${_failed_container}' — rebuilding image..."
+        #                     docker rm -f "$_failed_container" 2>/dev/null || true
+        #                     docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
+        #                     _has_rebuilt=true
+        #                     _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        #                     sleep 5
+        #                     break
+        #                 fi
+        #                 echo "ERROR: Container '${_failed_container}' is crash-looping. Logs:"
+        #                 echo "$_cfailed_logs"
+        #                 break 2
+        #             fi
+        #         done
+        #         if $_any_failed; then continue; fi
+        #     fi
+        #
+        #     if $_all_healthy; then
+        #         echo ""
+        #         echo "All services are ready!"
+        #         echo "current dir ${PWD}"
+        #         _after_hook="jwm_configs/remote_after.sh"
+        #         if [[ -f "$_after_hook" ]]; then
+        #             source "$_after_hook"
+        #             echo "after hook finished"
+        #         fi
+        #         break
+        #     fi
+        #
+        #     echo "Waiting for all services to become healthy..."
+        #     sleep 10
+        # done
 
-        while true; do
-            mapfile -t _containers < <(docker compose -f "${_compose_dir}/docker-compose.yml" ps -a --format '{{.Name}}' 2>/dev/null)
-            if [ ${#_containers[@]} -eq 0 ]; then
-                echo "ERROR: No containers found for compose project in ${_compose_dir}."
-                break
-            fi
-
-            _all_healthy=true
-            _any_failed=false
-            _failed_container=""
-
-            printf "\n--- Container Status ($(date +%H:%M:%S)) ---\n"
-            printf "%-30s %-12s %-12s\n" "CONTAINER" "STATUS" "HEALTH"
-            printf "%-30s %-12s %-12s\n" "-----" "------" "------"
-
-            for _cname in "${_containers[@]}"; do
-                _cstatus=$(docker inspect --format='{{.State.Status}}' "$_cname" 2>/dev/null) || _cstatus="not_found"
-                _chealth=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no_healthcheck{{end}}' "$_cname" 2>/dev/null) || _chealth="unknown"
-                _cerror=$(docker inspect --format='{{.State.Error}}' "$_cname" 2>/dev/null) || _cerror=""
-
-                printf "%-30s %-12s %-12s\n" "$_cname" "$_cstatus" "$_chealth"
-
-                _elapsed=$(($(date +%s) - _loop_start))
-                if [[ "$_cstatus" == "exited" || "$_cstatus" == "dead" || "$_cstatus" == "restarting" ]]; then
-                    _any_failed=true
-                    _failed_container="$_cname"
-                elif [[ "$_chealth" == "unhealthy" && $_elapsed -ge $_startup_grace ]]; then
-                    _any_failed=true
-                    _failed_container="$_cname"
-                fi
-
-                if [[ "$_cstatus" == "created" && -n "$_cerror" ]]; then
-                    _any_failed=true
-                    _failed_container="$_cname"
-                fi
-
-                if [[ "$_chealth" != "healthy" && "$_chealth" != "no_healthcheck" ]]; then
-                    _all_healthy=false
-                fi
-                if [[ "$_cstatus" != "running" ]]; then
-                    _all_healthy=false
-                fi
-            done
-
-            if $_any_failed; then
-                echo ""
-                _cfailed_error=$(docker inspect --format='{{.State.Error}}' "$_failed_container" 2>/dev/null)
-                if [[ -n "$_cfailed_error" ]]; then
-                    echo "ERROR: Container '${_failed_container}' failed to start: ${_cfailed_error}"
-                    break
-                fi
-                _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
-                if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
-                    echo "Recoverable error detected in '${_failed_container}' — rebuilding image using no-cache mode..."
-                    docker rm -f "$_failed_container" 2>/dev/null || true
-                    docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
-                    _has_rebuilt=true
-                    _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-                    sleep 5
-                    continue
-                fi
-                echo "ERROR: Container '${_failed_container}' is in a bad state. Logs:"
-                echo "$_cfailed_logs"
-                break
-            fi
-
-            # rebuild for restarting too many times
-            if ! $_any_failed; then
-                for _cname in "${_containers[@]}"; do
-                    _crestart=$(docker inspect --format='{{.RestartCount}}' "$_cname" 2>/dev/null) || _crestart=0
-                    if [[ "$_crestart" -ge 3 ]]; then
-                        _any_failed=true
-                        _failed_container="$_cname"
-                        echo "Container '${_cname}' has restarted ${_crestart} times — treating as failed."
-                        _cfailed_logs=$(docker logs --since "$_docker_since" --tail 300 "$_failed_container" 2>&1)
-                        if ! $_has_rebuilt && echo "$_cfailed_logs" | grep -qE "No supported CUDA architectures found|ModuleNotFoundError|ImportError|AttributeError"; then
-                            echo "Recoverable error detected in '${_failed_container}' — rebuilding image..."
-                            docker rm -f "$_failed_container" 2>/dev/null || true
-                            docker compose -f "${_compose_dir}/docker-compose.yml" build --no-cache 2>&1 && docker compose -f "${_compose_dir}/docker-compose.yml" up --force-recreate -d 2>&1
-                            _has_rebuilt=true
-                            _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-                            sleep 5
-                            break
-                        fi
-                        echo "ERROR: Container '${_failed_container}' is crash-looping. Logs:"
-                        echo "$_cfailed_logs"
-                        break 2
-                    fi
-                done
-                if $_any_failed; then continue; fi
-            fi
-
-            if $_all_healthy; then
-                echo ""
-                echo "All services are ready!"
-                echo "current dir ${PWD}"
-                _after_hook="jwm_configs/remote_after.sh"
-                if [[ -f "$_after_hook" ]]; then
-                    source "$_after_hook"
-                    echo "after hook finished"
-                fi
-                break
-            fi
-
-            echo "Waiting for all services to become healthy..."
-            sleep 10
-        done
-
+        _after_hook="jwm_configs/remote_after.sh"
+        if [[ -f "$_after_hook" ]]; then
+            source "$_after_hook"
+            echo "after hook finished"
+        fi
+ 
     elif [[ "${_mode}" == "remotedocker" ]]; then
         cat >>jwm_configs/${_mode}/remote_tmps/remote.sh <<'EOF'
 if [[ ${notebook_flag} == 1 ]]; then
