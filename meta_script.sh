@@ -329,7 +329,12 @@ if [[ $# -lt 3 ]]; then
     echo "Running remote setup... (output: $nohup_log) on server ${server_name}"
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
-    timeout ${3600} ssh -o ConnectTimeout=10 "$server_name" "mkdir -p ${run_dir_remote}/jwm_configs/${_mode}/remote_tmps && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 || _ssh_rc=$?
+    ssh -o ConnectTimeout=10 "$server_name" "mkdir -p ${run_dir_remote}/jwm_configs/${_mode}/remote_tmps && bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${_mode} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
+    _ssh_pid=$!
+    ( sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log" ) &
+    _timer_pid=$!
+    wait "$_ssh_pid" 2>/dev/null || _ssh_rc=$?
+    kill "$_timer_pid" 2>/dev/null; wait "$_timer_pid" 2>/dev/null || true
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
     mkdir -p ./${_project_name}/jwm_configs/${_mode}/remote_tmps
     rsync -a "$server_name":"${run_dir_remote}/jwm_configs/${_mode}/remote_tmps/" "./${_project_name}/jwm_configs/${_mode}/remote_tmps/"
