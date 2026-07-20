@@ -48,6 +48,37 @@ if false; then
     sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
 fi
 
+slurm_job_status() {
+    while true; do
+        sleep 10
+
+        all_states=$(squeue --job="${1}" --noheader -o '%T' 2>/dev/null)
+
+        if [[ -z "$all_states" ]]; then
+            echo "Job no longer in queue (may have finished or failed instantly)."
+            break
+        fi
+
+        # Format the state counts safely handling multiple lines
+        state_counts=$(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')
+
+        if echo "$all_states" | grep -q "RUNNING"; then
+            # Optional: Only break if NO parts of the job are left pending
+            if ! echo "$all_states" | grep -q "PENDING"; then
+                echo "Job is now fully RUNNING."
+                echo "  $state_counts"
+                break
+            else
+                echo "$(date '+%H:%M:%S') - Job partially running: $state_counts"
+            fi
+        else
+            echo "$(date '+%H:%M:%S') - $state_counts"
+        fi
+
+    done
+}
+
+
 check_gpu() {
     local GPU_TYPE="${1:-}"
     local REQ_FREE="${2:-}"
@@ -492,34 +523,8 @@ EOF
             echo "wait for remote_job_id.txt to be deleted"
         done
 
-        while true; do
-            sleep 10
-
-            all_states=$(squeue --job="${JWM_JOB_ID}" --noheader -o '%T' 2>/dev/null)
-
-            if [[ -z "$all_states" ]]; then
-                echo "Job no longer in queue (may have finished or failed instantly)."
-                break
-            fi
-
-            # Format the state counts safely handling multiple lines
-            state_counts=$(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')
-
-            if echo "$all_states" | grep -q "RUNNING"; then
-                # Optional: Only break if NO parts of the job are left pending
-                if ! echo "$all_states" | grep -q "PENDING"; then
-                    echo "Job is now fully RUNNING."
-                    echo "  $state_counts"
-                    break
-                else
-                    echo "$(date '+%H:%M:%S') - Job partially running: $state_counts"
-                fi
-            else
-                echo "$(date '+%H:%M:%S') - $state_counts"
-            fi
-
-        done
-
+        slurm_job_status ${JWM_JOB_ID} 2>&1 &
+        disown
         echo "1" >"${JWM_RUN_START_TIME}".jwm
 
         # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
