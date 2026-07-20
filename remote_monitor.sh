@@ -108,7 +108,7 @@ wait_for_ssh() {
 
 is_job_running() {
     local output rc
-    output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "test -f ${remote_dir}/${job_id}.txt && echo true || echo false" 2>/dev/null)
+    output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "test -f ${remote_dir}/${JWM_RUN_START_TIME}.jwm && echo true || echo false" 2>/dev/null)
     rc=$?
     if [[ $rc -ne 0 && $rc -ne 1 ]]; then
         return 0
