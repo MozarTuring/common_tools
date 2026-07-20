@@ -422,6 +422,9 @@ elif [[ "$1" == "remote"* ]]; then
 
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
 cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
+echo """
+rm ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/${JWM_RUN_START_TIME}.jwm
+""">>jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
 EOF
@@ -517,9 +520,9 @@ EOF
 
         done
 
-        echo "1" >"${JWM_JOB_ID}".txt
+        echo "1" >"${JWM_RUN_START_TIME}".jwm
 
-        sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
+        # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
     elif [[ "${JWM_MODE}" == "remotedockercompose" ]]; then
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 if [[ -n ${JWM_COMPOSE_PRE} ]]; then
@@ -696,9 +699,9 @@ EOF
             echo "wait for remote_job_id.txt to be deleted"
         done
 
-        echo "1" >"${JWM_JOB_ID}".txt
+        echo "1" >"${JWM_RUN_START_TIME}".jwm
 
-        nohup bash -c "cd jwmlogs/${JWM_RUN_START_TIME}/ && docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp ../../${JWM_JOB_ID}.txt" >/dev/null 2>&1 &
+        nohup bash -c "cd jwmlogs/${JWM_RUN_START_TIME}/ && docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp ../../${JWM_RUN_START_TIME}.jwm" >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
 
@@ -726,7 +729,7 @@ EOF
             sleep 2
             echo "wait for remote_job_id.txt to be deleted"
         done
-        echo "1" >"${JWM_JOB_ID}".txt
+        echo "1" >"${JWM_RUN_START_TIME}".txt
 
         nohup bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh ${JWM_JOB_ID} >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
