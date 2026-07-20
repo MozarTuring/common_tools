@@ -523,6 +523,7 @@ EOF
             echo "wait for remote_job_id.txt to be deleted"
         done
 
+        export -f slurm_job_status
         nohup bash -c "slurm_job_status ${JWM_JOB_ID}" 2>&1 &
         disown
         echo "1" >"${JWM_RUN_START_TIME}".jwm
