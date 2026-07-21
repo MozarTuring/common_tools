@@ -727,7 +727,7 @@ EOF
 echo ${PWD}
 JWM_RUN_COMMAND="${JWM_RUN_COMMAND_PRE} ${JWM_RUN_COMMAND}"
 
-echo "JWM_RUN_DIR_REMOTE, 
+echo "JWM_RUN_COMMAND, 
 ${JWM_RUN_COMMAND}
 "
 if [[ ${notebook_flag} == 1 ]]; then
@@ -735,7 +735,8 @@ if [[ ${notebook_flag} == 1 ]]; then
     sleep 5
     JWM_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
 fi
-nohup bash -c "${JWM_RUN_COMMAND}"  > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
+nohup bash -c "${JWM_RUN_COMMAND} && rm ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/${JWM_RUN_START_TIME}.jwm"  > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
+
 export JWM_JOB_ID=$!
 EOF
         source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
@@ -750,10 +751,11 @@ EOF
             sleep 2
             echo "wait for remote_job_id.txt to be deleted"
         done
-        echo "1" >"${JWM_RUN_START_TIME}".txt
+        echo "1" >"${JWM_RUN_START_TIME}".jwm
 
         nohup bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh ${JWM_JOB_ID} >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
+        echo "ps -ef|grep ${JWM_JOB_ID}"
         echo "pkill -TERM -P ${JWM_JOB_ID}"
     fi
     echo "PWD: ${PWD}"
