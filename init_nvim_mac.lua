@@ -1912,10 +1912,20 @@ vim.lsp.config("ltex", {
 		ltex = {
 			language = "en-US",
 			additionalRules = { enablePickyRules = true },
+			disabledRules = {
+				["en-US"] = { "MORFOLOGIK_RULE_EN_US" },
+			},
 		},
 	},
 })
 vim.lsp.enable("ltex")
+
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "tex", "latex", "bib" },
+	callback = function()
+		vim.opt_local.spell = false
+	end,
+})
 
 vim.keymap.set("n", "gj", vim.lsp.buf.definition, { noremap = true, silent = true })
 
@@ -2449,18 +2459,19 @@ local function generate_from_template(template_path, output_path, overrides)
 		end
 	end
 
-	local missing = {}
-	for key, _ in pairs(overrides) do
-		missing[#missing + 1] = key
+	local prepend = {}
+	for key, value in pairs(overrides) do
+		prepend[#prepend + 1] = "export " .. key .. "=" .. value
 	end
-	if #missing > 0 then
-		return false, "Key(s) not found in template: " .. table.concat(missing, ", ")
-	end
+	table.sort(prepend)
 
 	os.remove(output_path)
 	f = io.open(output_path, "w")
 	if not f then
 		return false, "Cannot write file: " .. output_path
+	end
+	if #prepend > 0 then
+		f:write(table.concat(prepend, "\n") .. "\n")
 	end
 	f:write(table.concat(lines, "\n") .. "\n")
 	f:close()

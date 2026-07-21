@@ -249,13 +249,24 @@ EOF
     if [[ ${JWM_MODE} == "remotenone" ]]; then
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
-if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
-    conda create -y -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda -c nvidia cuda-toolkit
-fi
+
+if [ -n ${JWM_ENVS} ]; then
+    if [ ! -d ${JWM_ENVS} ]; then
+        conda create -p ${JWM_ENVS} python=3.11 -y
+    fi
+    conda activate ${JWM_ENVS}
+    which python
+    which pip
+    if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
+        conda create -y -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda -c nvidia cuda-toolkit
+    fi
     export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
     export PATH=${CUDA_HOME}/bin:${PATH}
     export CPATH=${CUDA_HOME}/targets/x86_64-linux/include:${CPATH}
     export LD_LIBRARY_PATH=${CUDA_HOME}/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
+fi
+
+
 EOF
     fi
 
@@ -282,7 +293,7 @@ EOF
     touch ".submit_marker"
 
     cat jwm_configs/${JWM_MODE}/remote_tmps/${_manual_file} >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
-    sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+    # sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
 
 }
 
@@ -298,7 +309,7 @@ if [[ $# -lt 3 ]]; then
     echo "project_name, $_project_name"
     JWM_MODE=$(echo "$1" | awk -F'/' '{print $(NF-2)}')
 
-    _server=$(grep '^JWM_SERVER_NAME=' "$1" | tail -1 | sed "s/^JWM_SERVER_NAME=['\"]\\{0,1\\}//;s/['\"]\\{0,1\\}$//")
+    _server=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
 
     # if [[ $# -eq 2 ]]; then
     #     _server=$2
