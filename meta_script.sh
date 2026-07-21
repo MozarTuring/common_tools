@@ -727,7 +727,9 @@ EOF
 echo ${PWD}
 JWM_RUN_COMMAND="${JWM_RUN_COMMAND_PRE} ${JWM_RUN_COMMAND}"
 
-echo ${JWM_RUN_COMMAND}
+echo "JWM_RUN_DIR_REMOTE, 
+${JWM_RUN_COMMAND}
+"
 if [[ ${notebook_flag} == 1 ]]; then
     kill $(pgrep -f "port=18889")
     sleep 5
