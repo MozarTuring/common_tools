@@ -731,7 +731,7 @@ echo "JWM_RUN_COMMAND,
 ${JWM_RUN_COMMAND}
 "
 if [[ ${JWM_NOTEBOOK} == 1 ]]; then
-    kill $(pgrep -f "port=18889")
+    kill $(pgrep -f "port=18889") || echo "18889 port free"
     sleep 5
     JWM_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
 fi
