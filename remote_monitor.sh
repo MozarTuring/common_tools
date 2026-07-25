@@ -150,7 +150,7 @@ while true; do
 "
     if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
         echo "slrum job status checking"
-        slurm_job_status "ssh ${host}" ${job_id}
+        bash "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
         NODE=$(ssh ${host} squeue -j ${job_id} -o "%N" --noheader)
         NODE=":${NODE}"
 
@@ -167,9 +167,9 @@ while true; do
 
     if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
         echo "notebook local port forward, node is ${NODE}, host is ${host}"
-        login_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
+        login_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}') || true
         if [[ ${login_node} != ${host} ]]; then
-            lsof -ti :18889 | xargs kill -9
+            lsof -ti :18889 | xargs kill -9 2>/dev/null || true
             ssh -o ConnectTimeout=5 -f -N -L 18889${NODE}:18889 ${host}
         fi
         JWM_NOTEBOOK_start=1

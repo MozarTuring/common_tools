@@ -50,40 +50,8 @@ fi
 
 
 slurm_job_status() {
-    local ssh_cmd="$1"
-    local job_id="$2"
-    if [[ -z "$job_id" ]]; then
-        echo "Usage: slurm_job_status <ssh_cmd> <job_id>"
-        echo "  ssh_cmd: 'ssh myhost' for remote, '' for local"
-        return 1
-    fi
-    while true; do
-        all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null)
-        if [[ -z "$all_states" ]]; then
-            echo "Job ${job_id} no longer in queue (may have finished or failed instantly)."
-            break
-        fi
-
-        # Format the state counts safely handling multiple lines
-        state_counts=$(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')
-
-        if echo "$all_states" | grep -q "RUNNING"; then
-            if ! echo "$all_states" | grep -q "PENDING"; then
-                echo "Job ${job_id} is now fully RUNNING."
-                echo "  $state_counts"
-                break
-            else
-                echo "$(date '+%H:%M:%S') - Job partially running: $state_counts"
-            fi
-        else
-            echo "$(date '+%H:%M:%S') - $state_counts"
-        fi
-        sleep 10
-
-    done
+    bash "$(dirname "${BASH_SOURCE[0]}")/slurm_job_status.sh" "$@"
 }
-
-export -f slurm_job_status
 
 check_gpu() {
     local GPU_TYPE="${1:-}"
@@ -474,16 +442,13 @@ if [[ ${JWM_NOTEBOOK} == 1 ]];then
     JWM_SLURM_RUN_ARGS=""
 fi
 cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
-echo """
-rm ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/${JWM_RUN_START_TIME}.jwm
-""">>jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
 EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
         if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
             cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --signal=TERM@90 -A berzelius-2026-50 --partition=berzelius"
+sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --signal=B:USR1@120 -A berzelius-2026-50 --partition=berzelius"
 EOF
 
         elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
