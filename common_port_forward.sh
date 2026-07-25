@@ -1,4 +1,4 @@
-set1=("greatrawr" 18900 18889)
+set1=("greatrawr" 18900)
 set2=("ferragon" 9800 3031)
 for array_ref in set1[@] set2[@]; do
     current=("${!array_ref}")

@@ -133,6 +133,7 @@ tmpdirname=$(basename "$local_dir")
 
 jobsfile=$HOME/project/${_project_name}/jwm_configs/jobs.txt
 grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
+
 # --- main monitoring loop ---
 _check_count=0
 while true; do
@@ -144,6 +145,10 @@ while true; do
     echo "
 === $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
+    if [[ ${mode} == "remoteslurm" ]]; then
+        slurm_job_status "ssh ${host}"
+    fi
+
     sleep ${_interval}
 
     wait_for_ssh
@@ -151,6 +156,16 @@ while true; do
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
     fetch_new_content
     # 2>/dev/null || true
+    JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/${mode}/remote_tmps/remote.sh" | tail -1)
+
+    if [[ ${JWM_NOTEBOOK} == 1 ]]; then
+        lsof -ti :18889 | xargs kill -9
+        if [[ ${mode} == "remoteslurm" ]]; then
+            NODE=$(ssh ${host} squeue -j ${job_id} -o "%N" --noheader)
+            NODE=":${NODE}"
+        fi
+        ssh -N -L 18889${NODE}:18889 ${host}
+    fi
 
     # echo "run_flag, ${run_flag}"
     if [[ ${run_flag} -ne 0 ]]; then

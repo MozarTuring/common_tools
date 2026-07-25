@@ -48,12 +48,12 @@ if false; then
     sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
 fi
 
+
 slurm_job_status() {
     while true; do
         sleep 10
 
-        all_states=$(squeue --job="${1}" --noheader -o '%T' 2>/dev/null)
-
+        all_states=$("$1" squeue --job="${1}" --noheader -o '%T' 2>/dev/null)
         if [[ -z "$all_states" ]]; then
             echo "Job no longer in queue (may have finished or failed instantly)."
             break
@@ -74,10 +74,10 @@ slurm_job_status() {
         else
             echo "$(date '+%H:%M:%S') - $state_counts"
         fi
-
     done
 }
 
+export -f slurm_job_status
 
 check_gpu() {
     local GPU_TYPE="${1:-}"
@@ -523,14 +523,14 @@ SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLU
     exit 1
 }
 EOF
-
-        echo "start run ${JWM_MODE}/remote_tmps/remote.sh"
-        source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
-        cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
-
-        JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
+                echo "start run ${JWM_MODE}/remote_tmps/remote.sh"
+                source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+                cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+
+                JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
+
                 echo "$JWM_JOB_ID" >"remote_job_id.txt"
                 break
             fi
@@ -538,9 +538,9 @@ EOF
             echo "wait for remote_job_id.txt to be deleted"
         done
 
-        export -f slurm_job_status
-        nohup bash -c "slurm_job_status ${JWM_JOB_ID}" > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 & # if using stdout rather than redirct, the ssh will hold
-        disown
+        # export -f slurm_job_status
+        # nohup bash -c "slurm_job_status ${JWM_JOB_ID}" >jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 & # if using stdout rather than redirct, the ssh will hold even using disown
+        # disown
         echo "1" >"${JWM_RUN_START_TIME}".jwm
 
         # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
