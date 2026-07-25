@@ -51,7 +51,7 @@ fi
 
 slurm_job_status() {
     while true; do
-        sleep 10
+        echo "$1"
 
         all_states=$("$1" squeue --job="${1}" --noheader -o '%T' 2>/dev/null)
         if [[ -z "$all_states" ]]; then
@@ -74,6 +74,8 @@ slurm_job_status() {
         else
             echo "$(date '+%H:%M:%S') - $state_counts"
         fi
+        sleep 10
+
     done
 }
 
