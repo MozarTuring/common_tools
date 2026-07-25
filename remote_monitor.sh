@@ -137,6 +137,8 @@ grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 # --- main monitoring loop ---
 _check_count=0
 slurm_job_status_checked=""
+JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/${mode}/remote_tmps/remote.sh" | tail -1)
+JWM_NOTEBOOK_start=""
 while true; do
     is_job_running && run_flag=0 || run_flag=$?
 
@@ -146,9 +148,12 @@ while true; do
     echo "
 === $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
-    if [[ ${mode} == "remoteslurm" && -z   ${slurm_job_status_checked} ]]; then
+    if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
         echo "slrum job status checking"
         slurm_job_status "ssh ${host}" ${job_id}
+        NODE=$(ssh ${host} squeue -j ${job_id} -o "%N" --noheader)
+        NODE=":${NODE}"
+
         slurm_job_status_checked=1
     fi
 
@@ -159,15 +164,12 @@ while true; do
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
     fetch_new_content
     # 2>/dev/null || true
-    JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/${mode}/remote_tmps/remote.sh" | tail -1)
 
-    if [[ ${JWM_NOTEBOOK} == 1 ]]; then
+    if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
+        echo "notebook local port forward, node is ${NODE}"
         lsof -ti :18889 | xargs kill -9
-        if [[ ${mode} == "remoteslurm" ]]; then
-            NODE=$(ssh ${host} squeue -j ${job_id} -o "%N" --noheader)
-            NODE=":${NODE}"
-        fi
         ssh -N -L 18889${NODE}:18889 ${host}
+        JWM_NOTEBOOK_start=1
     fi
 
     # echo "run_flag, ${run_flag}"
