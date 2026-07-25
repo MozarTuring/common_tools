@@ -147,7 +147,7 @@ while true; do
 "
     if [[ ${mode} == "remoteslurm" ]]; then
         echo "slrum job status checking"
-        slurm_job_status "ssh ${host}"
+        slurm_job_status "ssh ${host}" ${job_id}
     fi
 
     sleep ${_interval}

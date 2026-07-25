@@ -50,12 +50,17 @@ fi
 
 
 slurm_job_status() {
+    local ssh_cmd="$1"
+    local job_id="$2"
+    if [[ -z "$job_id" ]]; then
+        echo "Usage: slurm_job_status <ssh_cmd> <job_id>"
+        echo "  ssh_cmd: 'ssh myhost' for remote, '' for local"
+        return 1
+    fi
     while true; do
-        echo "$1"
-
-        all_states=$("$1" squeue --job="${1}" --noheader -o '%T' 2>/dev/null)
+        all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null)
         if [[ -z "$all_states" ]]; then
-            echo "Job no longer in queue (may have finished or failed instantly)."
+            echo "Job ${job_id} no longer in queue (may have finished or failed instantly)."
             break
         fi
 
@@ -63,9 +68,8 @@ slurm_job_status() {
         state_counts=$(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')
 
         if echo "$all_states" | grep -q "RUNNING"; then
-            # Optional: Only break if NO parts of the job are left pending
             if ! echo "$all_states" | grep -q "PENDING"; then
-                echo "Job is now fully RUNNING."
+                echo "Job ${job_id} is now fully RUNNING."
                 echo "  $state_counts"
                 break
             else
