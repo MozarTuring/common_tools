@@ -143,8 +143,8 @@ while true; do
     is_job_running && run_flag=0 || run_flag=$?
 
     _check_count=$((_check_count + 1))
-    _capped=$((_check_count < 12 ? _check_count : 11))
-    _interval=$((((_capped - 1) / 5 + 1) * 10))
+    _capped=$((_check_count < 24 ? _check_count : 23))
+    _interval=$((((_capped - 1) / 5 + 1) * 5))
     echo "
 === $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
@@ -166,9 +166,9 @@ while true; do
     # 2>/dev/null || true
 
     if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
-        echo "notebook local port forward, node is ${NODE}"
+        echo "notebook local port forward, node is ${NODE}, host is ${host}"
         lsof -ti :18889 | xargs kill -9
-        ssh -N -L 18889${NODE}:18889 ${host}
+        ssh -o ConnectTimeout=5 -o ControlPath=none -f -N -L 18889${NODE}:18889 ${host}
         JWM_NOTEBOOK_start=1
     fi
 
