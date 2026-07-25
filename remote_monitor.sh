@@ -145,9 +145,10 @@ while true; do
     echo "
 === $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
-    if [[ ${mode} == "remoteslurm" ]]; then
+    if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
         echo "slrum job status checking"
         slurm_job_status "ssh ${host}" ${job_id}
+        slurm_job_status_checked=1
     fi
 
     sleep ${_interval}
