@@ -136,6 +136,7 @@ grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 
 # --- main monitoring loop ---
 _check_count=0
+slurm_job_status_checked=""
 while true; do
     is_job_running && run_flag=0 || run_flag=$?
 
@@ -145,7 +146,7 @@ while true; do
     echo "
 === $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
-    if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
+    if [[ ${mode} == "remoteslurm" && -z   ${slurm_job_status_checked} ]]; then
         echo "slrum job status checking"
         slurm_job_status "ssh ${host}" ${job_id}
         slurm_job_status_checked=1
