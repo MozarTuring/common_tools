@@ -463,6 +463,10 @@ elif [[ "$1" == "remote"* ]]; then
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
+if [[ ${JWM_NOTEBOOK} == 1 ]];then
+    JWM_SLURM_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
+    JWM_SLURM_RUN_ARGS=""
+fi
 cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 echo """
 rm ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/${JWM_RUN_START_TIME}.jwm
@@ -691,7 +695,7 @@ if [[ ${JWM_NOTEBOOK} == 1 ]]; then
     echo "${ARGS_AFTER_ENTRY[@]}"
     docker rm -f jwm_notebook
     sleep 5
-    DOCKER_RUN_ARGS=(--name "jwm_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''")
+#    DOCKER_RUN_ARGS=(--name "jwm_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''")
 else
     DOCKER_RUN_ARGS=("${DOCKER_RUN_ARGS[@]}" "${ARGS_AFTER_ENTRY[@]}")
 fi
