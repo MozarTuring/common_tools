@@ -34,3 +34,5 @@ if [[ -n "${JWM_CONDAENV}" ]]; then
     echo ${JWM_CONDAENV}
     conda activate ${JWM_CONDAENV}
 fi
+which python
+
