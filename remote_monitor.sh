@@ -166,8 +166,8 @@ while true; do
     # 2>/dev/null || true
 
     if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
-        echo "notebook local port forward, node is ${NODE}, host is ${host}"
         login_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}') || true
+        echo "notebook local port forward, node is ${NODE}, host is ${host}, cur host is ${login_node}"
         if [[ ${login_node} != ${host} ]]; then
             lsof -ti :18889 | xargs kill -9 2>/dev/null || true
             ssh -o ConnectTimeout=5 -f -N -L 18889${NODE}:18889 ${host}
