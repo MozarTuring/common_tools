@@ -2,13 +2,13 @@
 
 early_warning() {
     echo "2 minutes left — saving checkpoint..."
-    rm ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/${JWM_RUN_START_TIME}.jwm
     # save_checkpoint
     # optionally keep running, or exit gracefully
 }
 
 final_cleanup() {
     echo "Being killed — last-resort cleanup..."
+    rm ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/${JWM_RUN_START_TIME}.jwm
 }
 
 trap early_warning SIGUSR1    # 120s before limit — your warning

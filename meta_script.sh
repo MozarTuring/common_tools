@@ -448,7 +448,7 @@ echo "
 export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH:-}
 
 ${JWM_SLURM_RUN_COMMAND} ${JWM_SLURM_RUN_ARGS} &
-wait $!
+wait \$!
 " >> jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
