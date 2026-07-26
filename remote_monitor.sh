@@ -92,6 +92,7 @@ _clear_stale_control_socket() {
 }
 
 wait_for_ssh() {
+    local tmpprint=""
     while true; do
         refresh_ssh_auth_sock
         ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" true 2>/dev/null && break
@@ -101,7 +102,10 @@ wait_for_ssh() {
             _clear_stale_control_socket
             ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" true 2>/dev/null && break
         fi
-        echo "$(date '+%H:%M:%S') - SSH connection failed, waiting 1 minute before retry..."
+        if [[ -z ${tmpprint} ]]; then
+            echo "$(date '+%H:%M:%S') - SSH connection failed, waiting 1 minute before retry..."
+            tmpprint=1
+        fi
         sleep 60
     done
 }
@@ -148,11 +152,12 @@ while true; do
     echo "
 === $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
+    node="localhost"
     if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
         echo "slrum job status checking"
+        wait_for_ssh
         bash "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
-        NODE=$(ssh ${host} squeue -j ${job_id} -o "%N" --noheader)
-        NODE=":${NODE}"
+        node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
 
         slurm_job_status_checked=1
     fi
@@ -166,11 +171,14 @@ while true; do
     # 2>/dev/null || true
 
     if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
-        login_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}') || true
-        echo "notebook local port forward, node is ${NODE}, host is ${host}, cur host is ${login_node}"
-        if [[ ${login_node} != ${host} ]]; then
-            lsof -ti :18889 | xargs kill -9 2>/dev/null || true
-            ssh -o ConnectTimeout=5 -f -N -L 18889${NODE}:18889 ${host}
+        pre_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{for(i=1;i<=NF;i++) if($i=="-L") {split($(i+1),a,":"); print a[2]}}')
+
+        pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
+
+        echo "notebook local port forward, node is ${node}, host is ${host}, pre host is ${pre_host}, pre node is ${pre_node}"
+        if [[ ${pre_host} != ${host} || ${pre_node} != ${node} ]]; then
+            ssh -O cancel -L 18889:${pre_node}:18889 ${pre_host} || true
+            ssh -o ConnectTimeout=5 -f -N -L 18889:${node}:18889 ${host}
         fi
         JWM_NOTEBOOK_start=1
     fi
