@@ -176,10 +176,7 @@ while true; do
         pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
 
         echo "notebook local port forward, node is ${node}, host is ${host}, pre host is ${pre_host}, pre node is ${pre_node}"
-        if [[ ${pre_host} != ${host} || ${pre_node} != ${node} ]]; then
-            ssh -O cancel -L 18889:${pre_node}:18889 ${pre_host} || true
-            ssh -o ConnectTimeout=5 -f -N -L 18889:${node}:18889 ${host}
-        fi
+        ssh -o ConnectTimeout=5 -f -N -L 0:${node}:18889 ${host}
         JWM_NOTEBOOK_start=1
     fi
 
