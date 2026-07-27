@@ -2526,7 +2526,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		ToggleAutoRefresh()
 
-		vim.fn.jobstart({ "bash", "-c", bg_cmd }, {
+		vim.fn.jobstart({ "bash", "-c", "-l", bg_cmd }, {
 			on_exit = function(_, code)
 				vim.schedule(function()
 					if code == 0 then

@@ -171,12 +171,15 @@ while true; do
     # 2>/dev/null || true
 
     if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
-        pre_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{for(i=1;i<=NF;i++) if($i=="-L") {split($(i+1),a,":"); print a[2]}}')
+        # pre_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{for(i=1;i<=NF;i++) if($i=="-L") {split($(i+1),a,":"); print a[2]}}')
+        #
+        # pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
 
-        pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
-
-        # echo "notebook local port forward, node is ${node}, host is ${host}, pre host is ${pre_host}, pre node is ${pre_node}"
-        pgrep -fl 'ssh.*node.*berzeliusampere'
+        echo "notebook local port forward, node is ${node}, host is ${host}"
+        echo "hi"
+        # pgrep -fl 'ssh.*node.*berzeliusampere'
+        echo "hello"
+        which python3
         FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
         echo "free port, ${FREE_PORT}"
         ssh -o ConnectTimeout=5 -f -N -L ${FREE_PORT}:${node}:18889 ${host}
