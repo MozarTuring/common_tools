@@ -175,8 +175,10 @@ while true; do
 
         pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
 
-        echo "notebook local port forward, node is ${node}, host is ${host}, pre host is ${pre_host}, pre node is ${pre_node}"
+        # echo "notebook local port forward, node is ${node}, host is ${host}, pre host is ${pre_host}, pre node is ${pre_node}"
+        pgrep -fl 'ssh.*node.*berzeliusampere'
         FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        echo "free port, ${FREE_PORT}"
         ssh -o ConnectTimeout=5 -f -N -L ${FREE_PORT}:${node}:18889 ${host}
         JWM_NOTEBOOK_start=1
     fi
