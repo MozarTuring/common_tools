@@ -154,7 +154,8 @@ dockerfile_to_def() {
 }
 
 _remote_setup() {
-    source ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/common_tokens.sh
+    source ${RUN_DIR_HOME}/project_remote_jwm/project_nogit/common_tools/common_tokens.sh
+
     export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
     mkdir -p ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/jwm_configs/${JWM_MODE}/remote_tmps
     mkdir -p ${JWM_DATA_DIR}
@@ -332,8 +333,11 @@ if [[ $# -lt 3 ]]; then
 
     tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
     rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
-
     rm -rf ./tmp_data/*
+
+    tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
+    rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./project_nogit/common_tools/ "$server_name":${tmp_path}/
+
 
     echo ${last_commit}
     local_dir="${local_dir}/${run_id}"
