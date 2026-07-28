@@ -40,7 +40,6 @@ fetch_new_content() {
     fi
     _log_state_file=".log_state" && touch "$_log_state_file"
     local files=("job-${job_id}_1.out" "job-${job_id}.out" "job_out.log")
-    final_lines="-1"
     for fname in "${files[@]}"; do
         if [[ -f ${fname} ]]; then
             # echo "fetch from ${fname}"
@@ -61,8 +60,8 @@ fetch_new_content() {
                     echo "${fname} ${safe_lines}" >>"$_log_state_file"
                 fi
             elif [[ "$safe_lines" == "$prev_lines" ]]; then
-                if [[ "$safe_lines" != "$final_lines" ]]; then
-                    final_lines="$safe_lines"
+                if [[ "$safe_lines" != "$_final_lines" ]]; then
+                    _final_lines="$safe_lines"
                     sed -n "${cur_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
                 fi
             fi
@@ -141,6 +140,7 @@ grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 
 # --- main monitoring loop ---
 _check_count=0
+__final_lines="-1"
 slurm_job_status_checked=""
 JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/${mode}/remote_tmps/remote.sh" | tail -1)
 JWM_NOTEBOOK_start=""

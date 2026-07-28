@@ -195,7 +195,7 @@ for var in "$@"; do
 done
 }
 
-
+export PYTHONUNBUFFERED=1
 EOF
 
     export RUN_BACKGROUND_JWM=1
@@ -216,7 +216,6 @@ EOF
     if [[ ${JWM_MODE} == "remotedocker" ]]; then
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
-export PYTHONUNBUFFERED=1
 EOF
     fi
 
