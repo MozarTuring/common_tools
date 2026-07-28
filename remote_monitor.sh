@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+trap 'echo "ERROR: remote_monitor failed at line $LINENO (exit code $?)" >&2' ERR
 # Unified remote job monitor.
 #
 # Usage:
@@ -176,7 +176,7 @@ while true; do
         #
         # pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
 
-        pids=$(ps aux | grep "ssh.*-L.*:$node:18889.*$host" | grep -v grep | awk '{print $2}')
+        pids=$(ps aux | grep "ssh.*-L.*:$node:18889.*$host" | grep -v grep | awk '{print $2}' || true)
         count=$(echo "$pids" | wc -w)
         if [ "$count" -gt 1 ]; then
             keep=$(echo "$pids" | head -1)
@@ -184,10 +184,10 @@ while true; do
                 echo "$pids" | tail -n +2 | xargs kill
             fi
             existing=$(ps -p "$keep" -o args= | grep -oE '\-L [0-9]+' | awk '{print $2}')
-            echo "$existing"
+            echo "use existing $existing"
         elif [ "$count" -eq 1 ]; then
             existing=$(ps -p "$pids" -o args= | grep -oE '\-L [0-9]+' | awk '{print $2}')
-            echo "$existing"
+            echo "use existing $existing"
         else
             FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
             echo "create new forward on port ${FREE_PORT}"
