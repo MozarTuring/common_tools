@@ -176,14 +176,15 @@ while true; do
         #
         # pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
 
-        echo "notebook local port forward, node is ${node}, host is ${host}"
-        echo "hi"
+        existing=$(ps aux | grep "ssh.*-L.*:$node:18889.*$host" | grep -v grep | grep -oE '\-L [0-9]+' | awk '{print $2}')
+        if [ -n "$existing" ]; then
+            echo "existing forward on port $existing"
+        else
+            FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+            echo "create new forward on port ${FREE_PORT}"
+            ssh -o ConnectTimeout=5 -o ExitOnForwardFailure=yes -f -N -L ${FREE_PORT}:$node:18889 $host sleep 108000
+        fi
         # pgrep -fl 'ssh.*node.*berzeliusampere'
-        echo "hello"
-        which python3
-        FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
-        echo "free port, ${FREE_PORT}"
-        ssh -o ConnectTimeout=5 -o ExitOnForwardFailure=yes -f -N -L ${FREE_PORT}:${node}:18889 ${host} sleep 108000
         JWM_NOTEBOOK_start=1
     fi
 
