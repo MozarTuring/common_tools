@@ -183,7 +183,7 @@ while true; do
         which python3
         FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
         echo "free port, ${FREE_PORT}"
-        ssh -o ConnectTimeout=5 -f -N -L ${FREE_PORT}:${node}:18889 ${host}
+        ssh -o ConnectTimeout=5 -o ExitOnForwardFailure=yes -f -N -L ${FREE_PORT}:${node}:18889 ${host} sleep 108000
         JWM_NOTEBOOK_start=1
     fi
 
