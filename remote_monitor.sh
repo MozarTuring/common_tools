@@ -140,7 +140,7 @@ grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 
 # --- main monitoring loop ---
 _check_count=0
-__final_lines="-1"
+_final_lines="-1"
 slurm_job_status_checked=""
 JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/${mode}/remote_tmps/remote.sh" | tail -1)
 JWM_NOTEBOOK_start=""
