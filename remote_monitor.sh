@@ -111,14 +111,15 @@ wait_for_ssh() {
 }
 
 is_job_running() {
-    local output rc
-    output=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "test -f ${remote_dir}/${JWM_RUN_START_TIME}.jwm && echo true || echo false" 2>/dev/null)
-    rc=$?
-    if [[ $rc -ne 0 && $rc -ne 1 ]]; then
+    if [[ "$mode" == "remotenone" ]]; then
+        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
+    elif [[ "$mode" == "remoteslurm" ]]; then
+        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue -j ${job_id} -h -o '%T' 2>/dev/null | grep -qiE 'PENDING|RUNNING|COMPLETING'" 2>/dev/null
+    elif [[ "$mode" == "remotedocker" ]]; then
+        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "docker inspect -f '{{.State.Running}}' ${job_id} 2>/dev/null | grep -q true" 2>/dev/null
+    else
         return 0
     fi
-    [[ "$output" == "true" ]]
-    # if output is true then return 0, which indicated success status; otherwise, return 1, which indicates fail status
 }
 
 sync_remote() {

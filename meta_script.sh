@@ -524,7 +524,7 @@ EOF
         # export -f slurm_job_status
         # nohup bash -c "slurm_job_status ${JWM_JOB_ID}" >jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 & # if using stdout rather than redirct, the ssh will hold even using disown
         # disown
-        echo "1" >"${JWM_RUN_START_TIME}".jwm
+        # echo "1" >"${JWM_RUN_START_TIME}".jwm
 
         # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
     elif [[ "${JWM_MODE}" == "remotedockercompose" ]]; then
@@ -703,9 +703,9 @@ EOF
             echo "wait for remote_job_id.txt to be deleted"
         done
 
-        echo "1" >"${JWM_RUN_START_TIME}".jwm
+        # echo "1" >"${JWM_RUN_START_TIME}".jwm
 
-        nohup bash -c "cd jwmlogs/${JWM_RUN_START_TIME}/ && docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp ../../${JWM_RUN_START_TIME}.jwm" >/dev/null 2>&1 &
+        nohup bash -c "cd jwmlogs/${JWM_RUN_START_TIME}/ && docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp " >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
 
@@ -722,7 +722,7 @@ if [[ ${JWM_NOTEBOOK} == 1 ]]; then
     sleep 5
     JWM_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
 fi
-nohup bash -c "${JWM_RUN_COMMAND}; rm ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/${JWM_RUN_START_TIME}.jwm"  > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
+nohup bash -c "${JWM_RUN_COMMAND}" > jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
 
 export JWM_JOB_ID=$!
 EOF
@@ -738,7 +738,7 @@ EOF
             sleep 2
             echo "wait for remote_job_id.txt to be deleted"
         done
-        echo "1" >"${JWM_RUN_START_TIME}".jwm
+        # echo "1" >"${JWM_RUN_START_TIME}".jwm
 
         nohup bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh ${JWM_JOB_ID} >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
