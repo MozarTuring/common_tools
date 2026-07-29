@@ -290,6 +290,7 @@ if [[ $# -lt 3 ]]; then
     bash common_tools/sync_and_commit_repo.sh "common_tools"
     source common_tools/sync_and_commit_repo.sh "$_project_name"
 
+    cd $HOME/project
     tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
     rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
     rm -rf ./tmp_data/*
