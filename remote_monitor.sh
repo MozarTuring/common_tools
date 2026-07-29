@@ -126,6 +126,10 @@ sync_remote() {
     ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
         rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
+    if false; then
+        rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
+    fi
+
     rsync -d --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
