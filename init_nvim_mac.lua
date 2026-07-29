@@ -2494,7 +2494,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
-	vim.fn.setenv("JWM_RUN_START_TIME", tmpdate)
 	local prefix = jwMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
 	local dir_name = rel:match("^([^/]+)")
@@ -2551,7 +2550,19 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		return
 	end
 
-	local prompt_lines = {
+	local cmd_no_date = "bash "
+		.. jwMacHome
+		.. "/project/common_tools/meta_script.sh "
+		.. vim.fn.shellescape(output_path)
+		.. " >> "
+		.. vim.fn.shellescape(log_file)
+		.. " 2>&1"
+	vim.fn.system(cmd_no_date)
+	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+	local log_bufnr = vim.api.nvim_get_current_buf()
+
+	local function show_prompt()
+		local prompt_lines = {
 		"",
 		string.format("  Batch [%d/%d]", index, #batch_entries),
 		"",
@@ -2603,6 +2614,15 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		close_prompt()
 		vim.notify("Batch cancelled")
 	end, { buffer = pbuf, nowait = true })
+	end
+
+	vim.api.nvim_create_autocmd("BufWinLeave", {
+		buffer = log_bufnr,
+		once = true,
+		callback = function()
+			vim.schedule(show_prompt)
+		end,
+	})
 end
 
 vim.keymap.set("n", "fr", function()

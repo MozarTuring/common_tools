@@ -1,53 +1,12 @@
 #!/bin/bash
 
 set -e
-sync_and_commit_repo() {
-    local repo_path="$1"
-    cd "$repo_path"
-    git show-ref --verify --quiet refs/heads/jingwei && echo "Branch jingwei already exists, skipping rename." || (git branch -m jingwei && echo "Branch renamed to jingwei")
-
-    while IFS= read -r pattern; do
-        grep -qxF "$pattern" .gitignore 2>/dev/null || echo "$pattern" >>.gitignore
-    done <~/project/common_tools/common_gitignore.txt
-    git submodule foreach 'git add -A && (git commit -m "v" || true)'
-    git add -A >/dev/null
-    (
-        _staged=$(git diff --cached --name-only)
-        _non_config=$(echo "$_staged" | grep -v "^jwm_configs/" || true)
-        if [[ -n "$_staged" && -n "$_non_config" ]]; then
-            git commit -m "v" >/dev/null
-            tmpbranch=$(git branch --show-current)
-            if [[ ${tmpbranch} == "jingwei"* ]]; then
-                git push origin -u ${tmpbranch} >/dev/null
-            fi
-        fi
-    )
-    last_commit=$(git rev-parse HEAD)
-    if [[ -n "$server_name" ]]; then
-        _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
-        _remote_proj="${repo_path}_${_git_branch}"
-        run_dir_remote="${run_dir_home}/project_remote_jwm/${_remote_proj}"
-        echo "remote dir: ${run_dir_remote}"
-        if [[ ${_remote_proj} == "vllm_service" ]]; then
-            strings=("greatrawr" "ferragon")
-            for server_name in "${strings[@]}"; do
-                rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
-            done
-        else
-            rsync -a --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
-        fi
-    fi
-    local _sync_rc=$?
-    cd - >/dev/null
-    return $_sync_rc
-}
 
 if false; then
     sudo chmod -R a+rwX /data/huggingface_cache
     sudo setfacl -R -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
     sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
 fi
-
 
 slurm_job_status() {
     bash "$(dirname "${BASH_SOURCE[0]}")/slurm_job_status.sh" "$@"
@@ -272,6 +231,7 @@ EOF
 }
 
 if [[ $# -lt 3 ]]; then
+    JWM_RUN_START_TIME=$2
     echo "JWM_RUN_START_TIME, ${JWM_RUN_START_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
     echo "abspath, $1"
@@ -318,7 +278,6 @@ if [[ $# -lt 3 ]]; then
         exit 1
     fi
 
-    cd ~/project/
     # bash common_tools/common_port_forward.sh
 
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" true
@@ -327,8 +286,9 @@ if [[ $# -lt 3 ]]; then
     run_timestamp="$2"
     run_id="${run_timestamp}"
     { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
-    sync_and_commit_repo "common_tools"
-    sync_and_commit_repo "$_project_name"
+    cd $HOME/project
+    bash common_tools/sync_and_commit_repo.sh "common_tools"
+    source common_tools/sync_and_commit_repo.sh "$_project_name"
 
     tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
     rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
@@ -337,6 +297,10 @@ if [[ $# -lt 3 ]]; then
     tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
     rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./project_nogit/common_tools/ "$server_name":${tmp_path}/
 
+    echo "rsync done"
+    if [[ -z ${JWM_RUN_START_TIME} ]]; then
+        exit
+    fi
 
     echo ${last_commit}
     local_dir="${local_dir}/${run_id}"
