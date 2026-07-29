@@ -130,6 +130,7 @@ sync_remote() {
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
     rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/" "$HOME/project/${_project_name}/jwm_configs/"
+    rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/" "$HOME/project/project_nogit/${_project_name}/"
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
