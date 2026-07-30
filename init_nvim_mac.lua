@@ -2558,8 +2558,10 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. vim.fn.shellescape(log_file)
 		.. " 2>&1"
 	vim.fn.system(cmd_no_date)
-	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+	local cur_win = vim.api.nvim_get_current_win()
+	vim.cmd("vsplit " .. vim.fn.fnameescape(log_file))
 	local log_bufnr = vim.api.nvim_get_current_buf()
+	vim.api.nvim_set_current_win(cur_win)
 
 	local function show_prompt()
 		local prompt_lines = {
@@ -2599,11 +2601,24 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		title_pos = "center",
 	})
 
+	local timer = vim.uv.new_timer()
+	local cancelled = false
+
 	local function close_prompt()
-		if vim.api.nvim_win_is_valid(pwin) then
-			vim.api.nvim_win_close(pwin, true)
+		if not cancelled then
+			cancelled = true
+			timer:stop()
+			timer:close()
+			if vim.api.nvim_win_is_valid(pwin) then
+				vim.api.nvim_win_close(pwin, true)
+			end
 		end
 	end
+
+	timer:start(5000, 0, vim.schedule_wrap(function()
+		close_prompt()
+		vim.notify("Batch auto-cancelled (timeout)")
+	end))
 
 	vim.keymap.set("n", "<CR>", function()
 		close_prompt()
@@ -2616,13 +2631,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end, { buffer = pbuf, nowait = true })
 	end
 
-	vim.api.nvim_create_autocmd("BufWinLeave", {
-		buffer = log_bufnr,
-		once = true,
-		callback = function()
-			vim.schedule(show_prompt)
-		end,
-	})
+	show_prompt()
 end
 
 vim.keymap.set("n", "fr", function()
