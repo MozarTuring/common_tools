@@ -1,4 +1,3 @@
 **/zzzjwmresources
 .DS_Store
-**/*.ipynb
 **/*.md

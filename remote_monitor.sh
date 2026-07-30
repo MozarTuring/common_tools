@@ -189,10 +189,10 @@ while true; do
                 echo "$pids" | tail -n +2 | xargs kill
             fi
             existing=$(ps -p "$keep" -o args= | grep -oE '\-L [0-9]+' | awk '{print $2}')
-            echo "use existing $existing"
+            echo "use existing port $existing"
         elif [ "$count" -eq 1 ]; then
             existing=$(ps -p "$pids" -o args= | grep -oE '\-L [0-9]+' | awk '{print $2}')
-            echo "use existing $existing"
+            echo "use existing port $existing"
         else
             FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
             echo "create new forward on port ${FREE_PORT}"
