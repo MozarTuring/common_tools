@@ -415,7 +415,7 @@ echo "
 
 export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH:-}
 
-${JWM_SLURM_RUN_COMMAND} ${JWM_SLURM_RUN_ARGS} &
+${JWM_SLURM_RUN_COMMAND} &
 wait \$!
 " >> jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 
