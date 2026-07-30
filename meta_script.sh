@@ -183,11 +183,15 @@ EOF
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
 
-if [ -n ${JWM_ENVS} ]; then
-    if [ ! -d ${JWM_ENVS} ]; then
-        conda create -p ${JWM_ENVS} python=3.11 -y
+if [ -n ${JWM_PYTHON} ]; then
+    if [ -z ${JWM_CONDAENV} ]; then
+        JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
     fi
-    conda activate ${JWM_ENVS}
+    echo "condaenv path ${JWM_CONDAENV}"
+    if [ ! -d ${JWM_CONDAENV} ]; then
+        conda create -p ${JWM_CONDAENV} python=${JWM_PYTHON} -y
+    fi
+    conda activate ${JWM_CONDAENV}
     which python
     which pip
     if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
@@ -406,7 +410,7 @@ elif [[ "$1" == "remote"* ]]; then
 
 require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
 if [[ ${JWM_NOTEBOOK} == 1 ]];then
-    JWM_SLURM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
+    JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
     JWM_SLURM_RUN_ARGS=""
 fi
 cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
@@ -415,7 +419,7 @@ echo "
 
 export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH:-}
 
-${JWM_SLURM_RUN_COMMAND} &
+${JWM_RUN_COMMAND} &
 wait \$!
 " >> jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 
