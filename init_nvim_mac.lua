@@ -2558,10 +2558,9 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. vim.fn.shellescape(log_file)
 		.. " 2>&1"
 	vim.fn.system(cmd_no_date)
-	local cur_win = vim.api.nvim_get_current_win()
-	vim.cmd("vsplit " .. vim.fn.fnameescape(log_file))
-	local log_bufnr = vim.api.nvim_get_current_buf()
-	vim.api.nvim_set_current_win(cur_win)
+	local cur_tab = vim.api.nvim_get_current_tabpage()
+	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+	vim.api.nvim_set_current_tabpage(cur_tab)
 
 	local function show_prompt()
 		local prompt_lines = {
