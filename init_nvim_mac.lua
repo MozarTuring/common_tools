@@ -168,12 +168,12 @@ require("lazy").setup({
 		{
 			"folke/snacks.nvim",
 			opts = function(_, opts)
-			opts.notifier = opts.notifier or {}
-			opts.notifier.timeout = 2000
-			opts.styles = opts.styles or {}
-			opts.styles.notification = opts.styles.notification or {}
-			opts.styles.notification.wo = opts.styles.notification.wo or {}
-			opts.styles.notification.wo.wrap = true
+				opts.notifier = opts.notifier or {}
+				opts.notifier.timeout = 2000
+				opts.styles = opts.styles or {}
+				opts.styles.notification = opts.styles.notification or {}
+				opts.styles.notification.wo = opts.styles.notification.wo or {}
+				opts.styles.notification.wo.wrap = true
 
 				opts.explorer = opts.explorer or {}
 				opts.explorer.replace_netrw = false
@@ -239,60 +239,60 @@ require("lazy").setup({
 					desc = "yy=copy name, yb=copy abs path",
 				}
 
-			keys["c"] = {
-				function(self)
-					local pickers = Snacks.picker.get({ source = "explorer" })
-					if #pickers == 0 then
-						return
-					end
-					local picker = pickers[1]
-					local item = picker:current()
-					if not item or not item.file then
-						return
-					end
-					local sel = vim.tbl_map(Snacks.picker.util.path, picker:selected())
-					if #sel > 0 then
-						local dir = picker:dir()
-						Snacks.picker.util.copy(sel, dir)
-						picker.list:set_selected()
-						picker:find()
-						return
-					end
-					local uv = vim.uv or vim.loop
-					local cursor_dir
-					if vim.fn.isdirectory(item.file) == 1 then
-						cursor_dir = vim.fn.fnamemodify(item.file, ":p"):gsub("/$", "")
-					else
-						cursor_dir = vim.fn.fnamemodify(item.file, ":p:h")
-					end
-					Snacks.input({
-						prompt = "Copy source path into " .. cursor_dir,
-						completion = "file",
-					}, function(value)
-						if not value or value:find("^%s*$") then
+				keys["c"] = {
+					function(self)
+						local pickers = Snacks.picker.get({ source = "explorer" })
+						if #pickers == 0 then
 							return
 						end
-						local src = vim.fs.normalize(vim.fn.expand(value))
-						local src_stat = uv.fs_stat(src)
-						if not src_stat then
-							Snacks.notify.warn("Source not found:\n- `" .. src .. "`")
+						local picker = pickers[1]
+						local item = picker:current()
+						if not item or not item.file then
 							return
 						end
-						local src_name = vim.fn.fnamemodify(src, ":t")
-						local to = cursor_dir .. "/" .. src_name
-						if uv.fs_stat(to) then
-							Snacks.notify.warn("File already exists:\n- `" .. to .. "`")
+						local sel = vim.tbl_map(Snacks.picker.util.path, picker:selected())
+						if #sel > 0 then
+							local dir = picker:dir()
+							Snacks.picker.util.copy(sel, dir)
+							picker.list:set_selected()
+							picker:find()
 							return
 						end
-						Snacks.picker.util.copy_path(src, to)
-						local Tree = require("snacks.explorer.tree")
-						local Actions = require("snacks.explorer.actions")
-						Tree:open(to)
-						Actions.update(picker, { target = to, refresh = true })
-					end)
-				end,
-				desc = "Copy source into cursor dir",
-			}
+						local uv = vim.uv or vim.loop
+						local cursor_dir
+						if vim.fn.isdirectory(item.file) == 1 then
+							cursor_dir = vim.fn.fnamemodify(item.file, ":p"):gsub("/$", "")
+						else
+							cursor_dir = vim.fn.fnamemodify(item.file, ":p:h")
+						end
+						Snacks.input({
+							prompt = "Copy source path into " .. cursor_dir,
+							completion = "file",
+						}, function(value)
+							if not value or value:find("^%s*$") then
+								return
+							end
+							local src = vim.fs.normalize(vim.fn.expand(value))
+							local src_stat = uv.fs_stat(src)
+							if not src_stat then
+								Snacks.notify.warn("Source not found:\n- `" .. src .. "`")
+								return
+							end
+							local src_name = vim.fn.fnamemodify(src, ":t")
+							local to = cursor_dir .. "/" .. src_name
+							if uv.fs_stat(to) then
+								Snacks.notify.warn("File already exists:\n- `" .. to .. "`")
+								return
+							end
+							Snacks.picker.util.copy_path(src, to)
+							local Tree = require("snacks.explorer.tree")
+							local Actions = require("snacks.explorer.actions")
+							Tree:open(to)
+							Actions.update(picker, { target = to, refresh = true })
+						end)
+					end,
+					desc = "Copy source into cursor dir",
+				}
 
 				keys["<cr>"] = {
 					function()
@@ -370,10 +370,10 @@ require("lazy").setup({
 					if bufname ~= "" and vim.fn.filereadable(bufname) == 0 then
 						return false
 					end
-				local ext = vim.fn.expand("%:e")
-				if ext == "tex" or ext == "bib" then
-					return false
-				end
+					local ext = vim.fn.expand("%:e")
+					if ext == "tex" or ext == "bib" then
+						return false
+					end
 					return true
 				end,
 			},
@@ -425,10 +425,10 @@ require("lazy").setup({
 		{ "HakonHarnes/img-clip.nvim" },
 		{
 			"lervag/vimtex",
-		init = function()
-			vim.fn.serverstart("/tmp/nvim_vimtex")
-			vim.g.vimtex_quickfix_mode = 0
-			vim.g.vimtex_view_method = "skim"
+			init = function()
+				vim.fn.serverstart("/tmp/nvim_vimtex")
+				vim.g.vimtex_quickfix_mode = 0
+				vim.g.vimtex_view_method = "skim"
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
 				vim.g.vimtex_view_skim_activate = 0 -- don't steal focus from Neovim
 				vim.g.vimtex_compiler_method = "latexmk"
@@ -448,29 +448,32 @@ require("lazy").setup({
 				vim.api.nvim_create_autocmd("User", {
 					pattern = "VimtexEventCompileSuccess",
 					callback = function()
-					vim.fn.system({
-						"osascript", "-e",
-						'tell application "Skim" to tell every document to revert',
-					})
-					vim.cmd("VimtexView")
+						vim.fn.system({
+							"osascript",
+							"-e",
+							'tell application "Skim" to tell every document to revert',
+						})
+						vim.cmd("VimtexView")
 
-					vim.fn.system({
-						"osascript", "-e",
-						table.concat({
-							'tell application "Skim"',
-							'  tell front document',
-							'    set view settings to {scale factor:2.0, auto scales:false}',
-							'  end tell',
-							'end tell',
-						}, "\n"),
-					})
+						vim.fn.system({
+							"osascript",
+							"-e",
+							table.concat({
+								'tell application "Skim"',
+								"  tell front document",
+								"    set view settings to {scale factor:2.0, auto scales:false}",
+								"  end tell",
+								"end tell",
+							}, "\n"),
+						})
 
-					vim.fn.system({
-						"osascript", "-e",
-						'tell application "kitty" to activate',
-					})
+						vim.fn.system({
+							"osascript",
+							"-e",
+							'tell application "kitty" to activate',
+						})
 
-					-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
+						-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
 						local handle = io.popen('ls "' .. fixed_out .. '"/pdflatex*.fls 2>/dev/null')
 						if handle then
 							for f in handle:lines() do
@@ -485,68 +488,82 @@ require("lazy").setup({
 					end,
 				})
 
-			-- Close Skim when quitting Neovim
-			vim.api.nvim_create_autocmd("VimLeavePre", {
-				callback = function()
-					vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
-				end,
-			})
+				-- Close Skim when quitting Neovim
+				vim.api.nvim_create_autocmd("VimLeavePre", {
+					callback = function()
+						vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
+					end,
+				})
 
-			-- Reload buffer when tex file is modified on disk (e.g. by external editor).
-			-- latexmk continuous mode (\ll) watches the file on disk and recompiles
-			-- automatically; we only need checktime so neovim picks up the new content.
-			local _tex_watchers = {}
+				-- Reload buffer when tex file is modified on disk (e.g. by external editor).
+				-- latexmk continuous mode (\ll) watches the file on disk and recompiles
+				-- automatically; we only need checktime so neovim picks up the new content.
+				local _tex_watchers = {}
 
-			local function stop_tex_watcher(path)
-				local w = _tex_watchers[path]
-				if w then
-					pcall(function() w:stop() end)
-					pcall(function() w:close() end)
-					_tex_watchers[path] = nil
+				local function stop_tex_watcher(path)
+					local w = _tex_watchers[path]
+					if w then
+						pcall(function()
+							w:stop()
+						end)
+						pcall(function()
+							w:close()
+						end)
+						_tex_watchers[path] = nil
+					end
 				end
-			end
 
-			local function start_tex_watcher(buf, path)
-				if _tex_watchers[path] then return end
-				local w = vim.uv.new_fs_event()
-				if not w then return end
-				_tex_watchers[path] = w
-				w:start(path, {}, vim.schedule_wrap(function(err, _, events)
-					if err then
-						stop_tex_watcher(path)
+				local function start_tex_watcher(buf, path)
+					if _tex_watchers[path] then
 						return
 					end
-					if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
-						vim.api.nvim_buf_call(buf, function()
-							vim.cmd("checktime")
-						end)
+					local w = vim.uv.new_fs_event()
+					if not w then
+						return
 					end
-					if events and events.rename then
-						vim.defer_fn(function()
-							stop_tex_watcher(path)
-							if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
-								start_tex_watcher(buf, path)
+					_tex_watchers[path] = w
+					w:start(
+						path,
+						{},
+						vim.schedule_wrap(function(err, _, events)
+							if err then
+								stop_tex_watcher(path)
+								return
 							end
-						end, 300)
-					end
-				end))
-			end
+							if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
+								vim.api.nvim_buf_call(buf, function()
+									vim.cmd("checktime")
+								end)
+							end
+							if events and events.rename then
+								vim.defer_fn(function()
+									stop_tex_watcher(path)
+									if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
+										start_tex_watcher(buf, path)
+									end
+								end, 300)
+							end
+						end)
+					)
+				end
 
-			vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
-				pattern = "*.tex",
-				callback = function(ev)
-					local path = vim.api.nvim_buf_get_name(ev.buf)
-					if path ~= "" then start_tex_watcher(ev.buf, path) end
-				end,
-			})
+				vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+					pattern = "*.tex",
+					callback = function(ev)
+						local path = vim.api.nvim_buf_get_name(ev.buf)
+						if path ~= "" then
+							start_tex_watcher(ev.buf, path)
+						end
+					end,
+				})
 
-			vim.api.nvim_create_autocmd("BufDelete", {
-				pattern = "*.tex",
-				callback = function(ev)
-					stop_tex_watcher(vim.api.nvim_buf_get_name(ev.buf))
-				end,
-			})
-		end,
+				vim.api.nvim_create_autocmd("BufDelete", {
+					pattern = "*.tex",
+					callback = function(ev)
+						stop_tex_watcher(vim.api.nvim_buf_get_name(ev.buf))
+					end,
+				})
+			end,
 		},
 		{
 			"Mofiqul/vscode.nvim",
@@ -1693,7 +1710,6 @@ local function open_in_grip()
 	start_grip_file_watcher(file)
 end
 
-
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "markdown",
 	callback = function()
@@ -2487,11 +2503,22 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local entry = batch_entries[index]
 	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. output_path .. " "
 
-	local ok, err = generate_from_template(template_path, output_path, vim.deepcopy(entry.overrides))
-	if not ok then
-		vim.notify("Batch stopped: " .. err, vim.log.levels.ERROR)
+	local f_out = io.open(output_path, "w")
+	if not f_out then
+		vim.notify("Cannot write file: " .. output_path, vim.log.levels.ERROR)
 		return
 	end
+	f_out:write("set -e \n")
+	for key, value in pairs(entry.overrides) do
+		f_out:write("export " .. key .. "=" .. value .. "\n")
+	end
+	f_out:close()
+
+	-- local ok, err = generate_from_template(template_path, output_path, vim.deepcopy(entry.overrides))
+	-- if not ok then
+	-- 	vim.notify("Batch stopped: " .. err, vim.log.levels.ERROR)
+	-- 	return
+	-- end
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	local prefix = jwMacHome .. "/project/"
@@ -2512,7 +2539,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. vim.fn.shellescape(output_path)
 		.. " "
 		.. tmpdate
-    -- here shellescape is to correct interpret path with space
+	-- here shellescape is to correct interpret path with space
 	vim.fn.writefile({ cmd }, log_file)
 
 	local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
@@ -2560,74 +2587,82 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	vim.fn.system(cmd_no_date)
 	local cur_tab = vim.api.nvim_get_current_tabpage()
 	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+    if vim.v.shell_error ~= 0 then
+		vim.notify("cmd_no_date failed (exit " .. vim.v.shell_error .. ")", vim.log.levels.ERROR)
+		return
+	end
 	vim.api.nvim_set_current_tabpage(cur_tab)
 
 	local function show_prompt()
 		local prompt_lines = {
-		"",
-		string.format("  Batch [%d/%d]", index, #batch_entries),
-		"",
-		"  " .. entry.raw,
-		"",
-		"  Command: " .. full_cmd,
-		"",
-		"  Enter = run,  Esc = cancel",
-	}
+			"",
+			string.format("  Batch [%d/%d]", index, #batch_entries),
+			"",
+			"  " .. entry.raw,
+			"",
+			"  Command: " .. full_cmd,
+			"",
+			"  Enter = run,  Esc = cancel",
+		}
 
-	local pbuf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, prompt_lines)
-	vim.api.nvim_set_option_value("modifiable", false, { buf = pbuf })
-	vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = pbuf })
+		local pbuf = vim.api.nvim_create_buf(false, true)
+		vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, prompt_lines)
+		vim.api.nvim_set_option_value("modifiable", false, { buf = pbuf })
+		vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = pbuf })
 
-	local width = 0
-	for _, l in ipairs(prompt_lines) do
-		if #l > width then
-			width = #l
-		end
-	end
-	width = math.min(math.max(width + 4, 40), vim.o.columns - 4)
-	local height = math.min(#prompt_lines, vim.o.lines - 6)
-
-	local pwin = vim.api.nvim_open_win(pbuf, true, {
-		relative = "editor",
-		row = math.floor((vim.o.lines - height) / 2),
-		col = math.floor((vim.o.columns - width) / 2),
-		width = width,
-		height = height,
-		style = "minimal",
-		border = "rounded",
-		title = string.format(" Batch [%d/%d] ", index, #batch_entries),
-		title_pos = "center",
-	})
-
-	local timer = vim.uv.new_timer()
-	local cancelled = false
-
-	local function close_prompt()
-		if not cancelled then
-			cancelled = true
-			timer:stop()
-			timer:close()
-			if vim.api.nvim_win_is_valid(pwin) then
-				vim.api.nvim_win_close(pwin, true)
+		local width = 0
+		for _, l in ipairs(prompt_lines) do
+			if #l > width then
+				width = #l
 			end
 		end
-	end
+		width = math.min(math.max(width + 4, 40), vim.o.columns - 4)
+		local height = math.min(#prompt_lines, vim.o.lines - 6)
 
-	timer:start(5000, 0, vim.schedule_wrap(function()
-		close_prompt()
-		vim.notify("Batch auto-cancelled (timeout)")
-	end))
+		local pwin = vim.api.nvim_open_win(pbuf, true, {
+			relative = "editor",
+			row = math.floor((vim.o.lines - height) / 2),
+			col = math.floor((vim.o.columns - width) / 2),
+			width = width,
+			height = height,
+			style = "minimal",
+			border = "rounded",
+			title = string.format(" Batch [%d/%d] ", index, #batch_entries),
+			title_pos = "center",
+		})
 
-	vim.keymap.set("n", "<CR>", function()
-		close_prompt()
-		start_run()
-	end, { buffer = pbuf, nowait = true })
+		local timer = vim.uv.new_timer()
+		local cancelled = false
 
-	vim.keymap.set("n", "<Esc>", function()
-		close_prompt()
-		vim.notify("Batch cancelled")
-	end, { buffer = pbuf, nowait = true })
+		local function close_prompt()
+			if not cancelled then
+				cancelled = true
+				timer:stop()
+				timer:close()
+				if vim.api.nvim_win_is_valid(pwin) then
+					vim.api.nvim_win_close(pwin, true)
+				end
+			end
+		end
+
+		timer:start(
+			5000,
+			0,
+			vim.schedule_wrap(function()
+				close_prompt()
+				vim.notify("Batch auto-cancelled (timeout)")
+			end)
+		)
+
+		vim.keymap.set("n", "<CR>", function()
+			close_prompt()
+			start_run()
+		end, { buffer = pbuf, nowait = true })
+
+		vim.keymap.set("n", "<Esc>", function()
+			close_prompt()
+			vim.notify("Batch cancelled")
+		end, { buffer = pbuf, nowait = true })
 	end
 
 	show_prompt()
@@ -2643,13 +2678,13 @@ vim.keymap.set("n", "fr", function()
 	local dir = vim.fn.fnamemodify(filepath, ":h")
 	local template_path, output_path, batch_file
 
-	if not filepath:match("/jwm_configs/remote[^/]*%/batch[^/]*%.sh$") then
-		vim.notify("must be pressed on a batch*.sh file in remoteslurm", vim.log.levels.ERROR)
+	if not filepath:match("/jwm_configs/remote[^/]*%/jwmbatch[^/]*%.sh$") then
+		vim.notify("must be pressed on a jwmbatch*.sh", vim.log.levels.ERROR)
 		return
 	end
 
 	template_path = dir .. "/template.sh"
-	output_path = dir .. "/remote_tmps/local.sh"
+	output_path = dir .. "/remote_tmps/remote.sh"
 	batch_file = filepath
 
 	if not file_exists(template_path) then
@@ -2664,7 +2699,6 @@ vim.keymap.set("n", "fr", function()
 		vim.notify(parse_err or "Cannot read batch file", vim.log.levels.ERROR)
 		return
 	end
-
 
 	if #entries == 0 then
 		vim.notify("Batch file is empty (no valid entries)", vim.log.levels.WARN)

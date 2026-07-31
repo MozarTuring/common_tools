@@ -142,8 +142,7 @@ _remote_setup() {
     mkdir -p jwmlogs/${JWM_RUN_START_TIME}
     mkdir -p jwm_configs/${JWM_MODE}/remote_tmps
     sleep 1
-    cat >jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-set -e
+    cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 
 require_env() {
 for var in "$@"; do
@@ -215,7 +214,7 @@ EOF
 EOF
     fi
     # if [[ ${JWM_MODE} == "remotedocker" ]]; then
-    #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${JWM_MODE}/remote_tmps/${_manual_file}" | tail -1)"
+    #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${JWM_MODE}/remote_tmps/${batch_file}" | tail -1)"
     #     clearflag=0
     #     for _ctn in "${JWM_CONTAINERS[@]}"; do
     #         echo "removing ${_ctn}"
@@ -229,7 +228,7 @@ EOF
     # fi
     touch ".submit_marker"
 
-    cat jwm_configs/${JWM_MODE}/remote_tmps/${_manual_file} >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+    cat jwm_configs/${JWM_MODE}/template.sh >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
     # sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
 
 }
@@ -239,24 +238,19 @@ if [[ $# -lt 3 ]]; then
     echo "JWM_RUN_START_TIME, ${JWM_RUN_START_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
     echo "abspath, $1"
-    _manual_file=$(basename "$1")
-    echo "filename, $_manual_file"
     _project_dir=$(cd "$(dirname "$1")"/../../../ && pwd)
 
+    echo "project_dir, ${_project_dir}"
     _project_name=$(basename "$_project_dir")
     echo "project_name, $_project_name"
     JWM_MODE=$(echo "$1" | awk -F'/' '{print $(NF-2)}')
 
     _server=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
 
-    # if [[ $# -eq 2 ]]; then
-    #     _server=$2
-    # fi
-
     case "$JWM_MODE" in
     remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
     *)
-        echo "ERROR: unknown mode '$JWM_MODE' from filename '$_manual_file'"
+        echo "ERROR: unknown mode '$JWM_MODE'"
         exit 1
         ;;
     esac
@@ -286,33 +280,30 @@ if [[ $# -lt 3 ]]; then
 
     ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" true
 
-    local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
-    run_timestamp="$2"
-    run_id="${run_timestamp}"
-    { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
     cd $HOME/project
-    bash common_tools/sync_and_commit_repo.sh "common_tools"
-    source common_tools/sync_and_commit_repo.sh "$_project_name"
-
-    cd $HOME/project
-    tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
-    rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
-    rm -rf ./tmp_data/*
-
-    tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
-    rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./project_nogit/common_tools/ "$server_name":${tmp_path}/
-
-    echo "rsync done"
     if [[ -z ${JWM_RUN_START_TIME} ]]; then
+        bash common_tools/sync_and_commit_repo.sh "common_tools"
+        bash common_tools/sync_and_commit_repo.sh "$_project_name"
+
+        tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
+        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
+        rm -rf ./tmp_data/*
+
+        tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
+        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./project_nogit/common_tools/ "$server_name":${tmp_path}/
+
+        echo "rsync done"
         exit
     fi
+    local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
+    { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
+    cd ${_project_name}
+    _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
+    last_commit=$(git rev-parse HEAD)
+    cd -
 
-    echo ${last_commit}
-    local_dir="${local_dir}/${run_id}"
-
-    if [[ ${JWM_MODE} == "remotedockercompose" ]]; then
-        run_id=""
-    fi
+    run_dir_remote="${run_dir_home}/project_remote_jwm/${_project_name}_${_git_branch}"
+    local_dir="${local_dir}/${JWM_RUN_START_TIME}"
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
@@ -324,7 +315,7 @@ if [[ $# -lt 3 ]]; then
 
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
-    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${_manual_file} ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
+    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
     _ssh_pid=$!
     (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     _timer_pid=$!
@@ -389,8 +380,6 @@ elif [[ "$1" == "remote"* ]]; then
     echo "RUN_DIR_HOME, ${RUN_DIR_HOME}"
     shift
     export SERVER_NAME="${1##*@}"
-    shift
-    export _manual_file=$1
     shift
     export JWM_RUN_DIR_REMOTE=$1
     shift
