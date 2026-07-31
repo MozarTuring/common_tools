@@ -315,7 +315,8 @@ if [[ $# -lt 3 ]]; then
 
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
-    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${_remote_proj} ${last_commit} ${run_dir_home} $server_name ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
+    echo "ssh start"
+    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${_project_name}_${_git_branch} ${last_commit} ${run_dir_home} $server_name ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
     _ssh_pid=$!
     (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     _timer_pid=$!
