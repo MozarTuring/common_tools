@@ -2556,7 +2556,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 			on_exit = function(_, code)
 				vim.schedule(function()
 					if code == 0 then
-						os.execute("chmod a-w " .. vim.fn.shellescape(output_path))
 						vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
 					else
 						vim.notify(
