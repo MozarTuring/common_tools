@@ -141,7 +141,6 @@ _project_name=$(basename "$(dirname "$local_dir")")
 tmpdirname=$(basename "$local_dir")
 
 jobsfile=$HOME/project/project_nogit/${_project_name}/jobs.txt
-grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 
 # --- main monitoring loop ---
 _check_count=0
@@ -149,6 +148,12 @@ _final_lines="-1"
 slurm_job_status_checked=""
 JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/${mode}/remote_tmps/remote.sh" | tail -1)
 JWM_NOTEBOOK_start=""
+
+if [[ ${JWM_NOTEBOOK} != 1 ]]; then
+
+grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
+fi
+
 while true; do
     is_job_running && run_flag=0 || run_flag=$?
 
@@ -156,7 +161,7 @@ while true; do
     _capped=$((_check_count < 24 ? _check_count : 23))
     _interval=$((((_capped - 1) / 5 + 1) * 5))
     echo "
-=== $(date '+%H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
+=== $(date '+%Y-%m-%d %H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
     node="localhost"
     if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
