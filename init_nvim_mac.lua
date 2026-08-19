@@ -2580,9 +2580,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. jwMacHome
 		.. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
-		.. " >> "
-		.. vim.fn.shellescape(log_file)
-		.. " 2>&1"
 	local markfile = vim.fn.fnamemodify(log_file, ":h") .. "/_cmd_done"
 	local terminal_cmd = cmd_no_date .. "; touch " .. vim.fn.shellescape(markfile)
 	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
