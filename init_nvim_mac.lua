@@ -2583,16 +2583,30 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. " >> "
 		.. vim.fn.shellescape(log_file)
 		.. " 2>&1"
-	vim.fn.system(cmd_no_date)
-	local cur_tab = vim.api.nvim_get_current_tabpage()
-	vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-    if vim.v.shell_error ~= 0 then
-		vim.notify("cmd_no_date failed (exit " .. vim.v.shell_error .. ")", vim.log.levels.ERROR)
-		return
-	end
-	vim.api.nvim_set_current_tabpage(cur_tab)
+	local markfile = vim.fn.tempname() .. "_cmd_done"
+	local terminal_cmd = cmd_no_date .. "; touch " .. vim.fn.shellescape(markfile)
+	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
+	vim.fn.jobstart({
+		"osascript", "-e",
+		string.format(
+			'tell application "Terminal"\nactivate\ndo script "%s"\nend tell',
+			as_escaped
+		),
+	}, { detach = true })
 
-	local function show_prompt()
+	local show_prompt
+
+	local poll_timer = vim.uv.new_timer()
+	poll_timer:start(500, 500, vim.schedule_wrap(function()
+		if vim.fn.filereadable(markfile) == 1 then
+			poll_timer:stop()
+			poll_timer:close()
+			os.remove(markfile)
+			show_prompt()
+		end
+	end))
+
+	show_prompt = function()
 		local prompt_lines = {
 			"",
 			string.format("  Batch [%d/%d]", index, #batch_entries),
@@ -2663,8 +2677,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 			vim.notify("Batch cancelled")
 		end, { buffer = pbuf, nowait = true })
 	end
-
-	show_prompt()
 end
 
 vim.keymap.set("n", "fr", function()
