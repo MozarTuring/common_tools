@@ -2585,7 +2585,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
 	local as_fmt = as_escaped:gsub("%%", "%%%%")
 	local applescript = string.format([[tell application "Terminal"
-	activate
 	set didRun to false
 	if (count of windows) > 0 then
 		repeat with w in windows
@@ -2613,11 +2612,6 @@ end tell]], as_fmt, as_fmt)
 			poll_timer:stop()
 			poll_timer:close()
 			os.remove(markfile)
-			vim.fn.jobstart({
-				"osascript", "-e",
-				'tell application "System Events" to set frontmost of first process '
-					.. 'whose unix id is ' .. vim.fn.getpid() .. ' to true',
-			})
 			show_prompt()
 		end
 	end))
