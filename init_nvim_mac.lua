@@ -2583,16 +2583,30 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. " >> "
 		.. vim.fn.shellescape(log_file)
 		.. " 2>&1"
-	local markfile = vim.fn.tempname() .. "_cmd_done"
+	local markfile = vim.fn.fnamemodify(log_file, ":h") .. "/_cmd_done"
 	local terminal_cmd = cmd_no_date .. "; touch " .. vim.fn.shellescape(markfile)
 	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
-	vim.fn.jobstart({
-		"osascript", "-e",
-		string.format(
-			'tell application "Terminal"\nactivate\ndo script "%s"\nend tell',
-			as_escaped
-		),
-	}, { detach = true })
+	local as_fmt = as_escaped:gsub("%%", "%%%%")
+	local applescript = string.format([[tell application "Terminal"
+	activate
+	set didRun to false
+	if (count of windows) > 0 then
+		repeat with w in windows
+			repeat with t in tabs of w
+				if busy of t is false then
+					do script "%s" in t
+					set didRun to true
+					exit repeat
+				end if
+			end repeat
+			if didRun then exit repeat
+		end repeat
+	end if
+	if not didRun then
+		do script "%s"
+	end if
+end tell]], as_fmt, as_fmt)
+	vim.fn.jobstart({ "osascript", "-e", applescript }, { detach = true })
 
 	local show_prompt
 
