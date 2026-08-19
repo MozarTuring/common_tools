@@ -2613,6 +2613,11 @@ end tell]], as_fmt, as_fmt)
 			poll_timer:stop()
 			poll_timer:close()
 			os.remove(markfile)
+			vim.fn.jobstart({
+				"osascript", "-e",
+				'tell application "System Events" to set frontmost of first process '
+					.. 'whose unix id is ' .. vim.fn.getpid() .. ' to true',
+			})
 			show_prompt()
 		end
 	end))
