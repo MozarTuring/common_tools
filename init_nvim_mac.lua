@@ -2658,22 +2658,6 @@ end tell]], as_fmt, as_fmt)
 		local cancelled = false
 		local focus_au_grp = vim.api.nvim_create_augroup("BatchPromptFocus", { clear = true })
 
-		local function start_autocancel()
-			if cancelled then return end
-			timer:start(
-				5000,
-				0,
-				vim.schedule_wrap(function()
-					close_prompt()
-					vim.notify("Batch auto-cancelled (timeout)")
-				end)
-			)
-		end
-
-		local function stop_autocancel()
-			timer:stop()
-		end
-
 		local function close_prompt()
 			if not cancelled then
 				cancelled = true
@@ -2686,22 +2670,33 @@ end tell]], as_fmt, as_fmt)
 			end
 		end
 
-		vim.api.nvim_create_autocmd("FocusLost", {
-			group = focus_au_grp,
-			callback = function()
-				stop_autocancel()
-			end,
-		})
+		local function start_autocancel()
+			if cancelled then return end
+			timer:start(
+				5000,
+				0,
+				vim.schedule_wrap(function()
+					close_prompt()
+					vim.notify("Batch auto-cancelled (timeout)")
+				end)
+			)
+		end
 
-		vim.api.nvim_create_autocmd("FocusGained", {
-			group = focus_au_grp,
-			callback = function()
-				start_autocancel()
-			end,
-		})
+		local is_focused = vim.fn.system(
+			"osascript -e 'tell application \"System Events\" to get frontmost of first process whose unix id is "
+				.. vim.fn.getpid()
+				.. "'"
+		):match("true")
 
-		-- If Neovim already has focus, start the timer now
-		start_autocancel()
+		if is_focused then
+			start_autocancel()
+		else
+			vim.api.nvim_create_autocmd("FocusGained", {
+				group = focus_au_grp,
+				once = true,
+				callback = start_autocancel,
+			})
+		end
 
 		vim.keymap.set("n", "<CR>", function()
 			close_prompt()
