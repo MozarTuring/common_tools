@@ -121,26 +121,25 @@ is_job_running() {
     fi
 }
 
+if false; then
+    rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
+fi
+
 sync_remote() {
     local _rsync_out _rsync_rc=0
     ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
-        rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
+        rsync -d --delete --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    if false; then
-        rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
-    fi
-
-    rsync -d --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+    # rsync -d --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
-    rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/" "$HOME/project/${_project_name}/jwm_configs/"
-    rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/" "$HOME/project/project_nogit/${_project_name}/"
+    rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/docs/" "$HOME/project/${_project_name}/jwm_configs/docs/"
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
 tmpdirname=$(basename "$local_dir")
 
-jobsfile=$HOME/project/project_nogit/${_project_name}/jobs.txt
+jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt
 
 # --- main monitoring loop ---
 _check_count=0
@@ -151,7 +150,7 @@ JWM_NOTEBOOK_start=""
 
 if [[ ${JWM_NOTEBOOK} != 1 ]]; then
 
-grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
+    grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 fi
 
 while true; do
