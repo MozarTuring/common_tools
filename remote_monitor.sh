@@ -127,13 +127,18 @@ fi
 
 sync_remote() {
     local _rsync_out _rsync_rc=0
-    ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
-        rsync -d --delete --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
+    # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
+        # rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    # rsync -d --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+    rsync -d --delete "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+
+    rsync -d --delete "$host":"${remote_dir}/jwm_logs/" "$local_dir/jwm_logs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
-    rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/${_project_name}/" "$HOME/project/${_project_name}/jwm_configs/${_project_name}/"
+    tmppath="$local_dir/jwm_configs"
+    if [[ -f ${tmppath} ]]; then
+        rsync -d --delete --include='*.ipynb' --exclude='*' ${tmppath}/ "$HOME/project/${_project_name}/jwm_configs/"
+    fi
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
