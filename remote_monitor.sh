@@ -132,7 +132,6 @@ sync_remote() {
 
     rsync -d --delete "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
-    rsync -d --delete "$host":"${remote_dir}/jwm_logs/" "$local_dir/jwm_logs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
     tmppath="$local_dir/jwm_configs"
