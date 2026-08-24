@@ -30,7 +30,7 @@ if [[ -n "$server_name" ]]; then
     if [[ ! -d ${tmppath} ]]; then
         mkdir -p ${tmppath}
     fi
-    rsync -av ${tmppath} "$server_name":${run_dir_remote}/jwm_configs/
+    rsync -av --safe-links ${tmppath} "$server_name":${run_dir_remote}/jwm_configs/
     if [[ ! -L "./jwm_configs/${repo_path}" ]]; then
         ln -s ${tmppath} ./jwm_configs/${repo_path}
     fi
