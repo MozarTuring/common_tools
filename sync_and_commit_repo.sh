@@ -31,6 +31,6 @@ if [[ -n "$server_name" ]]; then
         mkdir -p ${tmppath}
     fi
     rsync -av ${tmppath} "$server_name":${run_dir_remote}/jwm_configs/
-    ln -s ${tmppath} jwm_configs/${repo_path}
+    ln -s ${tmppath} ./jwm_configs/${repo_path}
 
 fi
