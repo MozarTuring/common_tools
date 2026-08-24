@@ -22,7 +22,7 @@ JWM_RUN_START_TIME="$1"
 
 port_forward=false
 ports_before_file=""
-mkdir -p "$local_dir"
+mkdir -p "$local_dir/jwmlogs"
 
 print_slurm_summary() {
     ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" |
@@ -130,13 +130,14 @@ sync_remote() {
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
         # rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    rsync -d --delete "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+    rsync -a --delete "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+    rsync -a --delete "$host":"${remote_dir}/jwm_logs/${JWM_RUN_START_TIME}" "$local_dir/jwmlogs/"
 
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
     tmppath="$local_dir/jwm_configs"
-    if [[ -f ${tmppath} ]]; then
-        rsync -d --delete --include='*.ipynb' --exclude='*' ${tmppath}/ "$HOME/project/${_project_name}/jwm_configs/"
+    if [[ -d ${tmppath} ]]; then
+        rsync -a --delete --include='*.ipynb' --exclude='*' ${tmppath}/ "$HOME/project/${_project_name}/jwm_configs/"
     fi
 }
 
