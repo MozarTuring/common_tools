@@ -27,10 +27,12 @@ if [[ -n "$server_name" ]]; then
     echo "remote dir: ${run_dir_remote}"
     rsync -a --no-links --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
     tmppath="/Users/jinma63/Desktop/baidu/project_nogit/${repo_path}"
-    if [[ ! -d  ${tmppath} ]]; then
+    if [[ ! -d ${tmppath} ]]; then
         mkdir -p ${tmppath}
     fi
     rsync -av ${tmppath} "$server_name":${run_dir_remote}/jwm_configs/
-    ln -s ${tmppath} ./jwm_configs/${repo_path}
+    if [[ ! -L "./jwm_configs/${repo_path}" ]]; then
+        ln -s ${tmppath} ./jwm_configs/${repo_path}
+    fi
 
 fi
