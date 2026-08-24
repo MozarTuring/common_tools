@@ -133,13 +133,13 @@ sync_remote() {
     # rsync -d --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
-    rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/docs/" "$HOME/project/${_project_name}/jwm_configs/docs/"
+    rsync -d --delete --include='*.ipynb' --exclude='*' "$local_dir/jwm_configs/${_project_name}/" "$HOME/project/${_project_name}/jwm_configs/${_project_name}/"
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
 tmpdirname=$(basename "$local_dir")
 
-jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt
+jobsfile=$HOME/project/${_project_name}/jwm_configs/${_project_name}/jobs.txt
 
 # --- main monitoring loop ---
 _check_count=0
@@ -208,7 +208,9 @@ while true; do
 
     # echo "run_flag, ${run_flag}"
     if [[ ${run_flag} -ne 0 ]]; then
-        sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
+        if [[ -f ${jobsfile} ]]; then
+            sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
+        fi
         echo "DONE: Remote job finished (id: ${job_id})."
         break
     fi
