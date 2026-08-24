@@ -145,7 +145,7 @@ sync_remote() {
 _project_name=$(basename "$(dirname "$local_dir")")
 tmpdirname=$(basename "$local_dir")
 
-jobsfile=$HOME/project/${_project_name}/jwm_configs/${_project_name}/jobs.txt
+jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt
 
 # --- main monitoring loop ---
 _check_count=0
