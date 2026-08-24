@@ -290,7 +290,7 @@ if [[ $# -lt 3 ]]; then
         rm -rf ./tmp_data/*
 
         tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
-        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" ./project_nogit/common_tools/ "$server_name":${tmp_path}/
+        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
 
         echo "rsync done"
         exit
