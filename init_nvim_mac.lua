@@ -90,23 +90,28 @@ require("lazy").setup({
 		-- Disable LazyVim's gy LSP keymap so we can use it for buffer cycling
 		{
 			"neovim/nvim-lspconfig",
-			opts = function(_, opts)
-				local keys = require("lazyvim.plugins.lsp.keymaps").get()
-				keys[#keys + 1] = { "gy", false }
-				opts.servers = opts.servers or {}
-				opts.servers.pyright = opts.servers.pyright or {}
-				opts.servers.pyright.settings = {
-					python = {
-						analysis = {
-							diagnosticSeverityOverrides = {
-								reportPossiblyUnboundVariable = "none",
-								reportMissingImports = "none",
-								reportMissingModuleSource = "none",
+			opts = {
+				servers = {
+					["*"] = {
+						keys = {
+							{ "gy", false },
+						},
+					},
+					pyright = {
+						settings = {
+							python = {
+								analysis = {
+									diagnosticSeverityOverrides = {
+										reportPossiblyUnboundVariable = "none",
+										reportMissingImports = "none",
+										reportMissingModuleSource = "none",
+									},
+								},
 							},
 						},
 					},
-				}
-			end,
+				},
+			},
 		},
 		-- Always show the tab bar, even with one buffer
 		{
@@ -182,7 +187,6 @@ require("lazy").setup({
 				opts.picker.sources = opts.picker.sources or {}
 
 				opts.picker.sources.files = opts.picker.sources.files or {}
-				opts.picker.sources.files.follow = true
 				opts.picker.sources.files.win = opts.picker.sources.files.win or {}
 				opts.picker.sources.files.win.input = opts.picker.sources.files.win.input or {}
 				opts.picker.sources.files.win.input.keys = opts.picker.sources.files.win.input.keys or {}
@@ -687,7 +691,6 @@ vim.keymap.set("n", "ff", function()
 	Snacks.picker.files({
 		hidden = true,
 		ignored = true,
-		follow = true,
 		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
 	})
 end, { desc = "Find files" })
@@ -2591,11 +2594,18 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. jwMacHome
 		.. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
-	local markfile = vim.fn.fnamemodify(log_file, ":h") .. "/_cmd_done"
-	local terminal_cmd = cmd_no_date .. "&& touch " .. vim.fn.shellescape(markfile)
+	local mark_dir = vim.fn.fnamemodify(log_file, ":h")
+	local markfile = mark_dir .. "/_cmd_done"
+	local markfile_fail = mark_dir .. "/_cmd_fail"
+	local terminal_cmd = cmd_no_date
+		.. " && touch "
+		.. vim.fn.shellescape(markfile)
+		.. " || touch "
+		.. vim.fn.shellescape(markfile_fail)
 	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
 	local as_fmt = as_escaped:gsub("%%", "%%%%")
-	local applescript = string.format([[tell application "Terminal"
+	local applescript = string.format(
+		[[tell application "Terminal"
 	set didRun to false
 	if (count of windows) > 0 then
 		repeat with w in windows
@@ -2612,22 +2622,13 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	if not didRun then
 		do script "%s"
 	end if
-end tell]], as_fmt, as_fmt)
+end tell]],
+		as_fmt,
+		as_fmt
+	)
 	vim.fn.jobstart({ "osascript", "-e", applescript }, { detach = true })
 
-	local show_prompt
-
-	local poll_timer = vim.uv.new_timer()
-	poll_timer:start(500, 500, vim.schedule_wrap(function()
-		if vim.fn.filereadable(markfile) == 1 then
-			poll_timer:stop()
-			poll_timer:close()
-			os.remove(markfile)
-			show_prompt()
-		end
-	end))
-
-	show_prompt = function()
+	local show_prompt = function()
 		local prompt_lines = {
 			"",
 			string.format("  Batch [%d/%d]", index, #batch_entries),
@@ -2682,7 +2683,9 @@ end tell]], as_fmt, as_fmt)
 		end
 
 		local function start_autocancel()
-			if cancelled then return end
+			if cancelled then
+				return
+			end
 			timer:start(
 				5000,
 				0,
@@ -2693,11 +2696,13 @@ end tell]], as_fmt, as_fmt)
 			)
 		end
 
-		local is_focused = vim.fn.system(
-			"osascript -e 'tell application \"System Events\" to get frontmost of first process whose unix id is "
-				.. vim.fn.getpid()
-				.. "'"
-		):match("true")
+		local is_focused = vim.fn
+			.system(
+				'osascript -e \'tell application "System Events" to get frontmost of first process whose unix id is '
+					.. vim.fn.getpid()
+					.. "'"
+			)
+			:match("true")
 
 		if is_focused then
 			start_autocancel()
@@ -2719,6 +2724,28 @@ end tell]], as_fmt, as_fmt)
 			vim.notify("Batch cancelled")
 		end, { buffer = pbuf, nowait = true })
 	end
+
+	local poll_timer = vim.uv.new_timer()
+	poll_timer:start(
+		500,
+		500,
+		vim.schedule_wrap(function()
+			if vim.fn.filereadable(markfile) == 1 then
+				poll_timer:stop()
+				poll_timer:close()
+				os.remove(markfile)
+				show_prompt()
+			elseif vim.fn.filereadable(markfile_fail) == 1 then
+				poll_timer:stop()
+				poll_timer:close()
+				os.remove(markfile_fail)
+				vim.notify(
+					string.format("meta_script.sh failed for batch [%d/%d], aborting", index, #batch_entries),
+					vim.log.levels.ERROR
+				)
+			end
+		end)
+	)
 end
 
 vim.keymap.set("n", "fr", function()

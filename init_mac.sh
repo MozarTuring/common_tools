@@ -25,6 +25,7 @@ mv ~/.local/share/nvim/lazy/markdown-preview.nvim/app/routes.js ~/.local/share/n
 
 brew install ripgrep
 
+ln -s ${HOME}/project/common_tools/lazy_nvim/lua ~/.config/nvim/lua
 # vscode
 rm ${HOME}/Library/Application\ Support/Code/User/settings.json
 ln -s ${HOME}/project/common_tools/vscode/settings.json ~/Library/Application\ Support/Code/User/settings.json
