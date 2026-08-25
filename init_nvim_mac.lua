@@ -1496,7 +1496,7 @@ vim.keymap.set("n", ",t", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
 
 	local curfile = vim.fn.expand("%:p")
-	local project_name = curfile:match(jwMacHome .. "/project/project_nogit/([^/]+)/")
+	local project_name = curfile:match(jwMacHome .. "/project/([^/]+)/jwm_configs")
 	if project_name then
 		local word = vim.fn.expand("<cword>")
 		if word and word ~= "" then
