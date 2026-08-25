@@ -343,6 +343,7 @@ if [[ $# -lt 3 ]]; then
     fi
 
     rsync -a --remove-source-files "$server_name":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
+
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
     echo "Remote job ID: $remote_job_id"
