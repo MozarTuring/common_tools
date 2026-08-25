@@ -134,10 +134,10 @@ sync_remote() {
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
         # rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    rsync -a --delete "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
-
-    rsync -a --delete --filter='R *.ipynb' --filter='P *' "$host":"${remote_dir}/jwmlogs/${JWM_RUN_START_TIME}" "$local_dir/jwmlogs/"
-
+    rsync -a "$host":"${remote_dir}/jwmlogs/${JWM_RUN_START_TIME}" "$local_dir/jwmlogs/"
+    rsync -a "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+    # delete only stale ipynb files from local
+    rsync -a --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
     tmppath="$local_dir/jwm_configs"
