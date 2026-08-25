@@ -473,6 +473,17 @@ require("lazy").setup({
 							'tell application "kitty" to activate',
 						})
 
+						-- Copy the built PDF to the same directory as the tex file
+						local vimtex_info = vim.b.vimtex
+						if vimtex_info and vimtex_info.tex then
+							local tex_dir = vim.fn.fnamemodify(vimtex_info.tex, ":h")
+							local pdf_name = vim.fn.fnamemodify(vimtex_info.tex, ":t:r") .. ".pdf"
+							local src = fixed_out .. "/" .. pdf_name
+							if vim.fn.filereadable(src) == 1 then
+								vim.fn.system({ "cp", src, tex_dir .. "/" .. pdf_name })
+							end
+						end
+
 						-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
 						local handle = io.popen('ls "' .. fixed_out .. '"/pdflatex*.fls 2>/dev/null')
 						if handle then
@@ -2581,7 +2592,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
 	local markfile = vim.fn.fnamemodify(log_file, ":h") .. "/_cmd_done"
-	local terminal_cmd = cmd_no_date .. "; touch " .. vim.fn.shellescape(markfile)
+	local terminal_cmd = cmd_no_date .. "&& touch " .. vim.fn.shellescape(markfile)
 	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
 	local as_fmt = as_escaped:gsub("%%", "%%%%")
 	local applescript = string.format([[tell application "Terminal"
