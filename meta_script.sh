@@ -229,6 +229,7 @@ EOF
     touch ".submit_marker"
 
     cat jwm_configs/${JWM_MODE}/template.sh >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+    cat jwm_configs/common.sh >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
     # sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
 
 }
