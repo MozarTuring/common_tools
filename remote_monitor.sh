@@ -49,7 +49,11 @@ fetch_new_content() {
             local cur_lines safe_lines
             cur_lines=$(awk 'END {print NR}' "${fname}")
             # echo "cur_lines, ${cur_lines}"
-            safe_lines=$((cur_lines > 0 ? cur_lines - 1 : 0))
+            if [[ -n "${_job_finished}" ]]; then
+                safe_lines=$cur_lines
+            else
+                safe_lines=$((cur_lines > 0 ? cur_lines - 1 : 0))
+            fi
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
@@ -150,6 +154,7 @@ jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt
 # --- main monitoring loop ---
 _check_count=0
 _final_lines="-1"
+_job_finished=""
 slurm_job_status_checked=""
 JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/${mode}/remote_tmps/remote.sh" | tail -1)
 JWM_NOTEBOOK_start=""
@@ -183,6 +188,7 @@ while true; do
     wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
+    [[ ${run_flag} -ne 0 ]] && _job_finished=1
     fetch_new_content
     # 2>/dev/null || true
 
