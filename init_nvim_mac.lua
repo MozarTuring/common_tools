@@ -2666,52 +2666,15 @@ end tell]],
 			title_pos = "center",
 		})
 
-		local timer = vim.uv.new_timer()
 		local cancelled = false
-		local focus_au_grp = vim.api.nvim_create_augroup("BatchPromptFocus", { clear = true })
 
 		local function close_prompt()
 			if not cancelled then
 				cancelled = true
-				timer:stop()
-				timer:close()
-				pcall(vim.api.nvim_del_augroup_by_id, focus_au_grp)
 				if vim.api.nvim_win_is_valid(pwin) then
 					vim.api.nvim_win_close(pwin, true)
 				end
 			end
-		end
-
-		local function start_autocancel()
-			if cancelled then
-				return
-			end
-			timer:start(
-				5000,
-				0,
-				vim.schedule_wrap(function()
-					close_prompt()
-					vim.notify("Batch auto-cancelled (timeout)")
-				end)
-			)
-		end
-
-		local is_focused = vim.fn
-			.system(
-				'osascript -e \'tell application "System Events" to get frontmost of first process whose unix id is '
-					.. vim.fn.getpid()
-					.. "'"
-			)
-			:match("true")
-
-		if is_focused then
-			start_autocancel()
-		else
-			vim.api.nvim_create_autocmd("FocusGained", {
-				group = focus_au_grp,
-				once = true,
-				callback = start_autocancel,
-			})
 		end
 
 		vim.keymap.set("n", "<CR>", function()
