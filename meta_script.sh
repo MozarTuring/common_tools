@@ -710,7 +710,7 @@ EOF
     fi
     echo "PWD: ${PWD}"
     echo "JWM_JOB_ID: ${JWM_JOB_ID}"
-    echo "${JWM_MODE} remote done"
+    echo "${JWM_MODE} ssh done"
 
 else
     echo "ERROR: unrecognized arguments. Usage:"

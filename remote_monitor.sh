@@ -20,7 +20,6 @@ local_dir="$1"
 shift
 JWM_RUN_START_TIME="$1"
 
-echo "remote time ${ts}"
 
 port_forward=false
 ports_before_file=""
@@ -134,6 +133,8 @@ fi
 _project_name=$(basename "$(dirname "$local_dir")")
 saved_ts="$HOME/project/${_project_name}/.last_remote_ts"
 ts=$(cat "$saved_ts")
+echo "remote time ${ts}"
+
 sync_remote() {
     local _rsync_out _rsync_rc=0
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
