@@ -22,6 +22,8 @@ JWM_RUN_START_TIME="$1"
 shift
 ts="$1"
 
+echo "remote time ${ts}"
+
 port_forward=false
 ports_before_file=""
 mkdir -p "$local_dir/jwmlogs"
