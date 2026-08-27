@@ -19,8 +19,6 @@ shift
 local_dir="$1"
 shift
 JWM_RUN_START_TIME="$1"
-shift
-ts="$1"
 
 echo "remote time ${ts}"
 
@@ -133,6 +131,9 @@ if false; then
     rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
 fi
 
+_project_name=$(basename "$(dirname "$local_dir")")
+saved_ts="$HOME/project/${_project_name}/.last_remote_ts"
+ts=$(cat "$saved_ts")
 sync_remote() {
     local _rsync_out _rsync_rc=0
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
@@ -151,7 +152,6 @@ sync_remote() {
     fi
 }
 
-_project_name=$(basename "$(dirname "$local_dir")")
 tmpdirname=$(basename "$local_dir")
 
 jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt

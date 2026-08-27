@@ -25,7 +25,7 @@ if [[ -n "$server_name" ]]; then
     _remote_proj="${repo_path}_${_git_branch}"
     export run_dir_remote="${run_dir_home}/project_remote_jwm/${_remote_proj}"
     echo "remote dir: ${run_dir_remote}"
-    rsync -a --no-links --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
+    rsync -rl --no-links --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
     tmppath="/Users/jinma63/Desktop/baidu/project_nogit/${repo_path}"
     if [[ ! -d ${tmppath} ]]; then
         mkdir -p ${tmppath}
