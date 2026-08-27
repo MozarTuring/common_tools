@@ -226,7 +226,7 @@ EOF
     #         sleep 30
     #     fi
     # fi
-    touch ".submit_marker"
+    # touch ".submit_marker"
 
     cat jwm_configs/${JWM_MODE}/template.sh >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
     cat jwm_configs/common.sh >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
