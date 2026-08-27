@@ -279,7 +279,7 @@ if [[ $# -lt 3 ]]; then
 
     # bash common_tools/common_port_forward.sh
 
-    ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" true
+    remote_ts=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" 'date +"%Y-%m-%d %H:%M:%S"')
 
     cd $HOME/project
     if [[ -z ${JWM_RUN_START_TIME} ]]; then
@@ -350,7 +350,7 @@ if [[ $# -lt 3 ]]; then
     if [ -n "${remote_job_id}" ]; then
         echo "local dir: ${local_dir}"
 
-        monitor_args=(${JWM_MODE} "$server_name" "$remote_job_id" "$run_dir_remote" "$local_dir" "${JWM_RUN_START_TIME}")
+        monitor_args=(${JWM_MODE} "$server_name" "$remote_job_id" "$run_dir_remote" "$local_dir" "${JWM_RUN_START_TIME}" "${remote_ts}")
 
         echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
 

@@ -19,6 +19,8 @@ shift
 local_dir="$1"
 shift
 JWM_RUN_START_TIME="$1"
+shift
+ts="$1"
 
 port_forward=false
 ports_before_file=""
@@ -132,10 +134,11 @@ fi
 sync_remote() {
     local _rsync_out _rsync_rc=0
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
-        # rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
+    #     rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    rsync -a "$host":"${remote_dir}/jwmlogs/${JWM_RUN_START_TIME}" "$local_dir/jwmlogs/"
-    rsync -a "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+    ssh "$host" "cd '${remote_dir}' && find . -newermt '$ts' -size -10M -type f" 2>/dev/null |
+        rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
+
     # delete only stale ipynb files from local
     rsync -a --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
@@ -165,6 +168,7 @@ if [[ ${JWM_NOTEBOOK} != 1 ]]; then
 fi
 
 while true; do
+    wait_for_ssh
     is_job_running && run_flag=0 || run_flag=$?
 
     _check_count=$((_check_count + 1))
@@ -176,7 +180,6 @@ while true; do
     node="localhost"
     if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
         echo "slrum job status checking"
-        wait_for_ssh
         bash "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
         node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
 
@@ -185,7 +188,6 @@ while true; do
 
     sleep ${_interval}
 
-    wait_for_ssh
     sync_remote || echo "WARNING: rsync failed, will retry next cycle"
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
     [[ ${run_flag} -ne 0 ]] && _job_finished=1
