@@ -13,7 +13,7 @@ while true; do
     all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null)
     if [[ -z "$all_states" ]]; then
         echo "Job ${job_id} no longer in queue (may have finished or failed instantly)."
-        break
+        exit 1
     fi
 
     state_counts=$(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')

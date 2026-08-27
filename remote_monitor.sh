@@ -180,7 +180,7 @@ while true; do
     node="localhost"
     if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
         echo "slrum job status checking"
-        bash "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
+        source "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
         node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
 
         slurm_job_status_checked=1
