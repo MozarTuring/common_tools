@@ -10,7 +10,7 @@ _clear_stale_control_socket() {
 
 refresh_ssh_auth_sock() {
     local sock
-    for sock in /private/tmp/com.apple.launchd.*/Listeners; do
+    for sock in /var/run/com.apple.launchd.*/Listeners /private/tmp/com.apple.launchd.*/Listeners; do
         if [[ -S "$sock" ]]; then
             export SSH_AUTH_SOCK="$sock"
             return 0

@@ -136,7 +136,7 @@ if [[ ${JWM_NOTEBOOK} != 1 ]]; then
 fi
 
 while true; do
-    bash ${HOME}/project/common_tools/wait_for_ssh.sh
+    source ${HOME}/project/common_tools/wait_for_ssh.sh
     is_job_running && run_flag=0 || run_flag=$?
 
     _check_count=$((_check_count + 1))

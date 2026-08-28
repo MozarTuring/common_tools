@@ -11,11 +11,11 @@ if [[ -z "$job_id" ]]; then
 fi
 count=0
 while true; do
-    bash ${HOME}/project/common_tools/wait_for_ssh.sh
+    source ${HOME}/project/common_tools/wait_for_ssh.sh
     all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null)
     if [[ -z "$all_states" ]]; then
         echo "Job ${job_id} no longer in queue (may have finished or failed instantly)."
-        exit 1
+        exit "exit"
     fi
 
     state_counts=$(echo "$all_states" | sort | uniq -c | awk '{printf "%s=%s ", $2, $1} END {print ""}')
