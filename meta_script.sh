@@ -402,20 +402,13 @@ elif [[ "$1" == "remote"* ]]; then
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 
-require_env JWM_SLURM_FILE JWM_RUN_TIME JWM_NODES_NUM
+require_env JWM_RUN_TIME JWM_NODES_NUM
 if [[ ${JWM_NOTEBOOK} == 1 ]];then
     JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
     JWM_SLURM_RUN_ARGS=""
 fi
-cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} > jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
+cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh > jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 
-echo "
-
-export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH:-}
-
-${JWM_RUN_COMMAND} &
-wait \$!
-" >> jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
 
 sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
 EOF
@@ -464,7 +457,7 @@ EOF
         fi
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 
-echo ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
+echo "sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}"
 SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}) || {
     return 1 2>/dev/null
     exit 1
