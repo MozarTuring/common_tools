@@ -420,9 +420,10 @@ wait \$!
 sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
 EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
+        # berzelius-2026-50
         if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
             cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-50 --partition=berzelius"
+sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=berzelius"
 EOF
 
         elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
