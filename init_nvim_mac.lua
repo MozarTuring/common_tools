@@ -2409,28 +2409,38 @@ local function parse_batch_file(batch_file)
 
 	local keys_order = {}
 	local keys_values = {}
+	local pending_line = nil
 	for line in f:lines() do
-		local trimmed = line:match("^%s*(.-)%s*$")
-		if trimmed ~= "" and trimmed:sub(1, 1) ~= "#" then
-			local key, value = trimmed:match("^export%s+(%S-)=(.*)$")
-			if not key then
-				key, value = trimmed:match("^(%S-)=(.*)$")
-			end
-			if value then
-				value = value:match("^%s*(.-)%s*$")
-			end
-			if key and key ~= "" then
-				if not keys_values[key] then
-					keys_values[key] = {}
-					keys_order[#keys_order + 1] = key
+		-- Handle line continuation (trailing backslash)
+		if pending_line then
+			line = pending_line .. line
+			pending_line = nil
+		end
+		if line:match("\\%s*$") then
+			pending_line = line:gsub("\\%s*$", "")
+		else
+			local trimmed = line:match("^%s*(.-)%s*$")
+			if trimmed ~= "" and trimmed:sub(1, 1) ~= "#" then
+				local key, value = trimmed:match("^export%s+(%S-)=(.*)$")
+				if not key then
+					key, value = trimmed:match("^(%S-)=(.*)$")
 				end
-				for _, existing in ipairs(keys_values[key]) do
-					if existing == value then
-						f:close()
-						return nil, "Duplicate: " .. key .. "=" .. value
+				if value then
+					value = value:match("^%s*(.-)%s*$")
+				end
+				if key and key ~= "" then
+					if not keys_values[key] then
+						keys_values[key] = {}
+						keys_order[#keys_order + 1] = key
 					end
+					for _, existing in ipairs(keys_values[key]) do
+						if existing == value then
+							f:close()
+							return nil, "Duplicate: " .. key .. "=" .. value
+						end
+					end
+					keys_values[key][#keys_values[key] + 1] = value
 				end
-				keys_values[key][#keys_values[key] + 1] = value
 			end
 		end
 	end
