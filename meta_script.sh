@@ -681,9 +681,8 @@ EOF
         fi
 
         echo "JWM_RUN_COMMAND, ${JWM_RUN_COMMAND}"
-        export CUDA_VISIBLE_DEVICES='${CUDA_VISIBLE_DEVICES}'
 
-        nohup ${JWM_RUN_COMMAND} >jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
+        CUDA_VISIBLE_DEVICES='${CUDA_VISIBLE_DEVICES}' nohup ${JWM_RUN_COMMAND} >jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
         export JWM_JOB_ID=$!
         disown ${JWM_JOB_ID}
         cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
