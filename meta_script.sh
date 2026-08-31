@@ -142,28 +142,28 @@ _remote_setup() {
     mkdir -p jwmlogs/${JWM_RUN_START_TIME}
     mkdir -p jwm_configs/${JWM_MODE}/remote_tmps
     sleep 1
-    cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-
-require_env() {
-for var in "$@"; do
-    if [ -z "${!var}" ]; then
-        echo "Error: $var is not set" >&2
-        exit 1
-    fi
-done
-}
-
-export PYTHONUNBUFFERED=1
-EOF
+#     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
+#
+# require_env() {
+# for var in "$@"; do
+#     if [ -z "${!var}" ]; then
+#         echo "Error: $var is not set" >&2
+#         exit 1
+#     fi
+# done
+# }
+#
+# export PYTHONUNBUFFERED=1
+# EOF
 
     export RUN_BACKGROUND_JWM=1
     # no '' around EOF, it will expand vars
-    cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
-# change the following based on your running preference
-export RUN_DIR_HOME="${RUN_DIR_HOME}"
-export RUN_PROJ="${RUN_PROJ}"
-
-EOF
+#     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
+# # change the following based on your running preference
+# export RUN_DIR_HOME="${RUN_DIR_HOME}"
+# export RUN_PROJ="${RUN_PROJ}"
+#
+# EOF
 
     # echo "${JWM_RUN_DIR_REMOTE}, ${PWD}"
     # if [[ ${JWM_RUN_DIR_REMOTE} != "${PWD}" ]]; then
