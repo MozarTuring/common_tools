@@ -142,6 +142,7 @@ _remote_setup() {
     mkdir -p jwmlogs/${JWM_RUN_START_TIME}
     mkdir -p jwm_configs/${JWM_MODE}/remote_tmps
     sleep 1
+    echo "" > jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
 #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
 #
 # require_env() {
