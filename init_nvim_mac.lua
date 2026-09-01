@@ -2464,10 +2464,10 @@ local function parse_batch_file(batch_file)
 		end
 	end
 	build_combo(1, {})
-	return entries
+	return entries, nil, keys_order
 end
 
-local function generate_from_template(template_path, output_path, overrides)
+local function generate_from_template(template_path, output_path, overrides, keys_order)
 	local lines = {}
 	local f = io.open(template_path, "r")
 	if not f then
@@ -2500,10 +2500,18 @@ local function generate_from_template(template_path, output_path, overrides)
 	end
 
 	local prepend = {}
-	for key, value in pairs(overrides) do
-		prepend[#prepend + 1] = "export " .. key .. "=" .. value
+	if keys_order then
+		for _, key in ipairs(keys_order) do
+			if overrides[key] ~= nil then
+				prepend[#prepend + 1] = "export " .. key .. "=" .. overrides[key]
+			end
+		end
+	else
+		for key, value in pairs(overrides) do
+			prepend[#prepend + 1] = "export " .. key .. "=" .. value
+		end
+		table.sort(prepend)
 	end
-	table.sort(prepend)
 
 	os.remove(output_path)
 	f = io.open(output_path, "w")
@@ -2518,7 +2526,7 @@ local function generate_from_template(template_path, output_path, overrides)
 	return true, nil
 end
 
-local function run_batch_sequence(template_path, output_path, batch_entries, index)
+local function run_batch_sequence(template_path, output_path, batch_entries, index, keys_order)
 	if index > #batch_entries then
 		vim.notify("Batch run complete (" .. #batch_entries .. " runs finished)", vim.log.levels.INFO)
 		return
@@ -2533,8 +2541,10 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		return
 	end
 	f_out:write("set -e \n")
-	for key, value in pairs(entry.overrides) do
-		f_out:write("export " .. key .. "=" .. value .. "\n")
+	for _, key in ipairs(keys_order) do
+		if entry.overrides[key] ~= nil then
+			f_out:write("export " .. key .. "=" .. entry.overrides[key] .. "\n")
+		end
 	end
 	f_out:close()
 
@@ -2588,7 +2598,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 						)
 					end
 					vim.defer_fn(function()
-						run_batch_sequence(template_path, output_path, batch_entries, index + 1)
+						run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order)
 					end, 3000)
 				end)
 			end,
@@ -2747,7 +2757,7 @@ vim.keymap.set("n", "fr", function()
 
 	vim.fn.mkdir(vim.fn.fnamemodify(output_path, ":h"), "p")
 
-	local entries, parse_err = parse_batch_file(batch_file)
+	local entries, parse_err, keys_order = parse_batch_file(batch_file)
 	if not entries then
 		vim.notify(parse_err or "Cannot read batch file", vim.log.levels.ERROR)
 		return
@@ -2758,7 +2768,7 @@ vim.keymap.set("n", "fr", function()
 		return
 	end
 
-	run_batch_sequence(template_path, output_path, entries, 1)
+	run_batch_sequence(template_path, output_path, entries, 1, keys_order)
 end, { noremap = true, silent = true, desc = "Run meta_script from template + .batch file" })
 
 local function f10_run_lines(lines)
