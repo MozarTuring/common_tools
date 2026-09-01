@@ -2478,6 +2478,12 @@ local function generate_from_template(template_path, output_path, overrides, key
 	end
 	f:close()
 
+	-- Save all values before template matching removes matched keys
+	local all_values = {}
+	for k, v in pairs(overrides) do
+		all_values[k] = v
+	end
+
 	for i, l in ipairs(lines) do
 		for key, value in pairs(overrides) do
 			local prefix_export = "export " .. key .. "="
@@ -2499,15 +2505,17 @@ local function generate_from_template(template_path, output_path, overrides, key
 		end
 	end
 
+	-- Always prepend ALL overrides in batch-file order so variable
+	-- references like ${JWM_TASK_NAMES} expand correctly
 	local prepend = {}
 	if keys_order then
 		for _, key in ipairs(keys_order) do
-			if overrides[key] ~= nil then
-				prepend[#prepend + 1] = "export " .. key .. "=" .. overrides[key]
+			if all_values[key] ~= nil then
+				prepend[#prepend + 1] = "export " .. key .. "=" .. all_values[key]
 			end
 		end
 	else
-		for key, value in pairs(overrides) do
+		for key, value in pairs(all_values) do
 			prepend[#prepend + 1] = "export " .. key .. "=" .. value
 		end
 		table.sort(prepend)
