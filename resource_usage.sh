@@ -21,10 +21,12 @@ get_descendants() {
     done
 }
 
+
 while kill -0 "$PID" 2>/dev/null; do
     ((count++))
-    sleep 10
-    if [ "$count" -gt 6 ]; then
+    sleep 5
+    nvidia-smi
+    if [ "$count" -gt 1 ]; then
         echo ""
         all_pids=$(
             echo "$PID"
