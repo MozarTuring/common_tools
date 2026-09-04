@@ -2860,15 +2860,15 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 				vim.schedule(function()
 					if code == 0 then
 						vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
+						vim.defer_fn(function()
+							run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
+						end, 3000)
 					else
 						vim.notify(
-							string.format("Batch [%d/%d] failed (exit %d)", index, #batch_entries, code),
+							string.format("Batch [%d/%d] failed (exit %d) — stopping batch", index, #batch_entries, code),
 							vim.log.levels.ERROR
 						)
 					end
-					vim.defer_fn(function()
-						run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
-					end, 3000)
 				end)
 			end,
 		})
