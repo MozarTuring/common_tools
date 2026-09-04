@@ -284,7 +284,7 @@ if [[ $# -lt 3 ]]; then
 
     cd $HOME/project
 
-    if [[ -z ${JWM_RUN_START_TIME} ]]; then
+    # if [[ -z ${JWM_RUN_START_TIME} ]]; then
         remote_ts=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" 'date +"%Y-%m-%d %H:%M:%S"')
         echo "$remote_ts" >"$HOME/project/${_project_name}/.last_remote_ts"
         bash common_tools/sync_and_commit_repo.sh "common_tools"
@@ -298,8 +298,8 @@ if [[ $# -lt 3 ]]; then
         rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
 
         echo "rsync done"
-        exit
-    fi
+    #     exit
+    # fi
     local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
     { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
     cd ${_project_name}
