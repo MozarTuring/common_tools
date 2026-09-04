@@ -111,6 +111,8 @@ sync_remote() {
     # delete only stale ipynb files from local
     rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
 
+    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/jwmlogs/${JWM_RUN_START_TIME}" "$local_dir/jwmlogs/"
+
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
     tmppath="$local_dir/jwm_configs"
     if [[ -d ${tmppath} ]]; then

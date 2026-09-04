@@ -360,7 +360,8 @@ if [[ $# -lt 3 ]]; then
 
         nohup bash ~/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
         monitor_pid=$!
-        echo "Background monitor PID: $monitor_pid"
+        echo "Background monitor PID:
+        ps -ef |grep $monitor_pid"
 
         echo "see logs at ${local_dir}"
 

@@ -871,7 +871,7 @@ end
 
 local function get_log_path(inp)
 	local current_time = os.date("%Y%m%d_%H%M%S")
-	local tmp = vim.fn.GetAbsPath("a")
+	local tmp = GetAbsPath("a")
 	local abs_dir = tmp[2]
 	local cur_name = tmp[3]
 	--    local abs_path = abs_dir .. '/' .. cur_name
@@ -951,7 +951,7 @@ local jw_send = function(inp_send, inp_line)
 	--    local today = os.date("%Y-%m-%d")
 	--    session_start = '\n\n**********' .. today .. '**********\n'
 	--    print(_G.jwsession) it will be set to nil when restart nvim
-	local tmp = vim.fn.GetAbsPath("a")
+	local tmp = GetAbsPath("a")
 	if not string.match(tmp[1], "%.py$") then
 		error("not python")
 	end
@@ -1428,7 +1428,7 @@ vim.api.nvim_set_keymap("n", ",", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", ";", "<Nop>", { noremap = true, silent = true })
 
 --keymaps
-vim.api.nvim_set_keymap("n", "<2-LeftMouse>", ":call CompileRunGcc('r')<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<2-LeftMouse>", "<cmd>lua CompileRunGcc('r')<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "cls", ":lua Clswap()<CR>", { noremap = true })
 vim.api.nvim_set_keymap("n", "fl", "<cmd>lua OpenLog()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "yb", "<cmd>lua CopyFilePathToClipboard()<CR>", { noremap = true, silent = true })
@@ -1436,7 +1436,267 @@ vim.api.nvim_set_keymap("n", "yb", "<cmd>lua CopyFilePathToClipboard()<CR>", { n
 vim.api.nvim_set_keymap("v", "sy", ":lua copy_visual_lines()<CR>", { noremap = true, silent = true }) -- here <cmd> not work in windows
 
 vim.api.nvim_set_keymap("n", "sy", ":lua copy_normal_lines()<CR>", { noremap = true, silent = true })
-vim.cmd("source ~/project/common_tools/init_nvim.vim")
+---------------------------------------------
+-- Functions ported from init_nvim.vim
+---------------------------------------------
+
+local function _jw_contains(list, val)
+	for _, v in ipairs(list) do
+		if v == val then
+			return true
+		end
+	end
+	return false
+end
+
+--- Escape a string for use as a \V (very nomagic) search pattern in :s
+--- In \V mode only \ is special; we also escape / (the delimiter) and newlines
+local function _jw_escape_search(str)
+	str = str:gsub("\\", "\\\\") -- \ → \\  (must be first)
+	str = str:gsub("\n", "\\n") -- newline → \n  (\V still reads \n as newline atom)
+	str = str:gsub("/", "\\/") -- / → \/  (separator)
+	return str
+end
+
+--- Escape a string for the replacement part of :s
+--- Special chars in replacement: \ / & ~   and \r = newline
+local function _jw_escape_replace(str)
+	str = str:gsub("\\", "\\\\") -- \ → \\  (must be first)
+	str = str:gsub("\n", "\\r") -- newline → \r  (in :s replacement \r = newline)
+	str = str:gsub("/", "\\/") -- / → \/  (separator)
+	str = str:gsub("&", "\\&") -- & → \&  (& = whole match)
+	str = str:gsub("~", "\\~") -- ~ → \~  (~ = previous replacement)
+	return str
+end
+
+-- Comment toggle --
+
+local function _jw_comment(firstline, lastline)
+	local first_line_content = vim.fn.getline(firstline)
+	vim.print(vim.bo.filetype)
+
+	local first_char = ""
+	for i = 1, #first_line_content do
+		local c = first_line_content:sub(i, i)
+		if c ~= " " then
+			first_char = c
+			break
+		end
+	end
+
+	local ft = vim.bo.filetype
+	local filetype_ls2 = { "html", "vue" }
+	local filetype_ls3 = { "javascript", "css" }
+	local prefix = firstline .. "," .. lastline
+	local cmds = {}
+
+	if _jw_contains(filetype_ls2, ft) then
+		if first_line_content:sub(1, 2) == "<!" then
+			cmds = { firstline .. "s/<!--//", lastline .. "s/-->//" }
+		else
+			cmds = { firstline .. "s/^/<!--/", lastline .. "s/$/-->/" }
+		end
+	elseif _jw_contains(filetype_ls3, ft) then
+		if first_line_content:sub(1, 2) == "/*" then
+			cmds = {
+				firstline .. [[s/\/\*//]],
+				lastline .. [[s/\*\///]],
+			}
+		else
+			cmds = {
+				firstline .. [[s/^/\/\*/]],
+				lastline .. [[s/$/\*\//]],
+			}
+		end
+	elseif ft == "lua" then
+		if first_char == "-" then
+			cmds = { prefix .. "s/^--//" }
+		else
+			cmds = { prefix .. "s/^/--/g" }
+		end
+	elseif ft == "vim" then
+		if first_char == '"' then
+			cmds = { prefix .. [[s/^"//]] }
+		else
+			cmds = { prefix .. [[s/^/"/g]] }
+		end
+	else
+		if first_char == "#" then
+			cmds = { prefix .. "s/#//" }
+		else
+			cmds = { prefix .. "s/^/#/" }
+		end
+	end
+
+	for _, cmd in ipairs(cmds) do
+		vim.cmd(cmd)
+	end
+	vim.cmd("nohlsearch")
+	vim.cmd("redraw")
+end
+
+-- Expose for the visual-mode command-line mapping
+function _G._jw_comment_visual()
+	_jw_comment(vim.fn.line("'<"), vim.fn.line("'>"))
+end
+
+vim.keymap.set("v", "?", ":<C-u>lua _jw_comment_visual()<CR>", { silent = true, noremap = true })
+vim.keymap.set("n", "?", function()
+	local line = vim.fn.line(".")
+	_jw_comment(line, line)
+end, { silent = true, noremap = true })
+
+-- MyReplace (visual mode) --
+-- Uses \V (very nomagic) so every character is matched literally.
+-- This fixes patterns like $\star$, [brackets], etc.
+
+function _G._jw_my_replace()
+	-- Re-enter last visual selection and yank into register a
+	vim.cmd('normal! gv"ay')
+	local selected = vim.fn.getreg("a")
+	print(selected)
+	local escaped = _jw_escape_search(selected)
+	print(escaped)
+	local rep_input = vim.fn.input("substitute with:")
+	local escaped_rep = _jw_escape_replace(rep_input)
+	-- \V = very nomagic: every char is literal except \
+	local cmd = [[%s/\V]] .. escaped .. "/" .. escaped_rep .. "/gc"
+	print(cmd)
+	vim.cmd(cmd)
+end
+
+vim.keymap.set("v", "<C-s>", ":<C-u>lua _jw_my_replace()<CR>", { silent = true, noremap = true })
+
+-- MyReplaceNormal (normal mode) --
+-- Search pattern is typed by the user (can use regex); replacement is escaped.
+
+function _G._jw_my_replace_normal()
+	local pattern = vim.fn.input("search for:")
+	if #pattern == 0 then
+		return
+	end
+	local rep_input = vim.fn.input("substitute with:")
+	local escaped_rep = _jw_escape_replace(rep_input)
+	local cmd = ":%s/" .. pattern .. "/" .. escaped_rep .. "/gc"
+	print(cmd)
+	vim.cmd(cmd)
+end
+
+-- GetAbsPath --
+-- Returns a table {abs_path, abs_dir, cur_name, abs_path_split} when inp_mode=="a"
+-- to keep the same API as the VimScript version (callers use tmp[1], tmp[2], etc.)
+
+function GetAbsPath(inp_mode)
+	local cur_dir = vim.fn.getcwd()
+	local cur_file_path = vim.fn.getreg("%")
+	local tmp_abs_path
+	if cur_file_path:sub(1, 1) == "/" then
+		tmp_abs_path = cur_file_path
+	else
+		tmp_abs_path = cur_dir .. "/" .. cur_file_path
+	end
+
+	local parts = vim.split(tmp_abs_path, "/", { plain = true, trimempty = true })
+
+	local dir_parts = {}
+	for i = 1, #parts - 1 do
+		dir_parts[i] = parts[i]
+	end
+	local tmp_abs_dir = "/" .. table.concat(dir_parts, "/")
+
+	-- Resolve symlinks / normalise via cd + pwd
+	local resolved = vim.fn.system("cd " .. vim.fn.shellescape(tmp_abs_dir) .. " && pwd")
+	local abs_dir = resolved:gsub("\n$", "")
+	local abs_path = abs_dir .. "/" .. parts[#parts]
+
+	local abs_path_split = vim.split(abs_path, "/", { plain = true, trimempty = true })
+	local cur_name = vim.split(abs_path_split[#abs_path_split], ".", { plain = true })[1]
+
+	if inp_mode == "a" then
+		return { abs_path, abs_dir, cur_name, abs_path_split }
+	else
+		return abs_path
+	end
+end
+
+-- GetCommand --
+
+local function _jw_get_command(strStart, strEnd)
+	local shell_start_line = vim.fn.search(strStart, "b")
+	local shell_end_line = vim.fn.search(strEnd, "b")
+	local content_ls = {}
+	if shell_start_line ~= 0 then
+		local line = shell_start_line
+		while line < shell_end_line - 1 do
+			line = line + 1
+			table.insert(content_ls, vim.fn.getline(line))
+		end
+	end
+
+	local command_ls = {}
+	local stop_command = ""
+	local ind = 1
+	while ind <= #content_ls do
+		local ele = content_ls[ind]
+		if ele:sub(1, 5) == "stop," then
+			stop_command = ele:sub(6)
+		end
+		if ele:sub(1, 5) == "line," then
+			local ele_split = vim.split(ele, ",", { plain = true })
+			local line_count = tonumber(ele_split[2])
+			for i = ind + 1, math.min(ind + line_count, #content_ls) do
+				table.insert(command_ls, content_ls[i])
+			end
+			break
+		end
+		ind = ind + 1
+	end
+	if #command_ls == 0 then
+		command_ls = { "" }
+	end
+	return command_ls, stop_command
+end
+
+-- CompileRunGcc --
+
+function CompileRunGcc(inp_mode)
+	vim.cmd("e")
+	local tmp = GetAbsPath("a")
+	local abs_path_split = tmp[4]
+	local cur_file = abs_path_split[#abs_path_split]
+	local cur_dir = abs_path_split[#abs_path_split - 1]
+
+	vim.cmd("!jwrun " .. cur_dir .. "/" .. cur_file)
+	OpenLog()
+	vim.cmd("redraw")
+end
+
+-- CompileStop --
+
+function CompileStop()
+	local tmp = GetAbsPath("a")
+	local abs_path = tmp[1]
+	if vim.bo.filetype == "sh" then
+		local _, stop_command = _jw_get_command(":<<EOF", "EOF")
+		if #stop_command ~= 0 then
+			vim.cmd("!jwkill " .. stop_command)
+		end
+	elseif vim.bo.filetype == "python" then
+		vim.cmd("!jwkill " .. abs_path)
+	end
+	return tmp[1], tmp[2], tmp[3], tmp[4]
+end
+
+vim.keymap.set("n", "fr", function()
+	CompileRunGcc("r")
+end, { silent = true, noremap = true })
+vim.keymap.set("n", "fk", function()
+	CompileStop()
+end, { silent = true, noremap = true })
+
+vim.g.NERDTreeShowModifiedFlag = 0
+
+-- end of init_nvim.vim port
 vim.opt.clipboard = "unnamedplus"
 -- macneovim
 -- Reverse explorer sort: files first, Z-A within each group
@@ -2086,13 +2346,13 @@ vim.defer_fn(function()
 	vim.keymap.set(
 		"v",
 		"<leader>s",
-		":call MyReplace()<CR>",
+		":<C-u>lua _jw_my_replace()<CR>",
 		{ noremap = true, silent = true, desc = "Search and replace selection" }
 	)
 	vim.keymap.set(
 		"n",
 		"<leader>s",
-		":call MyReplaceNormal()<CR>",
+		"<cmd>lua _jw_my_replace_normal()<CR>",
 		{ noremap = true, silent = true, desc = "Search and replace (prompt both)" }
 	)
 	-- Disable F after flash.nvim has loaded (flash overrides f/F/t/T)
