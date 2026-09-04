@@ -284,22 +284,22 @@ if [[ $# -lt 3 ]]; then
 
     cd $HOME/project
 
-    # if [[ -z ${JWM_RUN_START_TIME} ]]; then
-    remote_ts=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" 'date +"%Y-%m-%d %H:%M:%S"')
-    echo "$remote_ts" >"$HOME/project/${_project_name}/.last_remote_ts"
-    bash common_tools/sync_and_commit_repo.sh "common_tools"
-    bash common_tools/sync_and_commit_repo.sh "$_project_name"
+    if [[ -z ${JWM_RUN_START_TIME} ]]; then
+        remote_ts=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" 'date +"%Y-%m-%d %H:%M:%S"')
+        echo "$remote_ts" >"$HOME/project/${_project_name}/.last_remote_ts"
+        bash common_tools/sync_and_commit_repo.sh "common_tools"
+        bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
-    tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
-    rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
-    rm -rf ./tmp_data/*
+        tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
+        rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
+        rm -rf ./tmp_data/*
 
-    tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
-    rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
+        tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
+        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
 
-    echo "rsync done"
-    #     exit
-    # fi
+        echo "rsync done"
+        exit
+    fi
     local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
     { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
     cd ${_project_name}
