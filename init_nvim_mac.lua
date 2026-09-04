@@ -2794,7 +2794,8 @@ local function generate_from_template(template_path, output_path, overrides, key
 	return true, nil
 end
 
-local function run_batch_sequence(template_path, output_path, batch_entries, index, keys_order)
+local function run_batch_sequence(template_path, output_path, batch_entries, index, keys_order, seen_servers)
+	seen_servers = seen_servers or {}
 	if index > #batch_entries then
 		vim.notify("Batch run complete (" .. #batch_entries .. " runs finished)", vim.log.levels.INFO)
 		return
@@ -2866,14 +2867,20 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 						)
 					end
 					vim.defer_fn(function()
-						run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order)
+						run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
 					end, 3000)
 				end)
 			end,
 		})
 	end
 
-	if index > 1 then
+	local server_name = entry.overrides["JWM_SERVER_NAME"]
+	local is_first_server = server_name == nil or not seen_servers[server_name]
+	if server_name then
+		seen_servers[server_name] = true
+	end
+
+	if not is_first_server then
 		start_run()
 		return
 	end
