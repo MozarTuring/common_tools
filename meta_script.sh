@@ -209,8 +209,6 @@ EOF
 
     if [[ ${JWM_MODE} == "remotedockercompose" ]]; then
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-# uncomment the following to define them based on your running preference
-# export HF_TOKEN="fill in your huggingface token"
 
 EOF
     fi
@@ -489,18 +487,17 @@ EOF
         # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
     elif [[ "${JWM_MODE}" == "remotedockercompose" ]]; then
         cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-if [[ -n ${JWM_COMPOSE_PRE} ]]; then
-    eval "${JWM_COMPOSE_PRE}"
-fi
 docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
-sleep 1
-JWM_JOB_ID=$(docker compose ps -q)
-echo "docker rm -f ${JWM_JOB_ID}"
 EOF
         # Without -d, the docker compose up process would stay in the foreground, streaming container logs until you hit Ctrl+C or the containers stop.
-
+        if [[ -n ${JWM_COMPOSE_PRE} ]]; then
+            eval "${JWM_COMPOSE_PRE}"
+        fi
         echo "start run ${JWM_MODE}/remote_tmps/remote.sh"
         source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+        sleep 1
+        JWM_JOB_ID=$(docker compose ps -q)
+        echo "docker rm -f ${JWM_JOB_ID}"
 
         cd "${RUN_DIR_HOME}/project_remote_jwm"/"${RUN_PROJ}"
         # echo "current dir ${PWD}"
