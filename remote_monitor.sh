@@ -83,7 +83,7 @@ is_job_running() {
     if [[ "$mode" == "remotenone" ]]; then
         ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
     elif [[ "$mode" == "remoteslurm" ]]; then
-        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue -j ${job_id} -h -o '%T' 2>/dev/null | grep -qiE 'PENDING|RUNNING|COMPLETING'" 2>/dev/null
+        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue -j ${job_id} -h -o '%T' 2>/dev/null | grep -qiE 'PENDING|CONFIGURING|RUNNING|COMPLETING|REQUEUED|SUSPENDED'" 2>/dev/null
     elif [[ "$mode" == "remotedocker" ]]; then
         ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "docker inspect -f '{{.State.Running}}' ${job_id} 2>/dev/null | grep -q true" 2>/dev/null
     else
@@ -140,7 +140,6 @@ fi
 
 while true; do
     source ${HOME}/project/common_tools/wait_for_ssh.sh
-    is_job_running && run_flag=0 || run_flag=$?
 
     _check_count=$((_check_count + 1))
     _capped=$((_check_count < 24 ? _check_count : 23))
@@ -156,6 +155,8 @@ while true; do
 
         slurm_job_status_checked=1
     fi
+
+    is_job_running && run_flag=0 || run_flag=$?
 
     sleep ${_interval}
 

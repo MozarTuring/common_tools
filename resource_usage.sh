@@ -21,23 +21,34 @@ get_descendants() {
     done
 }
 
+get_all_pids() {
+    if [ -n "$SLURM_JOB_ID" ]; then
+        # Inside a Slurm job: srun's children live under slurmstepd,
+        # not under the srun PID, so walk the Slurm job instead.
+        scontrol listpids "$SLURM_JOB_ID" 2>/dev/null | awk 'NR>1 && $1!="" {print $1}'
+    else
+        echo "$PID"
+        get_descendants "$PID"
+    fi
+}
+
 while kill -0 "$PID" 2>/dev/null; do
     ((count++))
     sleep 5
-    gpu_pids=$(
-        echo "$PID"
-        get_descendants "$PID"
-    )
-    gpu_grep_pattern=$(echo "$gpu_pids" | paste -sd'|')
-    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | head -1
-    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | grep -E "$gpu_grep_pattern"
+
+    if [ -n "$SLURM_JOB_ID" ]; then
+        # Slurm: show all GPU processes on this node (they're all ours)
+        nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+    else
+        gpu_pids=$(get_all_pids)
+        gpu_grep_pattern=$(echo "$gpu_pids" | paste -sd'|')
+        nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | head -1
+        nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | grep -E "$gpu_grep_pattern"
+    fi
+
     if [ "$count" -gt 1 ]; then
         echo ""
-        all_pids=$(
-            echo "$PID"
-            get_descendants "$PID"
-        )
-        all_pids=$(echo "$all_pids" | paste -sd,)
+        all_pids=$(get_all_pids | paste -sd,)
 
         # Run ps only on this specific family tree
         ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids"
