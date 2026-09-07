@@ -32,10 +32,13 @@ get_all_pids() {
     echo "$PID"
     get_descendants "$PID"
 }
-
+interval=5
 while kill -0 "$PID" 2>/dev/null; do
     ((count++))
-    sleep 5
+    sleep ${interval}
+    if [ "$count" -gt 1000 ]; then
+        interval=1800
+    fi
 
     if [ "$count" -gt 1 ]; then
         # GPU usage
@@ -55,6 +58,5 @@ while kill -0 "$PID" 2>/dev/null; do
             ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids" 2>/dev/null
         fi
         echo ""
-        count=0
     fi
 done
