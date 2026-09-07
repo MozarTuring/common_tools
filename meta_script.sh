@@ -207,11 +207,6 @@ fi
 EOF
     fi
 
-    if [[ ${JWM_MODE} == "remotedockercompose" ]]; then
-        cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-
-EOF
-    fi
     # if [[ ${JWM_MODE} == "remotedocker" ]]; then
     #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${JWM_MODE}/remote_tmps/${batch_file}" | tail -1)"
     #     clearflag=0
