@@ -154,9 +154,9 @@ _remote_setup() {
     # done
     # }
     #
-    # export PYTHONUNBUFFERED=1
     # EOF
 
+    export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_JWM=1
     # no '' around EOF, it will expand vars
     #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
