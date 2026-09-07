@@ -25,11 +25,12 @@ get_all_pids() {
     if [ -n "$SLURM_JOB_ID" ]; then
         # Inside a Slurm job: srun's children live under slurmstepd,
         # not under the srun PID, so walk the Slurm job instead.
-        scontrol listpids "$SLURM_JOB_ID" 2>/dev/null | awk 'NR>1 && $1!="" {print $1}'
-    else
-        echo "$PID"
-        get_descendants "$PID"
+        # Filter to only valid numeric PIDs.
+        scontrol listpids "$SLURM_JOB_ID" 2>/dev/null | awk 'NR>1 && $1 ~ /^[0-9]+$/ {print $1}'
     fi
+    # Always include the PID tree walk as well (works in both Slurm and non-Slurm)
+    echo "$PID"
+    get_descendants "$PID"
 }
 
 while kill -0 "$PID" 2>/dev/null; do
@@ -48,10 +49,13 @@ while kill -0 "$PID" 2>/dev/null; do
 
     if [ "$count" -gt 1 ]; then
         echo ""
-        all_pids=$(get_all_pids | paste -sd,)
+        # Deduplicate and filter to valid numeric PIDs only
+        all_pids=$(get_all_pids | grep -E '^[0-9]+$' | sort -un | paste -sd,)
 
-        # Run ps only on this specific family tree
-        ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids"
+        if [ -n "$all_pids" ]; then
+            # Run ps only on this specific family tree
+            ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids" 2>/dev/null
+        fi
         echo ""
         count=0
     fi
