@@ -401,25 +401,17 @@ elif [[ "$1" == "remote"* ]]; then
         sacctmgr show assoc where user=$USER format=User,Account,QOS
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
-        cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-
-require_env JWM_RUN_TIME JWM_NODES_NUM
-if [[ ${JWM_NOTEBOOK} == 1 ]];then
-    JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
-    JWM_SLURM_RUN_ARGS=""
-fi
-cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh > jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
-
-
-sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
-EOF
+        if [[ ${JWM_NOTEBOOK} == 1 ]]; then
+            JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
+            JWM_SLURM_RUN_ARGS=""
+        fi
+        cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh >jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
+        sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
         # berzelius-2026-243
         if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
-            cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=berzelius"
-EOF
+            sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=berzelius"
 
         elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
