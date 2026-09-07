@@ -418,7 +418,7 @@ EOF
         # berzelius-2026-243
         if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
             cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-50  --partition=berzelius"
+sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=berzelius"
 EOF
 
         elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
