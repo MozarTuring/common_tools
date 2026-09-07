@@ -193,6 +193,11 @@ while true; do
 
     # echo "run_flag, ${run_flag}"
     if [[ ${run_flag} -ne 0 ]]; then
+        # Second sync after a delay — HPC parallel filesystems may not have
+        # flushed the final error messages (e.g. OOM) by the first rsync.
+        sleep 10
+        sync_remote || true
+        fetch_new_content
         if [[ -f ${jobsfile} ]]; then
             sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
         fi
