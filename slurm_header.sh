@@ -52,5 +52,5 @@ fi
 
 export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH:-}
 echo "JWM_RUN_COMMAND, ${JWM_RUN_COMMAND}"
-srun torchrun --nproc_per_node=${JWM_GPU_NUM} --nnodes=${JWM_NODES_NUM} ${JWM_RUN_COMMAND} &
+srun ${JWM_RUN_COMMAND} &
 wait $!
