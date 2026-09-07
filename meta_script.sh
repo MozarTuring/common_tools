@@ -401,6 +401,8 @@ elif [[ "$1" == "remote"* ]]; then
         sacctmgr show assoc where user=$USER format=User,Account,QOS
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
+        source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+
         if [[ ${JWM_NOTEBOOK} == 1 ]]; then
             JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
             JWM_SLURM_RUN_ARGS=""
@@ -416,54 +418,44 @@ elif [[ "$1" == "remote"* ]]; then
         elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
 
-            cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
-EOF
+            sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
         else
-            cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-        if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
-            export JWM_GPU_TYPE=A40
-            echo "A40 available"
-        elif check_gpu T4 ${JWM_GPU_NUM} >/dev/null; then
-            export JWM_GPU_TYPE=T4
-            echo "T4 available"
-        else
-            echo "no gpu available"
-            return 2>/dev/null
+            if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
+                export JWM_GPU_TYPE=A40
+                echo "A40 available"
+            elif check_gpu T4 ${JWM_GPU_NUM} >/dev/null; then
+                export JWM_GPU_TYPE=T4
+                echo "T4 available"
+            else
+                echo "no gpu available"
+                return 2>/dev/null
+                exit 1
+            fi
+            echo "GPU_TYPE: $JWM_GPU_TYPE"
+            echo "COMMIT:   $JWM_COMMIT_ID"
+
+            if (("${JWM_GPU_NUM}" == "0")); then
+                GPU_FLAG="--constraint=NOGPU"
+            else
+                GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
+            fi
+            if [[ "${SERVER_NAME}" == "juwelscluster" ]]; then
+                GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
+                CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
+            fi
+            sbatch_args="${sbatch_args} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG}"
+
+        fi
+
+        echo "sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}"
+        SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}) || {
+            return 1 2>/dev/null
             exit 1
-        fi
-        echo "GPU_TYPE: $JWM_GPU_TYPE"
-        echo "COMMIT:   $JWM_COMMIT_ID"
-
-        if (("${JWM_GPU_NUM}" == "0")); then
-            GPU_FLAG="--constraint=NOGPU"
-        else
-            GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
-        fi
-        if [[ "${SERVER_NAME}" == "juwelscluster" ]]; then
-            GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
-            CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
-        fi
-        sbatch_args="${sbatch_args} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG}"
-EOF
-
-        fi
-        cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
-
-echo "sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}"
-SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}) || {
-    return 1 2>/dev/null
-    exit 1
-}
-EOF
+        }
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
-                echo "start run ${JWM_MODE}/remote_tmps/remote.sh"
-                source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
                 cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
-
                 JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-
                 echo "$JWM_JOB_ID" >"remote_job_id.txt"
                 break
             fi
