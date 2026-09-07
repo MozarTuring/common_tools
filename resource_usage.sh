@@ -37,24 +37,23 @@ while kill -0 "$PID" 2>/dev/null; do
     ((count++))
     sleep 5
 
-    if [ -n "$SLURM_JOB_ID" ]; then
-        # Slurm: show all GPU processes on this node (they're all ours)
-        nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
-    else
-        gpu_pids=$(get_all_pids)
-        gpu_grep_pattern=$(echo "$gpu_pids" | paste -sd'|')
-        nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | head -1
-        nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | grep -E "$gpu_grep_pattern"
-    fi
-
     if [ "$count" -gt 1 ]; then
-        echo ""
-        # Deduplicate and filter to valid numeric PIDs only
-        all_pids=$(get_all_pids | grep -E '^[0-9]+$' | sort -un | paste -sd,)
+        if [ -n "$SLURM_JOB_ID" ]; then
+            # Slurm: just use nvidia-smi for everything
+            nvidia-smi
+        else
+            # GPU usage
+            gpu_pids=$(get_all_pids)
+            gpu_grep_pattern=$(echo "$gpu_pids" | paste -sd'|')
+            nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | head -1
+            nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | grep -E "$gpu_grep_pattern"
 
-        if [ -n "$all_pids" ]; then
-            # Run ps only on this specific family tree
-            ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids" 2>/dev/null
+            echo ""
+            # CPU/MEM usage
+            all_pids=$(get_all_pids | grep -E '^[0-9]+$' | sort -un | paste -sd,)
+            if [ -n "$all_pids" ]; then
+                ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids" 2>/dev/null
+            fi
         fi
         echo ""
         count=0
