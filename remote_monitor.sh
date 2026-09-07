@@ -96,7 +96,7 @@ if false; then
 fi
 
 _project_name=$(basename "$(dirname "$local_dir")")
-saved_ts="$HOME/project/${_project_name}/.last_remote_ts"
+saved_ts="$HOME/project/${_project_name}/jwm_configs/.last_remote_ts"
 ts=$(cat "$saved_ts")
 echo "remote time ${ts}"
 
