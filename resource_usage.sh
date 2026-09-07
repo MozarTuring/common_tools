@@ -21,11 +21,16 @@ get_descendants() {
     done
 }
 
-
 while kill -0 "$PID" 2>/dev/null; do
     ((count++))
     sleep 5
-    nvidia-smi
+    gpu_pids=$(
+        echo "$PID"
+        get_descendants "$PID"
+    )
+    gpu_grep_pattern=$(echo "$gpu_pids" | paste -sd'|')
+    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | head -1
+    nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | grep -E "$gpu_grep_pattern"
     if [ "$count" -gt 1 ]; then
         echo ""
         all_pids=$(
