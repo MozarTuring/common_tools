@@ -13,24 +13,6 @@ final_cleanup() {
 trap early_warning SIGUSR1    # 120s before limit — your warning
 
 trap final_cleanup SIGTERM    # 0s — SLURM is killing you
-(
-  sleep_time=5
-  step=5
-  max_sleep=300
-  while true; do
-    echo ""
-    echo "CPU Usage: $(vmstat 1 2 | tail -1 | awk '{print 100 - $15}')% | Total CPUs: $(nproc)"
-    nvidia-smi
-    echo ""
-    sleep "$sleep_time"
-    if [ "$sleep_time" -lt "$max_sleep" ]; then
-      sleep_time=$((sleep_time + step))
-      if [ "$sleep_time" -gt "$max_sleep" ]; then
-        sleep_time=$max_sleep
-      fi
-    fi
-  done
-) > jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
 
 module --force purge
 if [[ -n "${JWM_MODULES}" ]]; then
@@ -53,4 +35,8 @@ fi
 export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH:-}
 echo "JWM_RUN_COMMAND, ${JWM_RUN_COMMAND}"
 srun ${JWM_RUN_COMMAND} &
-wait $!
+SRUN_PID=$!
+
+bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh "$SRUN_PID"  >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log  &
+
+wait $SRUN_PID
