@@ -38,22 +38,21 @@ while kill -0 "$PID" 2>/dev/null; do
     sleep 5
 
     if [ "$count" -gt 1 ]; then
+        # GPU usage
         if [ -n "$SLURM_JOB_ID" ]; then
-            # Slurm: just use nvidia-smi for everything
             nvidia-smi
         else
-            # GPU usage
             gpu_pids=$(get_all_pids)
             gpu_grep_pattern=$(echo "$gpu_pids" | paste -sd'|')
             nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | head -1
             nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv | grep -E "$gpu_grep_pattern"
+        fi
 
-            echo ""
-            # CPU/MEM usage
-            all_pids=$(get_all_pids | grep -E '^[0-9]+$' | sort -un | paste -sd,)
-            if [ -n "$all_pids" ]; then
-                ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids" 2>/dev/null
-            fi
+        echo ""
+        # CPU/MEM usage
+        all_pids=$(get_all_pids | grep -E '^[0-9]+$' | sort -un | paste -sd,)
+        if [ -n "$all_pids" ]; then
+            ps --forest -o pid,%cpu,%mem,rss,cmd -p "$all_pids" 2>/dev/null
         fi
         echo ""
         count=0
