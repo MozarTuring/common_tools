@@ -248,6 +248,17 @@ if [[ $# -lt 3 ]]; then
     _server=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
 
     JWM_MODE=$(sed -n 's/^export JWM_MODE=//p' "$1" | tail -1)
+    if [[ -z ${JWM_MODE} ]]; then
+        JWM_MODE=remotenone
+    fi
+    case "$_server" in
+    berzeliusampere | jusuf)
+        JWM_MODE=remoteslurm
+        ;;
+    *)
+        ;;
+    esac
+
     case "$JWM_MODE" in
     remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
     *)
