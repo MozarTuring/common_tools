@@ -408,7 +408,13 @@ elif [[ "$1" == "remote"* ]]; then
         # berzelius-2026-50
         # berzelius-2026-243
         if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
-            sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=berzelius"
+            if (("${JWM_GPU_NUM}" == "0")); then
+                JWM_PARTITION="berzelius-cpu"
+            else
+                JWM_PARTITION="berzelius"
+            fi
+
+            sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=${JWM_PARTITION}"
 
         elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
