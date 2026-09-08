@@ -158,6 +158,26 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_JWM=1
+    if [ -n ${JWM_PYTHON} ]; then
+        if [[ ${JWM_MODE} == "remotenone" ]]; then
+            eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
+        elif [[ ${JWM_MODE} == "remoteslurm" ]]; then
+            module --force purge
+            module load ${JWM_MODULES}
+
+        fi
+
+        if [ -z ${JWM_CONDAENV} ]; then
+            JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
+        fi
+        echo "condaenv path ${JWM_CONDAENV}"
+        if [ ! -d ${JWM_CONDAENV} ]; then
+            conda create -p ${JWM_CONDAENV} python=${JWM_PYTHON} -y
+        fi
+        conda activate ${JWM_CONDAENV}
+        which python
+        which pip
+    fi
     # no '' around EOF, it will expand vars
     #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
     # # change the following based on your running preference
@@ -180,31 +200,15 @@ EOF
 
     # ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
     if [[ ${JWM_MODE} == "remotenone" ]]; then
-        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
-eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
 
-if [ -n ${JWM_PYTHON} ]; then
-    if [ -z ${JWM_CONDAENV} ]; then
-        JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
-    fi
-    echo "condaenv path ${JWM_CONDAENV}"
-    if [ ! -d ${JWM_CONDAENV} ]; then
-        conda create -p ${JWM_CONDAENV} python=${JWM_PYTHON} -y
-    fi
-    conda activate ${JWM_CONDAENV}
-    which python
-    which pip
-    if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
-        conda create -y -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda -c nvidia cuda-toolkit
-    fi
-    export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
-    export PATH=${CUDA_HOME}/bin:${PATH}
-    export CPATH=${CUDA_HOME}/targets/x86_64-linux/include:${CPATH}
-    export LD_LIBRARY_PATH=${CUDA_HOME}/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
-fi
+        if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
+            conda create -y -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda -c nvidia cuda-toolkit
+        fi
+        export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
+        export PATH=${CUDA_HOME}/bin:${PATH}
+        export CPATH=${CUDA_HOME}/targets/x86_64-linux/include:${CPATH}
+        export LD_LIBRARY_PATH=${CUDA_HOME}/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
 
-
-EOF
     fi
 
     # if [[ ${JWM_MODE} == "remotedocker" ]]; then
@@ -388,9 +392,6 @@ elif [[ "$1" == "remote"* ]]; then
 
     _remote_setup
     if [[ "${JWM_MODE}" == "remoteslurm" ]]; then
-        module --force purge
-        module load ${JWM_MODULES}
-
         sinfo # show partitions
         sinfo -a -o "%N %G %f %m"
         # Show all QOS policies and their limits
