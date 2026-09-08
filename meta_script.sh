@@ -240,10 +240,10 @@ if [[ $# -lt 3 ]]; then
     echo "project_dir, ${_project_dir}"
     _project_name=$(basename "$_project_dir")
     echo "project_name, $_project_name"
-    JWM_MODE=$(echo "$1" | awk -F'/' '{print $(NF-2)}')
 
     _server=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
 
+    JWM_MODE=$(sed -n 's/^export JWM_MODE=//p' "$1" | tail -1)
     case "$JWM_MODE" in
     remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
     *)
@@ -388,6 +388,9 @@ elif [[ "$1" == "remote"* ]]; then
 
     _remote_setup
     if [[ "${JWM_MODE}" == "remoteslurm" ]]; then
+        module --force purge
+        module load ${JWM_MODULES}
+
         sinfo # show partitions
         sinfo -a -o "%N %G %f %m"
         # Show all QOS policies and their limits
