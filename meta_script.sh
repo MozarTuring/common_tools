@@ -410,7 +410,12 @@ elif [[ "$1" == "remote"* ]]; then
         if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
             if (("${JWM_GPU_NUM}" == "0")); then
                 JWM_PARTITION="berzelius-cpu"
+                export CPUS_PER_TASK=32
+                export MEM_PER_TASK="128G"
+
             else
+                export CPUS_PER_TASK=$((8 * JWM_GPU_NUM))
+                export MEM_PER_TASK="$((24 * JWM_GPU_NUM))G"
                 JWM_PARTITION="berzelius"
             fi
 
