@@ -116,7 +116,7 @@ _remote_setup() {
     source ${RUN_DIR_HOME}/project_remote_jwm/project_nogit/common_tools/common_tokens.sh
 
     export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
-    mkdir -p ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/jwm_configs/${JWM_MODE}/remote_tmps
+    mkdir -p ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/jwm_configs/remote/remote_tmps
     mkdir -p ${JWM_DATA_DIR}
 
     if [[ -d /data && ${JWM_MODE} == "remotedocker"* ]]; then
@@ -140,7 +140,7 @@ _remote_setup() {
     fi
     cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
     mkdir -p jwmlogs/${JWM_RUN_START_TIME}
-    mkdir -p jwm_configs/${JWM_MODE}/remote_tmps
+    mkdir -p jwm_configs/remote/remote_tmps
     sleep 1
     # echo "" > jwm_configs/${JWM_MODE}/remote_tmps/remote.sh # init in nvim
     #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
@@ -173,14 +173,14 @@ _remote_setup() {
     # fi
 
     if [[ ${JWM_MODE} == "remotedocker" ]]; then
-        cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
+        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
 export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
 EOF
     fi
 
     # ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
     if [[ ${JWM_MODE} == "remotenone" ]]; then
-        cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
+        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
 eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
 
 if [ -n ${JWM_PYTHON} ]; then
@@ -222,10 +222,10 @@ EOF
     # fi
     # touch ".submit_marker"
 
-    if [[ -f jwm_configs/${JWM_MODE}/template.sh ]]; then
-        cat jwm_configs/${JWM_MODE}/template.sh >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+    if [[ -f jwm_configs/remote/template.sh ]]; then
+        cat jwm_configs/remote/template.sh >>jwm_configs/remote/remote_tmps/remote.sh
     fi
-    cat jwm_configs/common.sh >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+    cat jwm_configs/common.sh >>jwm_configs/remote/remote_tmps/remote.sh
     # sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
 
 }
@@ -322,8 +322,8 @@ if [[ $# -lt 3 ]]; then
     kill "$_timer_pid" 2>/dev/null
     wait "$_timer_pid" 2>/dev/null || true
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
-    mkdir -p ./${_project_name}/jwm_configs/${JWM_MODE}/remote_tmps
-    rsync -a "$server_name":"${run_dir_remote}/jwm_configs/${JWM_MODE}/remote_tmps/" "./${_project_name}/jwm_configs/${JWM_MODE}/remote_tmps/"
+    mkdir -p ./${_project_name}/jwm_configs/remote/remote_tmps
+    rsync -a "$server_name":"${run_dir_remote}/jwm_configs/remote/remote_tmps/" "./${_project_name}/jwm_configs/remote/remote_tmps/"
 
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
@@ -335,7 +335,7 @@ if [[ $# -lt 3 ]]; then
     fi
 
     if [[ "$JWM_MODE" == "remotedockercompose" ]]; then
-        echo "$JWM_MODE local done"
+        echo " local done"
         exit 0
     fi
 
@@ -399,13 +399,13 @@ elif [[ "$1" == "remote"* ]]; then
         sacctmgr show assoc where user=$USER format=User,Account,QOS
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
-        source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+        source jwm_configs/remote/remote_tmps/remote.sh
 
         if [[ ${JWM_NOTEBOOK} == 1 ]]; then
             JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
             JWM_SLURM_RUN_ARGS=""
         fi
-        cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh >jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}
+        cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh >jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}
         sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
@@ -456,7 +456,7 @@ elif [[ "$1" == "remote"* ]]; then
 
         fi
 
-        SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/${JWM_MODE}/remote_tmps/${JWM_SLURM_FILE}) || {
+        SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
             return 1 2>/dev/null
             exit 1
         }
@@ -478,15 +478,14 @@ elif [[ "$1" == "remote"* ]]; then
 
         # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
     elif [[ "${JWM_MODE}" == "remotedockercompose" ]]; then
-        cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
+        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
 docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
 EOF
         # Without -d, the docker compose up process would stay in the foreground, streaming container logs until you hit Ctrl+C or the containers stop.
         if [[ -n ${JWM_COMPOSE_PRE} ]]; then
             eval "${JWM_COMPOSE_PRE}"
         fi
-        echo "start run ${JWM_MODE}/remote_tmps/remote.sh"
-        source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+        source jwm_configs/remote/remote_tmps/remote.sh
         sleep 1
         JWM_JOB_ID=$(docker compose ps -q)
         echo "docker rm -f ${JWM_JOB_ID}"
@@ -621,7 +620,7 @@ EOF
         fi
 
     elif [[ "${JWM_MODE}" == "remotedocker" ]]; then
-        cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
+        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
 if [[ ${JWM_NOTEBOOK} == 1 ]]; then
     echo "ARGS_AFTER_ENTRY:"
     echo "${ARGS_AFTER_ENTRY[@]}"
@@ -639,7 +638,7 @@ else
 fi
 EOF
 
-        source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+        source jwm_configs/remote/remote_tmps/remote.sh
         cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
 
         echo "docker rm -f ${JWM_JOB_ID}"
@@ -659,7 +658,7 @@ EOF
         echo "docker_container_started"
 
     elif [[ "${JWM_MODE}" == "remotenone" ]]; then
-        source jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+        source jwm_configs/remote/remote_tmps/remote.sh
         echo ${PWD}
         JWM_RUN_COMMAND="${JWM_RUN_COMMAND_PRE} ${JWM_RUN_COMMAND}"
 
@@ -694,7 +693,7 @@ EOF
     fi
     echo "PWD: ${PWD}"
     echo "JWM_JOB_ID: ${JWM_JOB_ID}"
-    echo "${JWM_MODE} ssh done"
+    echo "ssh done"
 
 else
     echo "ERROR: unrecognized arguments. Usage:"
