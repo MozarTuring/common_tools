@@ -183,10 +183,14 @@ _remote_setup() {
 
         if [ -z ${JWM_CONDAENV} ]; then
             JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
+            JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
         fi
         echo "condaenv path ${JWM_CONDAENV}"
         if [ ! -d ${JWM_CONDAENV} ]; then
             conda create -p ${JWM_CONDAENV} python=${JWM_PYTHON} -y
+            if [[ -n ${JWM_ARCH} ]]; then
+                CONDA_SUBDIR=linux-aarch64 conda create -p ${JWM_CONDAENV}${JWM_ARCH} python=${JWM_PYTHON} -y
+            fi
         fi
         conda activate ${JWM_CONDAENV}
         which python
