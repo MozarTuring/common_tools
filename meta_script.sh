@@ -315,7 +315,7 @@ if [[ $# -lt 3 ]]; then
 
         tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
         rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$server_name":${tmp_path}/
-        mv ./tmp_data/cache/* ./tmp_data/
+        [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
 
         tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
         rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
