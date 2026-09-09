@@ -163,6 +163,8 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_JWM=1
+    echo "start running remote.sh"
+    source jwm_configs/remote/remote_tmps/remote.sh
     echo "JWM_PYTHON, ${JWM_PYTHON}"
     if [ -n ${JWM_PYTHON} ]; then
         if [[ ${JWM_MODE} == "remotenone" ]]; then
@@ -240,9 +242,11 @@ EOF
     # touch ".submit_marker"
 
     if [[ -f jwm_configs/remote/template.sh ]]; then
-        cat jwm_configs/remote/template.sh >>jwm_configs/remote/remote_tmps/remote.sh
+        echo "start running template.sh"
+        source jwm_configs/remote/template.sh
     fi
-    cat jwm_configs/common.sh >>jwm_configs/remote/remote_tmps/remote.sh
+    echo "start running common.sh"
+    source jwm_configs/common.sh
     # sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
 
 }
@@ -430,7 +434,6 @@ elif [[ "$1" == "remote"* ]]; then
         sacctmgr show assoc where user=$USER format=User,Account,QOS
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
-        source jwm_configs/remote/remote_tmps/remote.sh
 
         if [[ ${JWM_NOTEBOOK} == 1 ]]; then
             JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
@@ -530,7 +533,6 @@ EOF
         if [[ -n ${JWM_COMPOSE_PRE} ]]; then
             eval "${JWM_COMPOSE_PRE}"
         fi
-        source jwm_configs/remote/remote_tmps/remote.sh
         sleep 1
         JWM_JOB_ID=$(docker compose ps -q)
         echo "docker rm -f ${JWM_JOB_ID}"
@@ -683,7 +685,6 @@ else
 fi
 EOF
 
-        source jwm_configs/remote/remote_tmps/remote.sh
         cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
 
         echo "docker rm -f ${JWM_JOB_ID}"
@@ -703,7 +704,6 @@ EOF
         echo "docker_container_started"
 
     elif [[ "${JWM_MODE}" == "remotenone" ]]; then
-        source jwm_configs/remote/remote_tmps/remote.sh
         echo ${PWD}
         JWM_RUN_COMMAND="${JWM_RUN_COMMAND_PRE} ${JWM_RUN_COMMAND}"
 
