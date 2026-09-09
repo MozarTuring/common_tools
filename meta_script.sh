@@ -176,7 +176,7 @@ _remote_setup() {
             elif [[ ${SERVER_NAME} == "arrhenius" ]]; then
                 JWM_MODULES="Miniforge"
             fi
-            module --force purge
+#            module --force purge
             module load ${JWM_MODULES}
 
         fi
@@ -443,7 +443,7 @@ elif [[ "$1" == "remote"* ]]; then
             JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
             JWM_SLURM_RUN_ARGS=""
         fi
-        cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh >jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}
+        cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE}  ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_tail.sh >jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}
         sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
