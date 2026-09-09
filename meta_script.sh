@@ -170,6 +170,8 @@ _remote_setup() {
             if [[ ${SERVER_NAME} == "berzeliusampere" ]]; then
                 JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
                 JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
+            elif [[ ${SERVER_NAME} == "arrhenius" ]]; then
+                JWM_MODULES="Miniforge"
             fi
             module --force purge
             module load ${JWM_MODULES}
@@ -261,7 +263,7 @@ if [[ $# -lt 3 ]]; then
         JWM_MODE=remotenone
     fi
     case "$server_name" in
-    berzeliusampere | jusuf | juwelscluster)
+    berzeliusampere | jusuf | juwelscluster | arrhenius)
         JWM_MODE=remoteslurm
         ;;
     *)
