@@ -147,7 +147,7 @@ while true; do
         echo "slrum job status checking"
         source "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
         node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
-        if [[ -f ${jobsfile} && ${slurm_job_status} == "failed" ]]; then
+        if [[ -f ${jobsfile} && ${slurm_job_status_checked} == "failed" ]]; then
             sed -i '' "s|^${tmpdirname}||g" ${jobsfile}
             exit
         fi
