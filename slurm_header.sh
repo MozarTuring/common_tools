@@ -21,9 +21,9 @@ if [[ -n "${JWM_MODULES}" ]]; then
 fi
 
 echo "JWM_CONDAENV, ${JWM_CONDAENV}"
-echo "JWMARCH, ${JWMARCH}"
+echo "JWM_ARCH, ${JWM_ARCH}"
 if [[ -n "${JWM_CONDAENV}" ]]; then
-    conda activate ${JWM_CONDAENV}${JWMARCH}
+    conda activate ${JWM_CONDAENV}${JWM_ARCH}
 fi
 
 which python
