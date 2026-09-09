@@ -124,7 +124,7 @@ jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt
 _check_count=0
 _final_lines="-1"
 _job_finished=""
-slurm_job_status_checked=""
+export slurm_job_status_checked=""
 JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/remote/remote_tmps/remote.sh" | tail -1)
 JWM_NOTEBOOK_start=""
 
@@ -147,8 +147,11 @@ while true; do
         echo "slrum job status checking"
         source "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
         node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
+        if [[ -f ${jobsfile} && ${slurm_job_status} == "failed" ]]; then
+            sed -i '' "s|^${tmpdirname}||g" ${jobsfile}
+            exit
+        fi
 
-        slurm_job_status_checked=1
     fi
 
     is_job_running && run_flag=0 || run_flag=$?
