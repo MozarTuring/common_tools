@@ -22,7 +22,10 @@ fi
 
 echo "JWM_CONDAENV, ${JWM_CONDAENV}"
 echo "JWM_ARCH, ${JWM_ARCH}"
-if [[ -n "${JWM_CONDAENV}" ]]; then
+if [[ ! -d "${JWM_CONDAENV}${JWM_ARCH}" ]]; then
+    echo "error, exit"
+    exit
+else
     conda activate ${JWM_CONDAENV}${JWM_ARCH}
 fi
 
