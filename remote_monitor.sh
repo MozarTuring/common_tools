@@ -91,11 +91,6 @@ is_job_running() {
     fi
 }
 
-if false; then
-    rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
-    rsync -aP greatrawr:/home/jinma/project_remote_jwm/remote_data/llm2vec/msmarco_hard_negatives_v2.json /Users/jinma63/project/tmp_data/
-fi
-
 _project_name=$(basename "$(dirname "$local_dir")")
 saved_ts="$HOME/project/${_project_name}/jwm_configs/.last_remote_ts"
 ts=$(cat "$saved_ts")

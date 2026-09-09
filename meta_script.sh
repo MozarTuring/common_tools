@@ -8,6 +8,11 @@ if false; then
     sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
 fi
 
+if false; then
+    rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
+    rsync -aP greatrawr:/home/jinma/project_remote_jwm/remote_data/llm2vec/msmarco_hard_negatives_v2.json /Users/jinma63/project/tmp_data/
+fi
+
 slurm_job_status() {
     bash "$(dirname "${BASH_SOURCE[0]}")/slurm_job_status.sh" "$@"
 }
@@ -162,6 +167,10 @@ _remote_setup() {
         if [[ ${JWM_MODE} == "remotenone" ]]; then
             eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
         elif [[ ${JWM_MODE} == "remoteslurm" ]]; then
+            if [[ ${SERVER_NAME} == "berzeliusampere" ]]; then
+                JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
+                JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
+            fi
             module --force purge
             module load ${JWM_MODULES}
 
@@ -245,14 +254,14 @@ if [[ $# -lt 3 ]]; then
     _project_name=$(basename "$_project_dir")
     echo "project_name, $_project_name"
 
-    _server=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
+    server_name=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
 
     JWM_MODE=$(sed -n 's/^export JWM_MODE=//p' "$1" | tail -1)
     if [[ -z ${JWM_MODE} ]]; then
         JWM_MODE=remotenone
     fi
-    case "$_server" in
-    berzeliusampere | jusuf)
+    case "$server_name" in
+    berzeliusampere | jusuf | juwelscluster)
         JWM_MODE=remoteslurm
         ;;
     *)
@@ -260,33 +269,39 @@ if [[ $# -lt 3 ]]; then
     esac
 
     case "$JWM_MODE" in
-    remoteslurm | remotedocker | remotedockercompose | remotenone) ;;
+    remoteslurm | remotedocker | remotedockercompose | remotenone)
+
+        ;;
     *)
         echo "ERROR: unknown mode '$JWM_MODE'"
         exit 1
         ;;
     esac
 
-    if [[ -z "$_server" ]]; then
-        echo "ERROR:  must contain the server name "
-        exit 1
-    fi
-    export server_name="$_server"
-    if [[ "${server_name}" == "juwels" || "${server_name}" == "jusuf" ]]; then
+    case "${server_name}" in
+    juwels | jusuf | juwelscluster)
         export run_dir_home=/p/project1/trustllm-eu/mao4
-    elif [[ ${server_name} == "custodian@"* ]]; then
+        ;;
+    custodian@*)
         export run_dir_home=/home/custodian
-    elif [[ ${server_name} == "ferragon" || ${server_name} == "greatrawr" || ${server_name} == "balawar" ]]; then
+        ;;
+    ferragon | greatrawr | balawar)
         export run_dir_home=/home/jinma
-
-    elif [[ ${server_name} == "alvis"* ]]; then
+        ;;
+    alvis*)
         export run_dir_home=/cephyr/users/shuyir/Alvis
-    elif [[ ${server_name} == "berzelius"* ]]; then
+        ;;
+    berzelius*)
         export run_dir_home=/home/x_jinma
-    else
+        ;;
+    arrhenius)
+        export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/jinma63/project_remote_jwm
+        ;;
+    *)
         echo "ERROR: unknown server '$server_name'"
         exit 1
-    fi
+        ;;
+    esac
 
     # bash common_tools/common_port_forward.sh
 
@@ -299,8 +314,8 @@ if [[ $# -lt 3 ]]; then
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
         tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
-        rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/ "$server_name":${tmp_path}/
-        rm -rf ./tmp_data/*
+        rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$server_name":${tmp_path}/
+        mv ./tmp_data/cache/* ./tmp_data/
 
         tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
         rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
