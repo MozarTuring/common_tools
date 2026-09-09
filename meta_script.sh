@@ -187,6 +187,7 @@ _remote_setup() {
         fi
         conda activate ${JWM_CONDAENV}
         which python
+        python --version
         which pip
     fi
     # no '' around EOF, it will expand vars
