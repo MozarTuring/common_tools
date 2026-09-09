@@ -254,7 +254,7 @@ if [[ $# -lt 3 ]]; then
     _project_name=$(basename "$_project_dir")
     echo "project_name, $_project_name"
 
-    server_name=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
+    export server_name=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
 
     JWM_MODE=$(sed -n 's/^export JWM_MODE=//p' "$1" | tail -1)
     if [[ -z ${JWM_MODE} ]]; then

@@ -34,5 +34,7 @@ if [[ -n "$server_name" ]]; then
     if [[ ! -L "./jwm_configs/docs" ]]; then
         ln -sfn ${tmppath} ./jwm_configs/docs
     fi
-
+else
+    echo "no server name"
+    exit
 fi
