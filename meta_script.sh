@@ -163,6 +163,7 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_JWM=1
+    echo "JWM_PYTHON, ${JWM_PYTHON}"
     if [ -n ${JWM_PYTHON} ]; then
         if [[ ${JWM_MODE} == "remotenone" ]]; then
             eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
