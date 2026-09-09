@@ -171,10 +171,10 @@ _remote_setup() {
             eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
         elif [[ ${JWM_MODE} == "remoteslurm" ]]; then
             if [[ ${SERVER_NAME} == "berzeliusampere" ]]; then
-                JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
+                export JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
                 JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
             elif [[ ${SERVER_NAME} == "arrhenius" ]]; then
-                JWM_MODULES="Miniforge"
+                export JWM_MODULES="Miniforge"
             fi
 #            module --force purge
             module load ${JWM_MODULES}
@@ -182,8 +182,8 @@ _remote_setup() {
         fi
 
         if [ -z ${JWM_CONDAENV} ]; then
-            JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
-            JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
+            export JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
+            export JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
         fi
         echo "condaenv path ${JWM_CONDAENV}"
         if [ ! -d ${JWM_CONDAENV} ]; then
