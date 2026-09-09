@@ -3025,10 +3025,6 @@ vim.keymap.set("n", "fr", function()
 	output_path = dir .. "/remote_tmps/remote.sh"
 	batch_file = filepath
 
-	if not file_exists(template_path) then
-		vim.notify("No template file found: " .. template_path, vim.log.levels.WARN)
-		return
-	end
 
 	vim.fn.mkdir(vim.fn.fnamemodify(output_path, ":h"), "p")
 
