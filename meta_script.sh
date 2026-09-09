@@ -295,7 +295,7 @@ if [[ $# -lt 3 ]]; then
         export run_dir_home=/home/x_jinma
         ;;
     arrhenius)
-        export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/jinma63/project_remote_jwm
+        export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/jinma63
         ;;
     *)
         echo "ERROR: unknown server '$server_name'"
