@@ -453,6 +453,20 @@ elif [[ "$1" == "remote"* ]]; then
 
             sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=${JWM_PARTITION}"
 
+        elif [[ "${SERVER_NAME}" == "arrhenius" ]]; then
+            if (("${JWM_GPU_NUM}" == "0")); then
+                JWM_PARTITION="cpu"
+                export CPUS_PER_TASK=32
+                export MEM_PER_TASK="128G"
+
+            else
+                export CPUS_PER_TASK=$((8 * JWM_GPU_NUM))
+                export MEM_PER_TASK="$((24 * JWM_GPU_NUM))G"
+                JWM_PARTITION="gpu"
+            fi
+
+            sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A naiss2026-3-658  --partition=${JWM_PARTITION}"
+
         elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
 
