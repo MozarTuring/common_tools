@@ -20,6 +20,8 @@ if [[ -n "${JWM_MODULES}" ]]; then
     module load ${JWM_MODULES}
 fi
 
+echo "JWM_CONDAENV, ${JWM_CONDAENV}"
+echo "JWMARCH, ${JWMARCH}"
 if [[ -n "${JWM_CONDAENV}" ]]; then
     conda activate ${JWM_CONDAENV}${JWMARCH}
 fi
