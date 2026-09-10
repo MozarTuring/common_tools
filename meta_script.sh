@@ -508,6 +508,7 @@ elif [[ "$1" == "remote"* ]]; then
 
         fi
 
+        echo ${sbatch_args}
         SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
             return 1 2>/dev/null
             exit 1
