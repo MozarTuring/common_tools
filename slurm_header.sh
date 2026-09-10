@@ -29,11 +29,12 @@ if [[ "${JWM_SERVER_NAME}" == "arrhenius" ]]; then
     module load GPU/buildtool-easybuild/5.2.1-hpca3ef7d197 \
         CUDA/12.9.1 \
         cuDNN/9.15.0.57-CUDA-12.9.1 \
-        cuSPARSELt/0.8.0.4-CUDA-12.9.1 \
-        GPU/NCCL/2.27.7-cu12.9.1-eb
+        cuSPARSELt/0.8.0.4-CUDA-12.9.1
+    # NOT loading GPU/NCCL — cluster build lacks ncclDevCommCreate;
+    # using pip nvidia-nccl-cu12 instead (torch finds it in site-packages).
     # EasyBuild modules set EBROOT* but not LD_LIBRARY_PATH;
     # add lib dirs so the dynamic linker finds the .so files at runtime.
-    for _eroot in "$EBROOTCUDA/lib64" "$EBROOTCUDNN/lib" "$EBROOTCUSPARSELT/lib" "$EBROOTNCCL/lib"; do
+    for _eroot in "$EBROOTCUDA/lib64" "$EBROOTCUDNN/lib" "$EBROOTCUSPARSELT/lib"; do
         [[ -d "$_eroot" ]] && export LD_LIBRARY_PATH="${_eroot}:${LD_LIBRARY_PATH:-}"
     done
     echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
