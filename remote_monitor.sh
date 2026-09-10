@@ -20,7 +20,6 @@ local_dir="$1"
 shift
 JWM_RUN_START_TIME="$1"
 
-
 port_forward=false
 ports_before_file=""
 mkdir -p "$local_dir/jwmlogs"
@@ -75,10 +74,6 @@ fetch_new_content() {
     done
 }
 
-
-
-
-
 is_job_running() {
     if [[ "$mode" == "remotenone" ]]; then
         ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
@@ -124,13 +119,22 @@ jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt
 _check_count=0
 _final_lines="-1"
 _job_finished=""
-export slurm_job_status_checked=""
 JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/remote/remote_tmps/remote.sh" | tail -1)
 JWM_NOTEBOOK_start=""
 
 if [[ ${JWM_NOTEBOOK} != 1 ]]; then
 
     grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
+fi
+
+node="localhost"
+
+slurm_job_status_checked=""
+
+if [[ ${mode} == "remoteslurm" ]]; then
+    echo "slrum job status checking"
+    source "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
+    node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
 fi
 
 while true; do
@@ -142,17 +146,6 @@ while true; do
     echo "
 === $(date '+%Y-%m-%d %H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
-    node="localhost"
-    if [[ ${mode} == "remoteslurm" && -z ${slurm_job_status_checked} ]]; then
-        echo "slrum job status checking"
-        source "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
-        node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
-        if [[ -f ${jobsfile} && ${slurm_job_status_checked} == "failed" ]]; then
-            sed -i '' "s|^${tmpdirname}||g" ${jobsfile}
-            exit
-        fi
-
-    fi
 
     is_job_running && run_flag=0 || run_flag=$?
 
@@ -162,7 +155,11 @@ while true; do
     # [[ "$mode" == "slurm" ]] && print_slurm_summary
     [[ ${run_flag} -ne 0 ]] && _job_finished=1
     fetch_new_content
-    # 2>/dev/null || true
+
+    if [[ -f ${jobsfile} && ${slurm_job_status_checked} == "failed" ]]; then
+        sed -i '' "s|^${tmpdirname}||g" ${jobsfile}
+        exit
+    fi
 
     if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
         # pre_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{for(i=1;i<=NF;i++) if($i=="-L") {split($(i+1),a,":"); print a[2]}}')
