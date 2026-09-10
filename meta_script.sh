@@ -510,7 +510,7 @@ elif [[ "$1" == "remote"* ]]; then
         fi
 
         echo "cd ${PWD} && sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}"
-        SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
+        SBATCH_OUT=$(sbatch --export=NONE ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
             return 1 2>/dev/null
             exit 1
         }
