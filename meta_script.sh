@@ -170,10 +170,10 @@ _remote_setup() {
         if [[ ${JWM_MODE} == "remotenone" ]]; then
             eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
         elif [[ ${JWM_MODE} == "remoteslurm" ]]; then
-            if [[ ${SERVER_NAME} == "berzeliusampere" ]]; then
+            if [[ ${JWM_SERVER_NAME} == "berzeliusampere" ]]; then
                 export JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
                 JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
-            elif [[ ${SERVER_NAME} == "arrhenius" ]]; then
+            elif [[ ${JWM_SERVER_NAME} == "arrhenius" ]]; then
                 export JWM_MODULES="Miniforge"
             fi
             #            module --force purge
@@ -422,7 +422,7 @@ elif [[ "$1" == "remote"* ]]; then
     export RUN_DIR_HOME="$1"
     echo "RUN_DIR_HOME, ${RUN_DIR_HOME}"
     shift
-    export SERVER_NAME="${1##*@}"
+    export JWM_SERVER_NAME="${1##*@}"
     shift
     export JWM_RUN_DIR_REMOTE=$1
     shift
@@ -448,7 +448,7 @@ elif [[ "$1" == "remote"* ]]; then
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
         # berzelius-2026-243
-        if [[ "${SERVER_NAME}" == "berzeliusampere" ]]; then
+        if [[ "${JWM_SERVER_NAME}" == "berzeliusampere" ]]; then
             if (("${JWM_GPU_NUM}" == "0")); then
                 JWM_PARTITION="berzelius-cpu"
                 export CPUS_PER_TASK=32
@@ -463,7 +463,7 @@ elif [[ "$1" == "remote"* ]]; then
 
             sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=${JWM_PARTITION}"
 
-        elif [[ "${SERVER_NAME}" == "arrhenius" ]]; then
+        elif [[ "${JWM_SERVER_NAME}" == "arrhenius" ]]; then
             if (("${JWM_GPU_NUM}" == "0")); then
                 JWM_PARTITION="cpu"
                 export CPUS_PER_TASK=32
@@ -476,7 +476,7 @@ elif [[ "$1" == "remote"* ]]; then
 
             sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A naiss2026-3-658-gpu  --partition=${JWM_PARTITION}"
 
-        elif [[ "${SERVER_NAME}" == "jusuf" ]]; then
+        elif [[ "${JWM_SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
 
             sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
@@ -500,7 +500,7 @@ elif [[ "$1" == "remote"* ]]; then
             else
                 GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
             fi
-            if [[ "${SERVER_NAME}" == "juwelscluster" ]]; then
+            if [[ "${JWM_SERVER_NAME}" == "juwelscluster" ]]; then
                 GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
                 CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
             fi
