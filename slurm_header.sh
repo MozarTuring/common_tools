@@ -23,6 +23,13 @@ if [[ -n "${JWM_MODULES}" ]]; then
     echo ${JWM_MODULES}
     module load ${JWM_MODULES}
 fi
+# Load CUDA toolkit so LD_LIBRARY_PATH includes cublas, cudart, etc.
+# (torch installed --no-deps because nvidia-cudnn-cu12 has no aarch64 wheel)
+if [[ "$(uname -m)" == "aarch64" ]]; then
+    module load GPU/buildtool-easybuild/5.2.1-hpca3ef7d197 CUDA/12.9.1
+    echo "CUDA_HOME=$CUDA_HOME  EBROOTCUDA=$EBROOTCUDA"
+    echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+fi
 
 echo "JWM_CONDAENV, ${JWM_CONDAENV}"
 echo "JWM_ARCH, ${JWM_ARCH}"
