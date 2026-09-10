@@ -17,7 +17,7 @@ trap final_cleanup SIGTERM    # 0s — SLURM is killing you
 module --force purge
 # On Arrhenius, GPU (GH200) nodes are aarch64 and need GPU/-prefixed modules
 if [[ "$(uname -m)" == "aarch64" ]]; then
-    JWM_MODULES=$(echo "${JWM_MODULES}" | sed 's|Miniforge|GPU/Miniforge|g')
+    JWM_MODULES=$(echo "${JWM_MODULES}" | sed 's|Miniforge|GPU/Miniforge/26.3.2-2-eb|g')
 fi
 if [[ -n "${JWM_MODULES}" ]]; then
     echo ${JWM_MODULES}
