@@ -470,8 +470,6 @@ elif [[ "$1" == "remote"* ]]; then
                 export MEM_PER_TASK="128G"
 
             else
-                export CPUS_PER_TASK=$((8 * JWM_GPU_NUM))
-                export MEM_PER_TASK="$((100 * JWM_GPU_NUM))G"
                 export TORCH_CUDA_ARCH_LIST="9.0"
                 JWM_PARTITION="gpu"
             fi
