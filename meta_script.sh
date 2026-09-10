@@ -458,6 +458,7 @@ elif [[ "$1" == "remote"* ]]; then
                 export CPUS_PER_TASK=$((8 * JWM_GPU_NUM))
                 export MEM_PER_TASK="$((24 * JWM_GPU_NUM))G"
                 JWM_PARTITION="berzelius"
+                export TORCH_CUDA_ARCH_LIST="9.0"
             fi
 
             sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=${JWM_PARTITION}"
@@ -470,7 +471,8 @@ elif [[ "$1" == "remote"* ]]; then
 
             else
                 export CPUS_PER_TASK=$((8 * JWM_GPU_NUM))
-                export MEM_PER_TASK="$((24 * JWM_GPU_NUM))G"
+                export MEM_PER_TASK="$((100 * JWM_GPU_NUM))G"
+                export TORCH_CUDA_ARCH_LIST="9.0"
                 JWM_PARTITION="gpu"
             fi
 
