@@ -444,6 +444,7 @@ elif [[ "$1" == "remote"* ]]; then
             JWM_SLURM_RUN_ARGS=""
         fi
         cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_tail.sh >jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}
+        sync
         sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
