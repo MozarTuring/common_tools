@@ -23,11 +23,14 @@ if [[ -n "${JWM_MODULES}" ]]; then
     echo ${JWM_MODULES}
     module load ${JWM_MODULES}
 fi
-# Load CUDA toolkit so LD_LIBRARY_PATH includes cublas, cudart, etc.
+# Load CUDA toolkit + cuDNN so torch can find cublas, cudart, cudnn, etc.
 # (torch installed --no-deps because nvidia-cudnn-cu12 has no aarch64 wheel)
 if [[ "$(uname -m)" == "aarch64" ]]; then
-    module load GPU/buildtool-easybuild/5.2.1-hpca3ef7d197 CUDA/12.9.1
-    echo "CUDA_HOME=$CUDA_HOME  EBROOTCUDA=$EBROOTCUDA"
+    module load GPU/buildtool-easybuild/5.2.1-hpca3ef7d197 CUDA/12.9.1 cuDNN/9.15.0.57-CUDA-12.9.1
+    # EasyBuild modules set EBROOTCUDA / EBROOTCUDNN but not LD_LIBRARY_PATH;
+    # add lib64 dirs so the dynamic linker finds the .so files at runtime.
+    export LD_LIBRARY_PATH="${EBROOTCUDA}/lib64:${EBROOTCUDNN}/lib:${LD_LIBRARY_PATH:-}"
+    echo "EBROOTCUDA=$EBROOTCUDA  EBROOTCUDNN=$EBROOTCUDNN"
     echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 fi
 
