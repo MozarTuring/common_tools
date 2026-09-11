@@ -174,19 +174,19 @@ _remote_setup() {
                 export JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
                 JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
             elif [[ ${JWM_SERVER_NAME} == "arrhenius" ]]; then
-                cat > jwm_configs/remote/remote_tmps/remote2.sh << EOF
+                cat >jwm_configs/remote/remote_tmps/remote2.sh <<EOF
 JWM_ARCH="aarch64"
 export JWM_MODULES="Miniforge"
 EOF
             fi
             #            module --force purge
-                cat >> jwm_configs/remote/remote_tmps/remote2.sh << 'EOF'
+            cat >>jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
 module load ${JWM_MODULES}
 EOF
 
         fi
 
-                cat >> jwm_configs/remote/remote_tmps/remote2.sh << 'EOF'
+        cat >>jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
 if [ -z ${JWM_CONDAENV} ]; then
     export JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
     export JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
@@ -203,7 +203,7 @@ which python
 python --version
 which pip
 EOF
-        exit 1
+        source jwm_configs/remote/remote_tmps/remote2.sh
     fi
     # no '' around EOF, it will expand vars
     #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
@@ -518,6 +518,9 @@ elif [[ "$1" == "remote"* ]]; then
         fi
 
         echo "cd ${PWD} && sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}"
+        cat >> jwm_configs/remote/remote_tmps/remote2.sh << EOF
+sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}
+EOF
         SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
             return 1 2>/dev/null
             exit 1
