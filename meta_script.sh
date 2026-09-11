@@ -142,7 +142,6 @@ _remote_setup() {
             systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && ln -s /data/docker ${tmpcache} && systemctl --user restart docker && echo "hard remove, check"
         fi
     fi
-    cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
     mkdir -p jwmlogs/${JWM_RUN_START_TIME}
     mkdir -p jwm_configs/remote/remote_tmps
     sleep 1
@@ -162,7 +161,7 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_JWM=1
-    
+
     if [ -n ${JWM_PYTHON} ]; then
         if [[ ${JWM_MODE} == "remotenone" ]]; then
             eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
@@ -361,7 +360,7 @@ if [[ $# -lt 3 ]]; then
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
     echo "ssh start"
-    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${_project_name}_${_git_branch} ${last_commit} ${run_dir_home} $server_name ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
+    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${run_dir_home} ${last_commit} ${_project_name}_${_git_branch} $server_name ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
     _ssh_pid=$!
     (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     _timer_pid=$!
@@ -419,16 +418,11 @@ if [[ $# -lt 3 ]]; then
 elif [[ "$1" == "remote"* ]]; then
     export JWM_MODE=$1
     shift
-    cat >>jwm_configs/remote/remote_tmps/remote.sh <<EOF
-# change the following vars based on your preference
-export RUN_PROJ="$1"
-EOF
+    export RUN_DIR_HOME="$1"
     shift
     export JWM_COMMIT_ID="$1"
     shift
-    cat >>jwm_configs/remote/remote_tmps/remote.sh <<EOF
-export RUN_DIR_HOME="$1"
-EOF
+    export RUN_PROJ="$1"
     shift
     export JWM_SERVER_NAME="${1##*@}"
     shift
@@ -436,8 +430,12 @@ EOF
     shift
     export JWM_RUN_START_TIME=$1
 
-    cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
-export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
+    cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+    cat >jwm_configs/remote/remote_tmps/remote.sh << EOF
+# change the following vars based on your preference
+export RUN_DIR_HOME=${RUN_DIR_HOME}
+export RUN_PROJ=${RUN_PROJ}
+export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
 EOF
     source jwm_configs/remote/remote_tmps/remote.sh
     echo "JWM_PYTHON, ${JWM_PYTHON}"
