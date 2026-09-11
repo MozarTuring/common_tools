@@ -175,7 +175,7 @@ _remote_setup() {
                 JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
             elif [[ ${JWM_SERVER_NAME} == "arrhenius" ]]; then
                 cat >jwm_configs/remote/remote_tmps/remote2.sh <<EOF
-JWM_ARCH="aarch64"
+export JWM_ARCH="aarch64"
 export JWM_MODULES="Miniforge"
 EOF
             fi
