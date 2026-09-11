@@ -203,7 +203,7 @@ EOF
         python --version
         which pip
 EOF
-        exit
+        exit 1
     fi
     # no '' around EOF, it will expand vars
     #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
