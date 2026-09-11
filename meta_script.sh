@@ -431,7 +431,8 @@ elif [[ "$1" == "remote"* ]]; then
     export JWM_RUN_START_TIME=$1
 
     cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
-    cat >jwm_configs/remote/remote_tmps/remote.sh << EOF
+    # the following file is init on local
+    cat >>jwm_configs/remote/remote_tmps/remote.sh << EOF
 # change the following vars based on your preference
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 export RUN_PROJ=${RUN_PROJ}
