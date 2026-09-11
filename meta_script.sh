@@ -162,15 +162,7 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_JWM=1
-    echo "start running remote.sh"
-    source jwm_configs/remote/remote_tmps/remote.sh
-    cat >>jwm_configs/remote/remote_tmps/remote.sh <<EOF
-# change the following vars based on your preference
-export RUN_PROJ="${RUN_PROJ}"
-export RUN_DIR_HOME="${RUN_DIR_HOME}"
-export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
-EOF
-    echo "JWM_PYTHON, ${JWM_PYTHON}"
+    
     if [ -n ${JWM_PYTHON} ]; then
         if [[ ${JWM_MODE} == "remotenone" ]]; then
             eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
@@ -426,14 +418,17 @@ if [[ $# -lt 3 ]]; then
     fi
 elif [[ "$1" == "remote"* ]]; then
     export JWM_MODE=$1
-    echo "JWM_MODE, ${JWM_MODE}"
     shift
-    export RUN_PROJ="$1"
+    cat >>jwm_configs/remote/remote_tmps/remote.sh <<EOF
+# change the following vars based on your preference
+export RUN_PROJ="$1"
+EOF
     shift
     export JWM_COMMIT_ID="$1"
     shift
-    export RUN_DIR_HOME="$1"
-    echo "RUN_DIR_HOME, ${RUN_DIR_HOME}"
+    cat >>jwm_configs/remote/remote_tmps/remote.sh <<EOF
+export RUN_DIR_HOME="$1"
+EOF
     shift
     export JWM_SERVER_NAME="${1##*@}"
     shift
@@ -441,8 +436,11 @@ elif [[ "$1" == "remote"* ]]; then
     shift
     export JWM_RUN_START_TIME=$1
 
-    export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
-
+    cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
+export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
+EOF
+    source jwm_configs/remote/remote_tmps/remote.sh
+    echo "JWM_PYTHON, ${JWM_PYTHON}"
     _remote_setup
     if [[ "${JWM_MODE}" == "remoteslurm" ]]; then
         sinfo # show partitions
