@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 early_warning() {
     echo "2 minutes left — saving checkpoint..."
     # save_checkpoint
@@ -13,6 +14,8 @@ final_cleanup() {
 trap early_warning SIGUSR1    # 120s before limit — your warning
 
 trap final_cleanup SIGTERM    # 0s — SLURM is killing you
+
+bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh  >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log  &
 
 module --force purge
 # On Arrhenius, GPU (GH200) nodes are aarch64 and need GPU/-prefixed modules

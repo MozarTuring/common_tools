@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Ensure a PID was provided
+# Mode: PID-specific monitoring or machine-wide status
 if [ -z "$1" ]; then
-    echo "Error: Please provide a PID." >&2
-    exit 1
+    MODE="machine"
+else
+    MODE="pid"
+    PID=$1
 fi
-
-PID=$1
 
 # Intervals (seconds) — switch to slower pace after count threshold
 GPU_INTERVAL=2
@@ -17,8 +17,10 @@ CPU_INTERVAL=2
 CPU_SLOW_INTERVAL=1800
 CPU_SLOW_AFTER=1000
 
-# Ensure the text file is deleted even if the script is interrupted
-trap 'rm -f "${PID}.txt"' EXIT
+if [ "$MODE" = "pid" ]; then
+    # Ensure the text file is deleted even if the script is interrupted
+    trap 'rm -f "${PID}.txt"' EXIT
+fi
 
 get_descendants() {
     local children
@@ -36,6 +38,69 @@ get_all_pids() {
     echo "$PID"
     get_descendants "$PID"
 }
+
+# =============================================================================
+# Machine-wide status (no PID given)
+# =============================================================================
+machine_gpu_monitor() {
+    local max_gpu_mem=0
+    local count=0
+    local interval=$GPU_INTERVAL
+    while true; do
+        sleep "$interval"
+        ((count++))
+        if [ "$count" -ge "$GPU_SLOW_AFTER" ]; then
+            interval=$GPU_SLOW_INTERVAL
+        fi
+
+        echo "===== GPU Status ($(date '+%Y-%m-%d %H:%M:%S')) ====="
+        nvidia-smi 2>/dev/null || echo "(nvidia-smi not available)"
+
+        # Track max GPU memory
+        local current_gpu_mem
+        current_gpu_mem=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | awk '{if($1>m) m=$1} END {printf "%d", m}')
+        if [ "$current_gpu_mem" -gt "$max_gpu_mem" ] 2>/dev/null; then
+            max_gpu_mem=$current_gpu_mem
+            echo ">>> NEW MAX GPU MEM: ${max_gpu_mem} MiB <<<"
+        fi
+        echo ""
+    done
+}
+
+machine_cpu_monitor() {
+    local count=0
+    local interval=$CPU_INTERVAL
+    while true; do
+        sleep "$interval"
+        ((count++))
+        if [ "$count" -ge "$CPU_SLOW_AFTER" ]; then
+            interval=$CPU_SLOW_INTERVAL
+        fi
+
+        echo "===== CPU / Memory Status ($(date '+%Y-%m-%d %H:%M:%S')) ====="
+
+        # Overall load and memory
+        echo "--- Uptime & Load ---"
+        uptime
+        echo ""
+
+        echo "--- Memory ---"
+        free -h 2>/dev/null || vm_stat 2>/dev/null || echo "(memory info not available)"
+        echo ""
+
+        echo "--- Disk ---"
+        df -h / 2>/dev/null
+        echo ""
+
+        echo "--- Top Processes (by CPU) ---"
+        ps aux --sort=-%cpu 2>/dev/null | head -16 || ps aux -r 2>/dev/null | head -16
+        echo ""
+    done
+}
+
+# =============================================================================
+# PID-specific monitoring
+# =============================================================================
 
 # --- GPU monitor (runs in background) ---
 gpu_monitor() {
@@ -93,6 +158,16 @@ cpu_monitor() {
     done
 }
 
-gpu_monitor &
-cpu_monitor &
-wait
+# --- Launch the appropriate monitors ---
+if [ "$MODE" = "machine" ]; then
+    echo "No PID specified — monitoring overall machine status."
+    echo "Press Ctrl+C to stop."
+    echo ""
+    machine_gpu_monitor &
+    machine_cpu_monitor &
+    wait
+else
+    gpu_monitor &
+    cpu_monitor &
+    wait
+fi
