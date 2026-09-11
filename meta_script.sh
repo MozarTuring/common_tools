@@ -175,33 +175,33 @@ _remote_setup() {
                 JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
             elif [[ ${JWM_SERVER_NAME} == "arrhenius" ]]; then
                 cat > jwm_configs/remote/remote_tmps/remote2.sh << EOF
-                JWM_ARCH="aarch64"
-                export JWM_MODULES="Miniforge"
+JWM_ARCH="aarch64"
+export JWM_MODULES="Miniforge"
 EOF
             fi
             #            module --force purge
                 cat >> jwm_configs/remote/remote_tmps/remote2.sh << 'EOF'
-            module load ${JWM_MODULES}
+module load ${JWM_MODULES}
 EOF
 
         fi
 
                 cat >> jwm_configs/remote/remote_tmps/remote2.sh << 'EOF'
-        if [ -z ${JWM_CONDAENV} ]; then
-            export JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
-            export JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
-        fi
-        echo "condaenv path ${JWM_CONDAENV}"
-        if [ ! -d ${JWM_CONDAENV} ]; then
-            conda create -p ${JWM_CONDAENV} python=${JWM_PYTHON} -y
-        fi
-        if [[ -n ${JWM_ARCH} && ! -d ${JWM_CONDAENV}${JWM_ARCH} ]]; then
-            CONDA_SUBDIR=linux-aarch64 conda create -p ${JWM_CONDAENV}${JWM_ARCH} python=${JWM_PYTHON} -y
-        fi
-        conda activate ${JWM_CONDAENV}
-        which python
-        python --version
-        which pip
+if [ -z ${JWM_CONDAENV} ]; then
+    export JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
+    export JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
+fi
+echo "condaenv path ${JWM_CONDAENV}"
+if [ ! -d ${JWM_CONDAENV} ]; then
+    conda create -p ${JWM_CONDAENV} python=${JWM_PYTHON} -y
+fi
+if [[ -n ${JWM_ARCH} && ! -d ${JWM_CONDAENV}${JWM_ARCH} ]]; then
+    CONDA_SUBDIR=linux-aarch64 conda create -p ${JWM_CONDAENV}${JWM_ARCH} python=${JWM_PYTHON} -y
+fi
+conda activate ${JWM_CONDAENV}
+which python
+python --version
+which pip
 EOF
         exit 1
     fi
