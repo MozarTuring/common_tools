@@ -120,7 +120,6 @@ dockerfile_to_def() {
 _remote_setup() {
     source ${RUN_DIR_HOME}/project_remote_jwm/project_nogit/common_tools/common_tokens.sh
 
-    export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
     mkdir -p ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/jwm_configs/remote/remote_tmps
     mkdir -p ${JWM_DATA_DIR}
 
@@ -165,6 +164,12 @@ _remote_setup() {
     export RUN_BACKGROUND_JWM=1
     echo "start running remote.sh"
     source jwm_configs/remote/remote_tmps/remote.sh
+    cat >>jwm_configs/remote/remote_tmps/remote.sh <<EOF
+# change the following vars based on your preference
+export RUN_PROJ="${RUN_PROJ}"
+export RUN_DIR_HOME="${RUN_DIR_HOME}"
+export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
+EOF
     echo "JWM_PYTHON, ${JWM_PYTHON}"
     if [ -n ${JWM_PYTHON} ]; then
         if [[ ${JWM_MODE} == "remotenone" ]]; then
@@ -435,6 +440,8 @@ elif [[ "$1" == "remote"* ]]; then
     export JWM_RUN_DIR_REMOTE=$1
     shift
     export JWM_RUN_START_TIME=$1
+
+    export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/"${RUN_PROJ%_*}"
 
     _remote_setup
     if [[ "${JWM_MODE}" == "remoteslurm" ]]; then
