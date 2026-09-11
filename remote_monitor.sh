@@ -158,6 +158,7 @@ while true; do
 
     if [[ -f ${jobsfile} && ${slurm_job_status_checked} == "failed" ]]; then
         sed -i '' "s|^${tmpdirname}||g" ${jobsfile}
+        echo "done"
         exit
     fi
 

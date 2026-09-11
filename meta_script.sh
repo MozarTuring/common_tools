@@ -518,9 +518,8 @@ elif [[ "$1" == "remote"* ]]; then
         fi
 
         echo "cd ${PWD} && sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}"
-        cat >> jwm_configs/remote/remote_tmps/remote2.sh << EOF
-sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}
-EOF
+        cat jwm_configs/remote/remote_tmps/remote.sh jwm_configs/remote/remote_tmps/remote2.sh >jwm_configs/remote/remote_tmps/remote_all.sh
+        echo "sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}" >>jwm_configs/remote/remote_tmps/remote_all.sh
         SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
             return 1 2>/dev/null
             exit 1
