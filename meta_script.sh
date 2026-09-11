@@ -433,6 +433,8 @@ elif [[ "$1" == "remote"* ]]; then
     cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
     # the following file is init on local
     cat >>jwm_configs/remote/remote_tmps/remote.sh << EOF
+
+
 # change the following vars based on your preference
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 export RUN_PROJ=${RUN_PROJ}
@@ -522,7 +524,7 @@ EOF
         fi
 
         echo "cd ${PWD} && sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}"
-        cat jwm_configs/remote/remote_tmps/remote.sh jwm_configs/remote/remote_tmps/remote2.sh >jwm_configs/remote/remote_tmps/remote_all.sh
+        cat jwm_configs/remote/remote_tmps/remote.sh jwm_configs/remote/remote_tmps/remote2.sh jwm_configs/common.sh>jwm_configs/remote/remote_tmps/remote_all.sh
         echo "sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}" >>jwm_configs/remote/remote_tmps/remote_all.sh
         SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
             return 1 2>/dev/null
