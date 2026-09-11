@@ -180,13 +180,13 @@ _remote_setup() {
 EOF
             fi
             #            module --force purge
-                cat >> jwm_configs/remote/remote_tmps/remote2.sh << EOF
+                cat >> jwm_configs/remote/remote_tmps/remote2.sh << 'EOF'
             module load ${JWM_MODULES}
 EOF
 
         fi
 
-                cat >> jwm_configs/remote/remote_tmps/remote2.sh << EOF
+                cat >> jwm_configs/remote/remote_tmps/remote2.sh << 'EOF'
         if [ -z ${JWM_CONDAENV} ]; then
             export JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
             export JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
