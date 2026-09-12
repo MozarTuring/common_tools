@@ -10,7 +10,7 @@ fi
 
 if false; then
     rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
-    rsync -aP greatrawr:/home/jinma/project_remote_jwm/remote_data/llm2vec/msmarco_hard_negatives_v2.json /Users/jinma63/project/tmp_data/
+    rsync -aP greatrawr:/home/jinma/project_remote_jwm/remote_data/llm2vec/reranker_parts /Users/jinma63/project/tmp_data/cache/
 fi
 
 slurm_job_status() {
@@ -439,8 +439,11 @@ elif [[ "$1" == "remote"* ]]; then
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 export RUN_PROJ=${RUN_PROJ}
 export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
+
+
 EOF
     source jwm_configs/remote/remote_tmps/remote.sh
+    echo "cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}" >>jwm_configs/remote/remote_tmps/remote.sh
     echo "JWM_PYTHON, ${JWM_PYTHON}"
     _remote_setup
     if [[ "${JWM_MODE}" == "remoteslurm" ]]; then
