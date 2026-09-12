@@ -442,8 +442,8 @@ export RUN_DIR_HOME=${RUN_DIR_HOME}
 export RUN_PROJ=${RUN_PROJ}
 export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
 
-cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
 EOF
+    echo 'cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}' >> jwm_configs/remote/remote_tmps/remote.sh
     cat jwm_configs/remote/remote_tmps/local.sh >>jwm_configs/remote/remote_tmps/remote.sh
     echo "JWM_PYTHON, ${JWM_PYTHON}"
     _remote_setup
