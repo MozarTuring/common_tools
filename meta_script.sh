@@ -164,7 +164,10 @@ _remote_setup() {
 
     if [ -n ${JWM_PYTHON} ]; then
         if [[ ${JWM_MODE} == "remotenone" ]]; then
-            eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
+            cat >jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
+eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
+EOF
+
         elif [[ ${JWM_MODE} == "remoteslurm" ]]; then
             if [[ ${JWM_SERVER_NAME} == "berzeliusampere" ]]; then
                 export JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
@@ -199,7 +202,6 @@ which python
 python --version
 which pip
 EOF
-        source jwm_configs/remote/remote_tmps/remote2.sh
     fi
     # no '' around EOF, it will expand vars
     #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
@@ -224,13 +226,15 @@ EOF
     # ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
     if [[ ${JWM_MODE} == "remotenone" ]]; then
 
-        if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
-            conda create -y -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda -c nvidia cuda-toolkit
-        fi
-        export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
-        export PATH=${CUDA_HOME}/bin:${PATH}
-        export CPATH=${CUDA_HOME}/targets/x86_64-linux/include:${CPATH}
-        export LD_LIBRARY_PATH=${CUDA_HOME}/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
+        cat >>jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
+if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
+    conda create -y -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda -c nvidia cuda-toolkit
+fi
+export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
+export PATH=${CUDA_HOME}/bin:${PATH}
+export CPATH=${CUDA_HOME}/targets/x86_64-linux/include:${CPATH}
+export LD_LIBRARY_PATH=${CUDA_HOME}/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
+EOF
 
     fi
 
@@ -249,6 +253,7 @@ EOF
     # fi
     # touch ".submit_marker"
 
+    source jwm_configs/remote/remote_tmps/remote2.sh
     if [[ -f jwm_configs/remote/template.sh ]]; then
         echo "start running template.sh"
         source jwm_configs/remote/template.sh
@@ -443,7 +448,7 @@ export RUN_PROJ=${RUN_PROJ}
 export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
 
 EOF
-    echo 'cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}' >> jwm_configs/remote/remote_tmps/remote.sh
+    echo 'cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}' >>jwm_configs/remote/remote_tmps/remote.sh
     cat jwm_configs/remote/remote_tmps/local.sh >>jwm_configs/remote/remote_tmps/remote.sh
     echo "JWM_PYTHON, ${JWM_PYTHON}"
     _remote_setup
