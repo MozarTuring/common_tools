@@ -1428,7 +1428,7 @@ vim.api.nvim_set_keymap("n", ",", "<Nop>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", ";", "<Nop>", { noremap = true, silent = true })
 
 --keymaps
-vim.api.nvim_set_keymap("n", "<2-LeftMouse>", "<cmd>lua CompileRunGcc('r')<CR>", { noremap = true, silent = true })
+--vim.api.nvim_set_keymap("n", "<2-LeftMouse>", "<cmd>lua CompileRunGcc('r')<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "cls", ":lua Clswap()<CR>", { noremap = true })
 vim.api.nvim_set_keymap("n", "fl", "<cmd>lua OpenLog()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "yb", "<cmd>lua CopyFilePathToClipboard()<CR>", { noremap = true, silent = true })
@@ -1687,9 +1687,9 @@ function CompileStop()
 	return tmp[1], tmp[2], tmp[3], tmp[4]
 end
 
-vim.keymap.set("n", "fr", function()
-	CompileRunGcc("r")
-end, { silent = true, noremap = true })
+--vim.keymap.set("n", "fr", function()
+--	CompileRunGcc("r")
+--end, { silent = true, noremap = true })
 vim.keymap.set("n", "fk", function()
 	CompileStop()
 end, { silent = true, noremap = true })
@@ -2804,6 +2804,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local entry = batch_entries[index]
 	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. output_path .. " "
 
+	os.remove(output_path)
 	local f_out = io.open(output_path, "w")
 	if not f_out then
 		vim.notify("Cannot write file: " .. output_path, vim.log.levels.ERROR)
