@@ -430,20 +430,21 @@ elif [[ "$1" == "remote"* ]]; then
     shift
     export JWM_RUN_START_TIME=$1
 
+    export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
     cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+    source jwm_configs/remote/remote_tmps/local.sh
     # the following file is init on local
-    cat >>jwm_configs/remote/remote_tmps/remote.sh << EOF
+    cat >jwm_configs/remote/remote_tmps/remote.sh <<EOF
 
-
+set -e
 # change the following vars based on your preference
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 export RUN_PROJ=${RUN_PROJ}
 export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
 
-
+cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
 EOF
-    source jwm_configs/remote/remote_tmps/remote.sh
-    echo "cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}" >>jwm_configs/remote/remote_tmps/remote.sh
+    cat jwm_configs/remote/remote_tmps/local.sh >>jwm_configs/remote/remote_tmps/remote.sh
     echo "JWM_PYTHON, ${JWM_PYTHON}"
     _remote_setup
     if [[ "${JWM_MODE}" == "remoteslurm" ]]; then
@@ -527,7 +528,7 @@ EOF
         fi
 
         echo "cd ${PWD} && sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}"
-        cat jwm_configs/remote/remote_tmps/remote.sh jwm_configs/remote/remote_tmps/remote2.sh jwm_configs/common.sh>jwm_configs/remote/remote_tmps/remote_all.sh
+        cat jwm_configs/remote/remote_tmps/remote.sh jwm_configs/remote/remote_tmps/remote2.sh jwm_configs/common.sh >jwm_configs/remote/remote_tmps/remote_all.sh
         echo "sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}" >>jwm_configs/remote/remote_tmps/remote_all.sh
         SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
             return 1 2>/dev/null

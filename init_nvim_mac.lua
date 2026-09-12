@@ -2809,7 +2809,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		vim.notify("Cannot write file: " .. output_path, vim.log.levels.ERROR)
 		return
 	end
-	f_out:write("set -e \n")
 	for _, key in ipairs(keys_order) do
 		if entry.overrides[key] ~= nil then
 			f_out:write("export " .. key .. "=" .. entry.overrides[key] .. "\n")
@@ -3022,7 +3021,7 @@ vim.keymap.set("n", "fr", function()
 	end
 
 	template_path = dir .. "/template.sh"
-	output_path = dir .. "/remote_tmps/remote.sh"
+	output_path = dir .. "/remote_tmps/local.sh"
 	batch_file = filepath
 
 
