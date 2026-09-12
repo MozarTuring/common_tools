@@ -442,7 +442,7 @@ elif [[ "$1" == "remote"* ]]; then
     cat >jwm_configs/remote/remote_tmps/remote.sh <<EOF
 
 set -e
-# change the following vars based on your preference
+# change the following vars based on your preference, and then make sure this repo is cloned to ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 export RUN_PROJ=${RUN_PROJ}
 export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
