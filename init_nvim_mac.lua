@@ -436,22 +436,47 @@ require("lazy").setup({
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
 				vim.g.vimtex_view_skim_activate = 0 -- don't steal focus from Neovim
 				vim.g.vimtex_compiler_method = "latexmk"
-				local fixed_out = "/Users/jinma63/project/zzzjwmoutput/latex_compilation"
-				vim.fn.mkdir(fixed_out, "p")
+				local base_latex_out = "/Users/jinma63/project/zzzjwmoutput/latex_compilation"
+				vim.fn.mkdir(base_latex_out, "p")
+
+				local function get_latex_out_dir()
+					local tex_dir = vim.fn.expand("%:p:h")
+					local sanitized = tex_dir:gsub("/", "_"):gsub("^_", "")
+					local out_dir = base_latex_out .. "/" .. sanitized
+					vim.fn.mkdir(out_dir, "p")
+					return out_dir
+				end
+
 				vim.g.vimtex_compiler_latexmk = {
-					aux_dir = fixed_out,
-					out_dir = fixed_out,
+					aux_dir = base_latex_out,
+					out_dir = base_latex_out,
 					options = {
-						"-synctex=1", -- enable synctex for inverse sync (pdf -> tex)
+						"-synctex=1",
 						"-interaction=nonstopmode",
-						"-cd", -- change to file's directory before compiling
+						"-cd",
 					},
 				}
+
+				vim.api.nvim_create_autocmd("User", {
+					pattern = "VimtexEventInitPre",
+					callback = function()
+						local out_dir = get_latex_out_dir()
+						local cfg = {
+							aux_dir = out_dir,
+							out_dir = out_dir,
+							options = { "-synctex=1", "-interaction=nonstopmode", "-cd" },
+						}
+						vim.g.vimtex_compiler_latexmk = cfg
+						vim.b.vimtex_compiler_latexmk = cfg
+					end,
+				})
 
 				-- Open Skim and forward-sync after every successful compile
 				vim.api.nvim_create_autocmd("User", {
 					pattern = "VimtexEventCompileSuccess",
 					callback = function()
+						local cur_out = (vim.b.vimtex_compiler_latexmk and vim.b.vimtex_compiler_latexmk.out_dir)
+							or base_latex_out
 						vim.fn.system({
 							"osascript",
 							"-e",
@@ -482,14 +507,14 @@ require("lazy").setup({
 						if vimtex_info and vimtex_info.tex then
 							local tex_dir = vim.fn.fnamemodify(vimtex_info.tex, ":h")
 							local pdf_name = vim.fn.fnamemodify(vimtex_info.tex, ":t:r") .. ".pdf"
-							local src = fixed_out .. "/" .. pdf_name
+							local src = cur_out .. "/" .. pdf_name
 							if vim.fn.filereadable(src) == 1 then
 								vim.fn.system({ "cp", src, tex_dir .. "/" .. pdf_name })
 							end
 						end
 
 						-- Clean up stale pdflatex<PID>.fls files left by crashed compiles
-						local handle = io.popen('ls "' .. fixed_out .. '"/pdflatex*.fls 2>/dev/null')
+						local handle = io.popen('ls "' .. cur_out .. '"/pdflatex*.fls 2>/dev/null')
 						if handle then
 							for f in handle:lines() do
 								os.remove(f)

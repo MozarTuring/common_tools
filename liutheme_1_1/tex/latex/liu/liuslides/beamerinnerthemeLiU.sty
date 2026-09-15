@@ -1,0 +1,69 @@
+%% beamerinnerthemeLiU.sty
+%% Copyright 2015 Clas Veibäck
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2005/12/01 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% 
+% The Current Maintainer of this work is Clas Veibäck.
+%
+% This work consists of the files beamer*themeLiU.sty
+%
+%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+%% SOFTWARE.
+
+\mode<presentation>
+
+%%
+%%	Read Options
+%%
+\def\LiU@shadow{false}%% Option for block shadow.
+\DeclareOptionBeamer{shadow}{\def\LiU@shadow{true}}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@rounded\LiU@roundedfalse%% Option for rounded block.
+\DeclareOptionBeamer{rounded}{\LiU@roundedtrue}
+\ProcessOptionsBeamer
+
+%%
+%% Block style
+%%
+\ifLiU@rounded
+	\setbeamertemplate{blocks}[rounded][shadow=\LiU@shadow]
+\else
+	\setbeamertemplate{blocks}[default]
+\fi
+
+%%
+%% Bullet styles
+%%
+\setbeamertemplate{itemize item}[circle]
+\setbeamertemplate{itemize subitem}{\textbullet\enspace}
+\setbeamertemplate{itemize subsubitem}{--}
+
+%%
+%% Wnumeration styles
+%%
+\setbeamertemplate{enumerate item}{\insertenumlabel.}
+\setbeamertemplate{enumerate subitem}{\insertsubenumlabel.}
+\setbeamertemplate{enumerate subsubitem}{\insertsubsubenumlabel.}
+
+%%
+%% Outline bullet styles
+%%
+\setbeamertemplate{section in toc}{\leavevmode\leftskip=2.5em{\hspace{-2.5em}\makebox[2em]{\inserttocsectionnumber}\inserttocsection\par}}
+\setbeamertemplate{subsection in toc}{\leavevmode\leftskip=2.9em{\hspace{-0.5em}\inserttocsubsection\par}}
+%\setbeamertemplate{subsection in toc}{\qquad{\textbullet}\enspace\inserttocsubsection \par}
+
+\mode<all>

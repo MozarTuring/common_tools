@@ -1,0 +1,642 @@
+%% beamercolorthemeLiU.sty
+%% Copyright 2015 Clas Veibäck
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2005/12/01 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% 
+% The Current Maintainer of this work is Clas Veibäck.
+%
+% This work consists of the files beamer*themeLiU.sty
+%
+%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+%% SOFTWARE.
+
+\mode<presentation>
+
+%%
+%%	Read Options
+%%
+\def\LiU@titlecolor{blue}%% Option for color on title page
+\DeclareOptionBeamer{titlecolor}{\def\LiU@titlecolor{#1}}    
+\ProcessOptionsBeamer
+
+\def\LiU@outlinecolor{green}%% Option for color on outline page
+\DeclareOptionBeamer{outlinecolor}{\def\LiU@outlinecolor{#1}}    
+\ProcessOptionsBeamer
+
+\def\LiU@endcolor{turquoise}%% Option for color on end page
+\DeclareOptionBeamer{endcolor}{\def\LiU@endcolor{#1}}    
+\ProcessOptionsBeamer
+
+\def\LiU@blockcolor{blue}%% Option for color in block
+\DeclareOptionBeamer{blockcolor}{\def\LiU@blockcolor{#1}}    
+\ProcessOptionsBeamer
+
+\def\LiU@complementarycolor{orange}%% Option for complementary color
+\DeclareOptionBeamer{complementary}{\def\LiU@complementarycolor{#1}}    
+\ProcessOptionsBeamer
+
+\newif\ifLiU@highcontrast\LiU@highcontrastfalse%% Option for high contrast.
+\DeclareOptionBeamer{highcontrast}{\LiU@highcontrasttrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@superhighcontrast\LiU@superhighcontrastfalse%% Option for super high contrast.
+\DeclareOptionBeamer{superhighcontrast}{\LiU@superhighcontrasttrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@dark\LiU@darkfalse%% Option for dark colors.
+\DeclareOptionBeamer{dark}{\LiU@darktrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@handout\LiU@handoutfalse%% Option for handout.
+\DeclareOptionBeamer{handout}{\LiU@handouttrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@homepage\LiU@homepagefalse%% Option for homepage colors.
+\DeclareOptionBeamer{homepage}{\LiU@homepagetrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@titlepageimage\LiU@titlepageimagefalse%% Option for homepage colors.
+\DeclareOptionBeamer{titlepageimage}{\LiU@titlepageimagetrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@footerimage\LiU@footerimagefalse%% Option for homepage colors.
+\DeclareOptionBeamer{footerimage}{\LiU@footerimagetrue}
+\ProcessOptionsBeamer
+
+%%
+%% Macro Definitions
+%%
+
+%% Set foreground for all logos
+\def\LiU@setlogos#1{
+	\def\LiU@logo@color@titlepage{#1}
+	\def\LiU@logo@color@outlinepage{#1}
+	\def\LiU@logo@color@endpage{#1}
+	\def\LiU@logo@color@footline{#1}
+	\def\LiU@logo@color@blue{#1}
+	\def\LiU@logo@color@green{#1}
+	\def\LiU@logo@color@turquoise{#1}
+	\def\LiU@logo@color@homepage{#1}
+	\def\LiU@logo@color@orange{#1}
+	\def\LiU@logo@color@purple{#1}
+	\def\LiU@logo@color@yellow{#1}
+	\def\LiU@logo@color@gray{#1}
+}
+
+%% Labels for color options
+\def\LiU@green{green}
+\def\LiU@blue{blue}
+\def\LiU@turquoise{turquoise}
+\def\LiU@orange{orange}
+\def\LiU@purple{purple}
+\def\LiU@yellow{yellow}
+\def\LiU@gray{gray}
+\def\LiU@homepage{homepage}
+
+%% Labels for logo types
+\def\LiU@titlepage{titlepage}
+\def\LiU@outline{outlinepage}
+\def\LiU@endpage{endpage}
+\def\LiU@black{black}
+\def\LiU@white{white}
+\def\LiU@footline{footline}
+
+%% Selected foreground for logos
+\def\LiU@titlepagelogo{white}
+\def\LiU@outlinepagelogo{white}
+\def\LiU@endpagelogo{white}
+\def\LiU@footlinelogo{black}
+
+\newcommand{\newcolor}[3]{%
+	\setbeamercolor{#1}{#2}%
+	\expandafter\def\csname LiU@logo@color@#1\endcsname{#3}
+}
+
+%%
+%% Color Definitions
+%%
+% Define colors as obtained from graphic manual
+\definecolor{LiUblue}{RGB}{0,185,231}
+\definecolor{LiUturquoise}{RGB}{23,199,210}
+\definecolor{LiUgreen}{RGB}{0,207,181}
+
+\definecolor{LiUblue2}{RGB}{91,202,236}
+\definecolor{LiUturquoise2}{RGB}{101,207,216}
+\definecolor{LiUgreen2}{RGB}{86,214,192}
+
+\definecolor{LiUblue3}{RGB}{143,215,241}
+\definecolor{LiUturquoise3}{RGB}{150,218,225}
+\definecolor{LiUgreen3}{RGB}{143,223,207}
+
+\definecolor{LiUblue4}{RGB}{189,230,246}
+\definecolor{LiUturquoise4}{RGB}{194,231,236}
+\definecolor{LiUgreen4}{RGB}{191,235,225}
+
+\definecolor{LiUblue5}{RGB}{210,238,249}
+\definecolor{LiUturquoise5}{RGB}{215,239,242}
+\definecolor{LiUgreen5}{RGB}{213,241,235}
+
+\definecolor{LiUblue0}{RGB}{0,153,198}
+\definecolor{LiUturquoise0}{RGB}{0,156,166}
+\definecolor{LiUgreen0}{RGB}{59,168,144}
+
+\definecolor{LiUorange}{RGB}{255,100,66}
+\definecolor{LiUpurple}{RGB}{137,129,211}
+\definecolor{LiUyellow}{RGB}{253,239,93}
+\definecolor{LiUgray}{RGB}{106,126,145}
+
+\definecolor{LiUorange3}{RGB}{255,164,154}
+\definecolor{LiUpurple3}{RGB}{183,180,225}
+\definecolor{LiUyellow3}{RGB}{254,244,165}
+\definecolor{LiUgray3}{RGB}{170,178,187}
+
+\definecolor{LiUorange5}{RGB}{255,220,216}
+\definecolor{LiUpurple5}{RGB}{226,224,242}
+\definecolor{LiUyellow5}{RGB}{254,250,220}
+\definecolor{LiUgray5}{RGB}{221,224,227}
+
+\definecolor{LiUhomepage}{RGB}{84,216,224}	
+
+%%
+%% Beamer Color Definitions
+%%
+\newcolor{default}{fg=black,bg=white}%% Base for normal frame
+
+\newcolor{blue}{fg=white,bg=LiUblue}{white}
+\newcolor{green}{fg=white,bg=LiUgreen}{white}
+\newcolor{turquoise}{fg=white,bg=LiUturquoise}{white}
+\newcolor{homepage}{fg=black,bg=LiUhomepage}{black}
+
+\setbeamercolor{blue inverse}{fg=LiUblue,bg=white}
+\setbeamercolor{green inverse}{fg=LiUgreen,bg=white}
+\setbeamercolor{turquoise inverse}{fg=LiUturquoise,bg=white}
+\setbeamercolor{homepage inverse}{fg=LiUhomepage,bg=black}
+
+\newcolor{lightblue}{fg=black,bg=LiUblue3}{black}
+\newcolor{lightgreen}{fg=black,bg=LiUgreen3}{black}
+\newcolor{lightturquoise}{fg=black,bg=LiUturquoise3}{black}
+\newcolor{lighthomepage}{fg=black,bg=LiUturquoise3}{black}
+
+\newcolor{brightblue}{fg=black,bg=LiUblue5}{black}
+\newcolor{brightgreen}{fg=black,bg=LiUgreen5}{black}
+\newcolor{brightturquoise}{fg=black,bg=LiUturquoise5}{black}
+\newcolor{brighthomepage}{fg=black,bg=LiUturquoise5}{black}
+
+\newcolor{darkblue}{fg=white,bg=LiUblue0}{white}
+\newcolor{darkgreen}{fg=white,bg=LiUgreen0}{white}
+\newcolor{darkturquoise}{fg=white,bg=LiUturquoise0}{white}
+\newcolor{darkhomepage}{fg=white,bg=LiUturquoise0}{white}
+
+\newcolor{orange}{fg=white,bg=LiUorange}{white}
+\newcolor{purple}{fg=white,bg=LiUpurple}{white}
+\newcolor{yellow}{fg=white,bg=LiUyellow}{white}
+\newcolor{gray}{fg=white,bg=LiUgray}{white}
+
+\setbeamercolor{orange inverse}{fg=LiUorange,bg=white}
+\setbeamercolor{purple inverse}{fg=LiUpurple,bg=white}
+\setbeamercolor{yellow inverse}{fg=LiUyellow,bg=white}
+\setbeamercolor{gray inverse}{fg=LiUgray,bg=white}
+
+\newcolor{lightorange}{fg=black, bg=LiUorange3}{black}
+\newcolor{lightpurple}{fg=black, bg=LiUpurple3}{black}
+\newcolor{lightyellow}{fg=black, bg=LiUyellow3}{black}
+\newcolor{lightgray}{fg=black, bg=LiUgray3}{black}
+
+\newcolor{brightorange}{fg=black, bg=LiUorange5}{black}
+\newcolor{brightpurple}{fg=black, bg=LiUpurple5}{black}
+\newcolor{brightyellow}{fg=black, bg=LiUyellow5}{black}
+\newcolor{brightgray}{fg=black, bg=LiUgray5}{black}
+
+%%
+%% Title Page Theme Definition
+%%
+\setbeamercolor*{titlepage}{parent=blue}
+\setbeamercolor*{titlepage inverse}{parent=blue inverse}
+\setbeamercolor*{lighttitlepage}{parent=lightblue}
+\setbeamercolor*{brighttitlepage}{parent=brightblue}
+\setbeamercolor*{darktitlepage}{parent=darkblue}
+\def\LiU@logo@color@titlepage{white}
+\ifx\LiU@titlecolor \LiU@blue
+	\setbeamercolor*{titlepage}{parent=blue}
+	\setbeamercolor*{titlepage inverse}{parent=blue inverse}
+	\setbeamercolor*{lighttitlepage}{parent=lightblue}
+	\setbeamercolor*{brighttitlepage}{parent=brightblue}
+	\setbeamercolor*{darktitlepage}{parent=darkblue}
+	\def\LiU@logo@color@titlepage{white}
+\fi
+\ifx\LiU@titlecolor \LiU@green
+	\setbeamercolor*{titlepage}{parent=green}
+	\setbeamercolor*{titlepage inverse}{parent=green inverse}
+	\setbeamercolor*{lighttitlepage}{parent=lightgreen}
+	\setbeamercolor*{brighttitlepage}{parent=brightgreen}
+	\setbeamercolor*{darktitlepage}{parent=darkgreen}
+	\def\LiU@logo@color@titlepage{white}
+\fi
+\ifx\LiU@titlecolor \LiU@turquoise
+	\setbeamercolor*{titlepage}{parent=turquoise}
+	\setbeamercolor*{titlepage inverse}{parent=turquoise inverse}
+	\setbeamercolor*{lighttitlepage}{parent=lightturquoise}
+	\setbeamercolor*{brighttitlepage}{parent=brightturquoise}
+	\setbeamercolor*{darktitlepage}{parent=darkturquoise}
+	\def\LiU@logo@color@titlepage{white}
+\fi
+\ifx\LiU@titlecolor \LiU@homepage
+	\setbeamercolor*{titlepage}{parent=homepage}
+	\setbeamercolor*{titlepage inverse}{parent=homepage inverse}
+	\setbeamercolor*{lighttitlepage}{parent=lighthomepage}
+	\setbeamercolor*{brighttitlepage}{parent=brighthomepage}
+	\setbeamercolor*{darktitlepage}{parent=darkhomepage}
+	\def\LiU@logo@color@titlepage{black}
+\fi
+
+%%
+%% Outline Page Theme Definition
+%%
+\setbeamercolor*{outlinepage}{parent=blue}
+\setbeamercolor*{lightoutlinepage}{parent=lightblue}
+\setbeamercolor*{brightoutlinepage}{parent=brightblue}
+\setbeamercolor*{darkoutlinepage}{parent=darkblue}
+\def\LiU@logo@color@outlinepage{white}
+\ifx\LiU@outlinecolor \LiU@blue
+	\setbeamercolor*{outlinepage}{parent=blue}
+	\setbeamercolor*{lightoutlinepage}{parent=lightblue}
+	\setbeamercolor*{brightoutlinepage}{parent=brightblue}
+	\setbeamercolor*{darkoutlinepage}{parent=darkblue}
+	\def\LiU@logo@color@outlinepage{white}
+\fi
+\ifx\LiU@outlinecolor \LiU@green
+	\setbeamercolor*{outlinepage}{parent=green}
+	\setbeamercolor*{lightoutlinepage}{parent=lightgreen}	
+	\setbeamercolor*{brightoutlinepage}{parent=brightgreen}	
+	\setbeamercolor*{darkoutlinepage}{parent=darkgreen}
+	\def\LiU@logo@color@outlinepage{white}
+\fi
+\ifx\LiU@outlinecolor \LiU@turquoise
+	\setbeamercolor*{outlinepage}{parent=turquoise}
+	\setbeamercolor*{lightoutlinepage}{parent=lightturquoise}
+	\setbeamercolor*{brightoutlinepage}{parent=brightturquoise}
+	\setbeamercolor*{darkoutlinepage}{parent=darkturquoise}
+	\def\LiU@logo@color@outlinepage{white}
+\fi
+\ifx\LiU@outlinecolor \LiU@homepage
+	\setbeamercolor*{outlinepage}{parent=homepage}
+	\setbeamercolor*{lightoutlinepage}{parent=lighthomepage}
+	\setbeamercolor*{brightoutlinepage}{parent=brighthomepage}
+	\setbeamercolor*{darkoutlinepage}{parent=darkhomepage}
+	\def\LiU@logo@color@outlinepage{black}
+\fi
+
+%%
+%% End Page Theme Definition
+%%
+\setbeamercolor*{endpage}{parent=blue}
+\setbeamercolor*{lightendpage }{parent=lightblue}
+\setbeamercolor*{brightendpage}{parent=brightblue}
+	\setbeamercolor*{darkendpage}{parent=darkblue}
+\def\LiU@logo@color@endpage{white}
+\ifx\LiU@endcolor \LiU@green
+	\setbeamercolor*{endpage}{parent=green}
+	\setbeamercolor*{lightendpage}{parent=lightgreen}
+	\setbeamercolor*{brightendpage}{parent=brightgreen}
+	\setbeamercolor*{darkendpage}{parent=darkgreen}
+	\def\LiU@logo@color@endpage{white}
+\fi
+\ifx\LiU@endcolor \LiU@blue
+	\setbeamercolor*{endpage}{parent=blue}
+	\setbeamercolor*{lightendpage}{parent=lightblue}
+	\setbeamercolor*{brightendpage}{parent=brightblue}
+	\setbeamercolor*{darkendpage}{parent=darkblue}
+	\def\LiU@logo@color@endpage{white}
+\fi
+\ifx\LiU@endcolor \LiU@turquoise
+	\setbeamercolor*{endpage}{parent=turquoise}
+	\setbeamercolor*{lightendpage}{parent=lightturquoise}
+	\setbeamercolor*{brightendpage}{parent=brightturquoise}
+	\setbeamercolor*{darkendpage}{parent=darkturquoise}
+	\def\LiU@logo@color@endpage{white}
+\fi
+\ifx\LiU@endcolor \LiU@homepage
+	\setbeamercolor*{endpage}{parent=homepage}
+	\setbeamercolor*{lightendpage}{parent=lighthomepage}
+	\setbeamercolor*{brightendpage}{parent=brighthomepage}
+	\setbeamercolor*{darkendpage}{parent=darkhomepage}
+	\def\LiU@logo@color@endpage{black}
+\fi
+
+%%
+%% Block Theme Definition
+%%
+\setbeamercolor*{region}{parent=brightblue}
+\setbeamercolor*{region title}{parent=blue}
+\ifx\LiU@blockcolor \LiU@green
+	\setbeamercolor*{region}{parent=brightgreen}
+	\setbeamercolor*{region title}{parent=green}
+\fi
+\ifx\LiU@blockcolor \LiU@blue
+	\setbeamercolor*{region}{parent=brightblue}
+	\setbeamercolor*{region title}{parent=blue}
+\fi
+\ifx\LiU@blockcolor \LiU@turquoise
+	\setbeamercolor*{region}{parent=brightturquoise}
+	\setbeamercolor*{region title}{parent=turquoise}
+\fi
+\ifx\LiU@blockcolor \LiU@homepage
+	\setbeamercolor*{region}{parent=brighthomepage}
+	\setbeamercolor*{region title}{parent=homepage}
+\fi
+\ifx\LiU@blockcolor \LiU@orange
+	\setbeamercolor*{region}{parent=brightorange}
+	\setbeamercolor*{region title}{parent=orange}
+\fi
+\ifx\LiU@blockcolor \LiU@purple
+	\setbeamercolor*{region}{parent=brightpurple}
+	\setbeamercolor*{region title}{parent=purple}
+\fi
+\ifx\LiU@blockcolor \LiU@yellow
+	\setbeamercolor*{region}{parent=brightyellow}
+	\setbeamercolor*{region title}{parent=yellow}
+\fi
+\ifx\LiU@blockcolor \LiU@gray
+	\setbeamercolor*{region}{parent=brightgray}
+	\setbeamercolor*{region title}{parent=gray}
+\fi
+
+%%
+%% Complementary Theme Definition
+%%
+\setbeamercolor*{complementary}{parent=orange inverse}
+\ifx \LiU@complementarycolor \LiU@orange
+	 \setbeamercolor*{complementary}{parent=orange inverse}
+\fi
+\ifx\LiU@complementarycolor \LiU@purple
+	\setbeamercolor*{complementary}{parent=purple inverse}
+\fi
+\ifx\LiU@complementarycolor \LiU@yellow
+	\setbeamercolor*{complementary}{parent=yellow inverse}
+\fi
+\ifx\LiU@complementarycolor \LiU@gray
+	\setbeamercolor*{complementary}{parent=gray inverse}
+\fi
+
+%%
+%% Builtin Elements
+%%
+\setbeamercolor*{general page}{parent=default}
+
+%% Normal text and background
+\setbeamercolor*{normal text}{parent=general page}
+\setbeamercolor*{background canvas}{parent=general page}
+\setbeamercolor*{description item}{parent=general page}
+\def\LiU@logo@color@footline{black}
+
+%% Color for titles
+\setbeamercolor{title}{parent=titlepage}
+\setbeamercolor{subtitle}{parent=titlepage}
+
+%% Color for normal frame
+\setbeamercolor{header}{parent=general page}
+\setbeamercolor{frametitle}{parent=general page}
+\setbeamercolor{framesubtitle}{parent=general page}
+\setbeamercolor{footline}{parent=general page}
+\setbeamercolor{headline}{parent=general page}
+
+%% Color for blocks
+\setbeamercolor*{block title}{parent=region title}
+\setbeamercolor*{block body}{parent=region}
+\setbeamercolor*{description item}{parent=region}
+
+%% Clear some bad colors
+\setbeamercolor*{structure}{parent=complementary}
+\setbeamercolor*{alerted text}{parent=complementary}
+\setbeamercolor*{qed symbol}{parent=general page}
+
+%% Remove structure color from navigation symbols
+\setbeamercolor*{navigation symbols dimmed}{parent=general page}
+\setbeamercolor*{navigation symbols}{parent=general page}
+
+%% Remove structure color from numbers and bullets in list
+\setbeamercolor*{item}{parent=general page} 
+
+%% Color for table of contents
+\setbeamercolor{section in toc}{parent=outlinepage}
+\setbeamercolor{subsection in toc}{parent=outlinepage}
+%\setbeamercolor{section in toc shaded}{parent=outlinepage}
+%\setbeamercolor{subsection in toc shaded}{parent=outlinepage}
+
+%%
+%% Contrast Options
+%%
+\ifLiU@highcontrast
+	\setbeamercolor*{titlepage}{parent=lighttitlepage}
+	\setbeamercolor*{outlinepage}{parent=lightoutlinepage}
+	\setbeamercolor*{endpage}{parent=lightendpage}
+	\setbeamercolor*{blue}{parent=lightblue}
+	\setbeamercolor*{green}{parent=lightgreen}
+	\setbeamercolor*{turquoise}{parent=lightturquoise}
+	\setbeamercolor*{homepage}{parent=lighthomepage}
+	\setbeamercolor*{orange}{parent=lightorange}
+	\setbeamercolor*{purple}{parent=lightpurple}
+	\setbeamercolor*{yellow}{parent=lightyellow}
+	\setbeamercolor*{gray}{parent=lightgray}
+	\setbeamercolor*{general page}{parent=default}
+	
+	\LiU@setlogos{black}
+\fi
+
+\ifLiU@superhighcontrast
+	\setbeamercolor*{titlepage}{parent=brighttitlepage}
+	\setbeamercolor*{outlinepage}{parent=brightoutlinepage}
+	\setbeamercolor*{endpage}{parent=brightendpage}
+	\setbeamercolor*{blue}{parent=brightblue}
+	\setbeamercolor*{green}{parent=brightgreen}
+	\setbeamercolor*{turquoise}{parent=brightturquoise}
+	\setbeamercolor*{homepage}{parent=brighthomepage}
+	\setbeamercolor*{orange}{parent=brightorange}
+	\setbeamercolor*{purple}{parent=brightpurple}
+	\setbeamercolor*{yellow}{parent=brightyellow}
+	\setbeamercolor*{gray}{parent=brightgray}
+	\setbeamercolor*{general page}{parent=default}
+	
+	\LiU@setlogos{black}
+\fi
+
+\ifLiU@dark
+	\setbeamercolor*{titlepage}{parent=darktitlepage}
+	\setbeamercolor*{outlinepage}{parent=darkoutlinepage}
+	\setbeamercolor*{endpage}{parent=darkendpage}
+	\setbeamercolor*{blue}{parent=darkblue}
+	\setbeamercolor*{green}{parent=darkgreen}
+	\setbeamercolor*{turquoise}{parent=darkturquoise}
+	\setbeamercolor*{homepage}{parent=darkhomepage}
+	\setbeamercolor*{general page}{parent=default}
+	
+	\LiU@setlogos{white}
+\fi
+
+\ifLiU@homepage
+	\setbeamercolor*{titlepage}{parent=homepage}
+	\setbeamercolor*{outlinepage}{parent=homepage}
+	\setbeamercolor*{endpage}{parent=homepage}
+	\setbeamercolor*{blue}{parent=homepage}
+	\setbeamercolor*{green}{parent=homepage}
+	\setbeamercolor*{turquoise}{parent=homepage}
+	\setbeamercolor*{general page}{parent=default}
+	
+	\LiU@setlogos{black}
+	\ifLiU@dark
+		\LiU@setlogos{white}
+	\fi
+\fi
+
+\only<handout>{\LiU@handouttrue}
+\ifLiU@handout
+	\setbeamercolor*{titlepage}{parent=default}
+	\setbeamercolor*{outlinepage}{parent=default}	
+	\setbeamercolor*{endpage}{parent=default}
+	\setbeamercolor*{general page}{parent=default}
+	\setbeamercolor*{blue}{parent=default}
+	\setbeamercolor*{green}{parent=default}
+	\setbeamercolor*{turquoise}{parent=default}
+	\setbeamercolor*{homepage}{parent=default}
+	\setbeamercolor*{orange}{parent=default}
+	\setbeamercolor*{purple}{parent=default}
+	\setbeamercolor*{yellow}{parent=default}
+	\setbeamercolor*{gray}{parent=default}
+	\setbeamercolor*{general page}{parent=default}
+	
+	%\setbeamercolor*{block title}{parent=default}
+	%\setbeamercolor*{block body}{parent=default}
+
+	\LiU@setlogos{black}
+\fi
+
+%%
+%% Image Definitions
+%%
+
+%% Dimensions
+\newdimen\LiU@logo@large@height
+\newdimen\LiU@logo@small@height
+\newdimen\LiU@logo@large@width
+\newdimen\LiU@logo@small@width
+\newdimen\LiU@image@large@height
+\newdimen\LiU@image@small@height
+\newdimen\LiU@image@large@width
+\newdimen\LiU@image@small@width
+
+\LiU@logo@large@height=14.37548mm
+\LiU@logo@large@width=40mm
+
+\LiU@logo@small@height=8.158084291mm
+\LiU@logo@small@width=22.7mm
+
+\LiU@image@large@height=14.37548mm
+\LiU@image@large@width=40mm
+
+\LiU@image@small@height=8.158084291mm
+\LiU@image@small@width=22.7mm
+	
+%% Load images
+\pgfdeclareimage[height=\LiU@logo@large@height]{large_logo_white}{LiU_primary_white}
+\pgfdeclareimage[height=\LiU@logo@large@height]{large_logo_black}{LiU_primary_black}
+
+\pgfdeclareimage[height=\LiU@logo@small@height]{small_logo_white}{LiU_primary_white}
+\pgfdeclareimage[height=\LiU@logo@small@height]{small_logo_black}{LiU_primary_black}
+
+\ifLiU@titlepageimage
+	\pgfdeclareimage[height=\LiU@image@large@height]{large_image_white}{rtlogo_tall_slim}%% Change to name of title page image
+	\pgfdeclareimage[height=\LiU@image@large@height]{large_image_black}{rtlogo_tall_slim}%% Change to name of title page image
+\fi
+
+\ifLiU@footerimage
+	\pgfdeclareimage[height=\LiU@image@small@height]{small_image_white}{rtlogo_tall_margin}%% Change to name of footer image
+	\pgfdeclareimage[height=\LiU@image@small@height]{small_image_black}{rtlogo_tall_margin}%% Change to name of footer image
+\fi
+
+%%
+%% Image Macro Definitions
+%% 
+\def\insertLargeLogoColor#1{%
+	\def\LiU@logocolor{#1}%
+	\ifx\LiU@white\LiU@logocolor%
+		\pgfuseimage{large_logo_white}%
+	\fi%
+	\ifx\LiU@black\LiU@logocolor%
+		\pgfuseimage{large_logo_black}%
+	\fi%
+}
+
+\def\insertLargeImageColor#1{%
+	\def\LiU@imagecolor{#1}%
+	\ifx\LiU@white\LiU@imagecolor%
+		\pgfuseimage{large_image_white}%
+	\fi%
+	\ifx\LiU@black\LiU@imagecolor%
+		\pgfuseimage{large_image_black}%
+	\fi%
+}
+
+\def\insertSmallLogoColor#1{%
+	\def\LiU@logocolor{#1}%
+	\ifx\LiU@white\LiU@logocolor%
+		\pgfuseimage{small_logo_white}%
+	\fi%
+	\ifx\LiU@black\LiU@logocolor%
+		\pgfuseimage{small_logo_black}%
+	\fi%
+}
+	
+\def\insertSmallImageColor#1{%
+	\def\LiU@imagecolor{#1}%
+	\ifx\LiU@white\LiU@imagecolor%
+		\pgfuseimage{small_image_white}%
+	\fi%
+	\ifx\LiU@black\LiU@imagecolor%
+		\pgfuseimage{small_image_black}%
+	\fi%
+}
+\def\insertLargeLogo#1{%
+	\def\LiU@param{#1}%
+	\ifx\csname LiU@logo@color@#1\endcsname\undefined\else%
+		\def\LiU@logocolor{\csname LiU@logo@color@#1\endcsname}%
+		\@expandtwoargs\insertLargeLogoColor{\LiU@logocolor}%
+	\fi%
+}
+
+\def\insertLargeImage#1{%
+	\def\LiU@param{#1}%
+	\ifx\csname LiU@logo@color@#1\endcsname\undefined\else%
+		\def\LiU@imagecolor{\csname LiU@logo@color@#1\endcsname}%
+		\@expandtwoargs\insertLargeImageColor{\LiU@imagecolor}%
+	\fi%
+}
+
+\def\insertSmallLogo#1{%
+	\def\LiU@param{#1}%
+	\ifx\csname LiU@logo@color@#1\endcsname\undefined\else%
+		\def\LiU@logocolor{\csname LiU@logo@color@#1\endcsname}%
+		\@expandtwoargs\insertSmallLogoColor{\LiU@logocolor}%
+	\fi%
+}
+\def\insertSmallImage#1{%
+	\def\LiU@param{#1}%
+	\ifx\csname LiU@logo@color@#1\endcsname\undefined\else%
+		\def\LiU@imagecolor{\csname LiU@logo@color@#1\endcsname}%
+		\@expandtwoargs\insertSmallImageColor{\LiU@imagecolor}%
+	\fi%
+}
+
+\mode<all>

@@ -1,0 +1,131 @@
+%% beamerfontthemeLiU.sty
+%% Copyright 2015 Clas Veibäck
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2005/12/01 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% 
+% The Current Maintainer of this work is Clas Veibäck.
+%
+% This work consists of the files beamer*themeLiU.sty
+%
+%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+%% SOFTWARE.
+
+\mode<presentation>
+
+%%
+%% Macro Definitions
+%%
+\def\LiU@latexfont{latex}
+\def\LiU@standardfont{standard}
+\def\LiU@liufont{liu}
+\def\LiU@calibrifont{calibri}
+\def\LiU@sansseriffont{sansserif}
+\def\LiU@helveticafont{helvetica}
+
+%%
+%%	Read Options
+%%
+\def\LiU@font{\LiU@latexfont}%% Option for fonts to use.
+\DeclareOptionBeamer{font}{\def\LiU@font{#1}}    
+\ProcessOptionsBeamer
+
+%%
+%% Set internal font themes
+%%
+\usefonttheme{professionalfonts}
+
+%%
+%% Font Selection
+%%
+\ifx\LiU@font\LiU@latexfont
+	\usefonttheme{serif}
+	% Select a different latex font here
+	%\renewcommand*\rmdefault{cmss}
+	%\renewcommand*\sfdefault{cmr}
+\fi
+
+%% Use sans serif in normal text
+\ifx\LiU@font\LiU@sansseriffont
+	% Select a different latex font here
+	%\renewcommand*\rmdefault{cmss}
+	%\renewcommand*\sfdefault{cmr}
+\fi
+
+%% Use helvetica in normal text
+\ifx\LiU@font\LiU@helveticafont
+	\usepackage[scaled=0.92]{helvet}	
+\fi
+
+%% Use standard presentation fonts, they need to be installed and LuaLaTeX is needed
+\ifx\LiU@font\LiU@standardfont
+	\usefonttheme{serif}
+	\usepackage[no-math]{fontspec}
+	\setsansfont{Calibri}
+	\setmainfont{Georgia}
+\fi
+
+%% Use calibri only, it needs to be installed and LuaLaTeX is needed
+\ifx\LiU@font\LiU@calibrifont
+	\usefonttheme{serif}
+	\usepackage[no-math]{fontspec}
+	\setsansfont{Calibri}
+	\setmainfont{Calibri}
+\fi
+
+%% Use KorolevLiU and Georgia fonts, they need to be installed and LuaLaTeX is needed
+\ifx\LiU@font\LiU@liufont
+	\usefonttheme{serif}
+	\usepackage[no-math]{fontspec}
+	\setsansfont{KorolevLiU}
+	\setmainfont{Georgia}
+\fi
+
+%%
+%% Element Font Selection
+%% 
+\setbeamerfont{header}{family=\sffamily}
+
+\setbeamerfont{title}{parent=header,size=\huge}
+\setbeamerfont{subtitle}{parent=header, size=\large}
+\setbeamerfont{author in title}{parent=header, size=\normalsize}
+\setbeamerfont{institute in title}{parent=header, size=\small}
+
+\setbeamerfont{endtext}{parent=header,size=\huge}
+\setbeamerfont{endauthor}{parent=header,size=\large}
+\setbeamerfont{endlink}{parent=header,size=\Large}
+
+\setbeamerfont{section in toc}{parent=header,size=\large}
+\setbeamerfont{subsection in toc}{parent=header,size=\small}
+
+\setbeamerfont{header author}{parent=header}
+\setbeamerfont{header date}{parent=header}
+\setbeamerfont{header number}{parent=header}
+\setbeamerfont{header title}{parent=header}
+
+\setbeamerfont{frametitle}{parent=header}
+\setbeamerfont{framesubtitle}{parent=header}
+
+\setbeamerfont{block title}{parent=header,size=\normalsize}
+
+% Structure and description item
+%\setbeamerfont{structure}{family=\sffamily}
+%\setbeamerfont{description item}{family=\sffamily}
+
+% Itemize and enumerate text and subitems
+%\setbeamertemplate{itemize/enumerate body begin}{\sffamily}
+%\setbeamerfont{itemize/enumerate body}{family=\sffamily}
+
+\mode<all>

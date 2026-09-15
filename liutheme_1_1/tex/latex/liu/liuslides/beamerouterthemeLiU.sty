@@ -1,0 +1,314 @@
+%% beamerouterthemeLiU.sty
+%% Copyright 2015 Clas Veibäck
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2005/12/01 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% 
+% The Current Maintainer of this work is Clas Veibäck.
+%
+% This work consists of the files beamer*themeLiU.sty
+%
+%% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+%% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+%% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+%% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+%% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+%% SOFTWARE.
+
+\mode<presentation>
+
+%%
+%%	Read Options
+%%
+\newif\ifLiU@navigation\LiU@navigationfalse%% Option to add navigation symbols.
+\DeclareOptionBeamer{navigation}{\LiU@navigationtrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@header\LiU@headertrue%% Option to remove header.
+\DeclareOptionBeamer{noheader}{\LiU@headerfalse}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@footer\LiU@footertrue%% Option to remove footer.
+\DeclareOptionBeamer{nofooter}{\LiU@footertrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@totalframes\LiU@totalframesfalse%% Option to add total number of frames.
+\DeclareOptionBeamer{totalframes}{\LiU@totalframestrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@tightpage\LiU@tightpagefalse%% Option to get more space on page.
+\DeclareOptionBeamer{tightpage}{\LiU@tightpagetrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@footerimage\LiU@footerimagefalse%% Option to add image in right side of footer.
+\DeclareOptionBeamer{footerimage}{\LiU@footerimagetrue}
+\ProcessOptionsBeamer
+
+\newif\ifLiU@header@title\LiU@header@titletrue%% Option to remove header title.
+\newif\ifLiU@header@author\LiU@header@authortrue%% Option to remove header author.
+\newif\ifLiU@header@date\LiU@header@datetrue%% Option to remove header date.
+\newif\ifLiU@header@number\LiU@header@numbertrue%% Option to remove header number.
+\DeclareOptionBeamer{minimalheader}{\LiU@header@titlefalse\LiU@header@authorfalse\LiU@header@datefalse}
+\ProcessOptionsBeamer
+\DeclareOptionBeamer{noheadertitle}{\LiU@header@titlefalse}
+\ProcessOptionsBeamer
+\DeclareOptionBeamer{noheaderauthor}{\LiU@header@authorfalse}
+\ProcessOptionsBeamer
+\DeclareOptionBeamer{noheaderdate}{\LiU@header@datefalse}
+\ProcessOptionsBeamer
+\DeclareOptionBeamer{noheadernumber}{\LiU@header@numberfalse}
+\ProcessOptionsBeamer
+
+%%
+%% Dimensions
+%%
+\newdimen\LiU@headline@height
+\newdimen\LiU@headline@leftmargin
+\newdimen\LiU@headline@rightmargin
+\newdimen\LiU@headline@datespace
+\newdimen\LiU@headline@numberwidth
+
+\newdimen\LiU@frametitle@top
+\newdimen\LiU@frametitle@bottom
+\newdimen\LiU@subtitle@bottom
+\newdimen\LiU@subtitle@top
+\newdimen\LiU@frametitle@leftmargin
+\newdimen\LiU@frametitle@rightmargin
+\newdimen\LiU@frametitle@width
+
+\newdimen\LiU@footline@top
+\newdimen\LiU@footline@separation
+\newdimen\LiU@footline@bottom
+\newdimen\LiU@footline@navbottom
+\newdimen\LiU@footline@imageadjustment
+\newdimen\LiU@footline@leftmargin
+\newdimen\LiU@footline@rightmargin
+\newdimen\LiU@footline@rulelength
+
+
+%% Tight page dimensions
+\ifLiU@tightpage
+	\setbeamersize{text margin left=2.2em,text margin right=2.2em}
+	\def\LiU@headline@marginfactor{0.5}
+	\def\LiU@frametitle@marginfactor{0.5}
+	\def\LiU@footline@marginfactor{0.5}
+	
+	\LiU@headline@height=0.6em
+	
+	\LiU@frametitle@top=0.0em
+	\LiU@frametitle@bottom=-0.1em
+	\LiU@subtitle@top=-0.2em
+	\LiU@subtitle@bottom=-0.3em
+	
+	\LiU@footline@navbottom=1.1em
+	\LiU@footline@top=0.2em
+	\LiU@footline@separation=-0.3em
+	\LiU@footline@bottom=0.0em
+	\LiU@footline@imageadjustment=-0.5mm
+
+%% Approved profile dimensions
+\else
+	\setbeamersize{text margin left=4.4em,text margin right=4.4em}
+	\def\LiU@headline@marginfactor{0.5}
+	\def\LiU@frametitle@marginfactor{0.55}
+	\def\LiU@footline@marginfactor{0.5}
+	
+	\LiU@headline@height=2em
+	
+	\LiU@frametitle@top=1em
+	\LiU@frametitle@bottom=0.2em
+	\LiU@subtitle@top=0em
+	\LiU@subtitle@bottom=0em
+		
+	\LiU@footline@navbottom=1.4em
+	\LiU@footline@top=0.6em
+	\LiU@footline@separation=0.2em
+	\LiU@footline@bottom=0.5em
+	\LiU@footline@imageadjustment=-0.5mm
+\fi
+
+\LiU@footline@leftmargin=\LiU@footline@marginfactor\beamer@leftmargin
+\LiU@footline@rightmargin=\LiU@footline@marginfactor\beamer@rightmargin
+
+\LiU@footline@rulelength=\paperwidth%
+\advance \LiU@footline@rulelength by-\LiU@footline@leftmargin
+\advance \LiU@footline@rulelength by-\LiU@footline@rightmargin
+		
+\LiU@headline@leftmargin=\LiU@headline@marginfactor\beamer@leftmargin
+\LiU@headline@rightmargin=\LiU@headline@marginfactor\beamer@rightmargin
+\LiU@headline@datespace=2em
+\LiU@headline@numberwidth=2em
+
+\LiU@frametitle@leftmargin=\LiU@frametitle@marginfactor\beamer@leftmargin
+\LiU@frametitle@rightmargin=\LiU@frametitle@marginfactor\beamer@rightmargin
+
+\LiU@frametitle@width=\paperwidth
+\advance \LiU@frametitle@width by-\LiU@frametitle@leftmargin
+\advance \LiU@frametitle@width by-\LiU@frametitle@rightmargin
+
+%
+% NAVIGATION
+%
+\setbeamertemplate{navigation symbols}{}
+
+\ifLiU@navigation
+
+	% Only place here if image is showed
+	\ifLiU@footerimage
+		\setbeamertemplate{navigation symbols}{%
+			\vspace{-0.5em}%
+			\insertslidenavigationsymbol%
+			\insertframenavigationsymbol%
+			\insertsubsectionnavigationsymbol% 
+			\insertsectionnavigationsymbol%
+			\insertdocnavigationsymbol%
+			\insertbackfindforwardnavigationsymbol%
+			\hspace{\LiU@footline@marginfactor\beamer@rightmargin}%
+		}
+	\fi
+\fi
+
+%
+% FOOTLINE
+%
+\setbeamertemplate{footline}[default]
+
+\ifLiU@footer
+
+	% For colored themes, this needs to be replaced by a beamercolorbox
+	\defbeamertemplate*{footline}{infolines theme}{%
+		
+		\begin{beamercolorbox}[wd=\paperwidth]{footline}		
+			\vspace\LiU@footline@top\vskip0em%		
+			\hskip\LiU@footline@leftmargin\rule{\LiU@footline@rulelength}{0.4pt}%
+			\vskip\LiU@footline@separation%
+			\hskip\LiU@footline@leftmargin%
+			\insertSmallLogo{footline}%
+			\hfill%
+			\ifLiU@footerimage%
+				\raisebox{\LiU@footline@imageadjustment}[\LiU@footline@imageadjustment][\LiU@footline@imageadjustment]{%
+					\insertSmallImage{footline}%
+				}%
+				\hspace{\LiU@footline@rightmargin} % Space required
+			\fi%
+			\ifLiU@navigation%
+				\ifLiU@footerimage\else%
+					\raisebox{\LiU@footline@navbottom}{%
+						\insertslidenavigationsymbol%
+						\insertframenavigationsymbol%
+						\insertsubsectionnavigationsymbol%
+						\insertsectionnavigationsymbol%
+						\insertdocnavigationsymbol%
+						\insertbackfindforwardnavigationsymbol% 
+					}%
+					\hspace{\LiU@footline@marginfactor\beamer@rightmargin} %
+				\fi%
+			\fi%
+			\vskip\LiU@footline@bottom%
+		\end{beamercolorbox}%
+	}
+\fi
+
+\defbeamertemplate{footline}{LiUframe}[1][blue]{%
+	\usebeamercolor[fg]{#1}%
+	\vspace{-\LiUframelogobottom}%
+		\hskip\LiUframelogomargin \insertLargeLogo{#1}  \hfill \ifLiU@titlepageimage  \insertLargeImage{#1} \hspace{\LiUframelogomargin} \fi%
+	\vskip\LiUframelogobottom%
+}
+
+%
+% HEADLINE
+%
+\setbeamertemplate{headline}[default]
+
+\ifLiU@header
+	\defbeamertemplate*{headline}{infolines theme}{%
+		\begin{beamercolorbox}[wd=\paperwidth,ht=\LiU@headline@height]{headline}%
+			\hskip\LiU@headline@leftmargin%
+			\usebeamerfont{header title}%
+			\ifLiU@header@title%
+				\insertshorttitle%
+			\fi%
+			\hfill%
+			\usebeamerfont{header author}%
+			\ifLiU@header@author%
+				\insertshortauthor{}%
+			\fi%
+			\hfill%
+			\usebeamerfont{header date}%
+			\ifLiU@header@date%
+				\insertshortdate{}%
+			\fi%
+			\hspace*{\LiU@headline@datespace}%
+			\ifLiU@header@number%
+				\usebeamerfont{header number}%
+				\makebox[\LiU@headline@numberwidth][r]{%
+					\insertframenumber%
+					\ifLiU@totalframes%
+						\,/\,\inserttotalframenumber%
+					\fi%
+				}%
+			\fi%
+			\hspace*{\LiU@headline@rightmargin}%
+		\end{beamercolorbox}%
+	}
+\fi
+
+\defbeamertemplate{headline}{LiUframe}{\vspace*{\headheight}}
+
+%
+% FRAMETITLE
+%
+\defbeamertemplate*{frametitle}{LiU}[1][left]{%
+	\nointerlineskip%	
+	\begin{beamercolorbox}[wd=\paperwidth]{frametitle}%
+		\usebeamerfont{frametitle}%
+		\vskip\LiU@frametitle@top%
+		\hskip\LiU@frametitle@leftmargin%
+		\begin{minipage}{\LiU@frametitle@width}
+			\insertframetitle \strut%\par%
+		\end{minipage}
+		\vskip\LiU@frametitle@bottom%
+		{%
+			\ifx\insertframesubtitle\@empty\else%
+				\vskip\LiU@subtitle@top%
+				{%
+					\usebeamerfont{framesubtitle}%
+					\usebeamercolor[fg]{framesubtitle}%
+					\hskip\LiU@frametitle@leftmargin%
+					\begin{minipage}{\LiU@frametitle@width}%
+						\insertframesubtitle \strut\par%
+					\end{minipage}%
+				}%
+			\fi%
+		}%
+	\end{beamercolorbox}%
+	
+	\vskip\LiU@subtitle@bottom%	
+	\nointerlineskip%	
+}
+
+\defbeamertemplate{frametitle}{LiUframe}[1][blue]{%
+	\usebeamercolor[fg]{#1}
+	\usebeamerfont{frametitle}%
+	\vskip20mm%
+	\hskip1.5\LiUframelogomargin %
+	\begin{beamercolorbox}[wd=\LiU@titlewidth,left]{author}%
+		\raggedright\usebeamerfont{title}\insertframetitle\par%
+		\ifx\insertsubtitle\@empty\else%
+			\vskip3mm%
+			{\usebeamerfont{subtitle}\insertframesubtitle\par}%
+		\fi%
+	\end{beamercolorbox}%
+	\vspace{3mm}%
+}
+
+\mode<all>

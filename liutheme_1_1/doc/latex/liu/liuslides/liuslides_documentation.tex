@@ -1,0 +1,445 @@
+%% Copyright 2015 by Clas Veibäck, Automatic Control, Linköping University
+
+%% Notes on usage
+%% With latex and sansserif fonts, pdfLaTeX can be used
+%% With standard font, LuaLaTeX needs to be used and Calibri and Georgia need to be installed
+%% With LiU font, LuaLaTeX needs to be used and Korolev LiU and Georgi need to be installed
+%% With calibri font, LuaLaTeX needs to be used and Calibri need to be installed
+ 
+\documentclass[noamsthm, english]{beamer}%
+
+\usepackage[T1]{fontenc}%
+\usepackage{babel}%
+\usepackage{blindtext}%
+
+%%
+%% Commands
+%%
+\newcommand{\function}[3]{%
+	\begin{center}%
+	{\usebeamerfont{header}{{\usebeamercolor[fg]{orange inverse}\textbackslash #1}}%
+	{\usebeamercolor[fg]{green inverse}{[#2]}}%
+	\{#3\}}%
+	\end{center}%
+}
+
+\newcommand{\shortfunction}[2]{%
+	\begin{center}%
+	{\usebeamerfont{header}{{\usebeamercolor[fg]{orange inverse}\textbackslash #1}}%
+	\{#2\}}%
+	\end{center}%
+}
+
+\newcommand{\shortinlinefunction}[2]{%
+	{\usebeamerfont{header}{{\usebeamercolor[fg]{orange inverse}\textbackslash #1}}%
+	\{#2\}}%
+}
+
+\newcommand{\macro}[1]{{\usebeamerfont{header}{{\usebeamercolor[fg]{orange inverse}\textbackslash #1}}}
+}
+
+\newcommand{\environ}[3]{%
+	\begin{center}%
+	{\usebeamerfont{header}%
+	{{\usebeamercolor[fg]{orange inverse}\textbackslash begin \{#1\}}}%
+	{\usebeamercolor[fg]{green inverse}[#2]}%
+	#3%	
+	{{\usebeamercolor[fg]{orange inverse}\textbackslash end \{#1\}}}}%
+	\end{center}%
+}
+
+\newcommand{\code}[2][Example Code]{\begin{block}{#1}\small \vspace{-1em}\begin{semiverbatim}#2\end{semiverbatim}\vspace{-1em}\end{block}}%
+
+\newenvironment{codeblock}[1][Example Code]
+    {\begin{block}{#1}\footnotesize\vspace{-1em}\begin{semiverbatim}}%
+    {\end{semiverbatim}\vspace{-1em}\end{block}}%
+
+%%
+%%  Theme
+%%
+\usetheme[%
+%% Standard colors {blue, green, turquoise} for title, outline and end pages
+titlecolor=blue,%
+outlinecolor=green,%
+endcolor=turquoise,%
+%% Complementary colors {orange, purple, yellow, gray} for some details
+complementary=orange,%
+%% All colors {blue, green, turquoise, orange, purple, yellow, gray} for blocks
+blockcolor=blue,%
+%% Font schemes {latex, standard, sansserif, calibri, liu} to use
+font=standard,%
+%% Select color themes {highcontrast, superhighcontrast, dark} with high contrast or add handout option in documentclass
+%highcontrast,%
+%superhighcontrast,%
+%% Remove outline before each section and end page with {nooutline, noendpage}
+%nooutline, %
+%noendpage,%
+%% Add navigation symbols with {navigation}
+%navigation,%
+%% Add total number of frames to frame count with {totalframes}
+totalframes,%
+% Remove parts of header with {noheadertitle, noheaderauthor, noheaderdate, noheadernumber, minimalheader, noheader}
+%noheadertitle,%
+%noheaderauthor,% 
+%noheaderdate,%
+%noheadernumber,%
+%% Show outline in two columns
+outlinecolumns=2,%
+]{LiU}%
+
+%% Add a text on end page, leave blank to add author
+\finaltext{Clas Veibäck \\[-0.5em]%
+	 \small \href{clas.veiback@liu.se}%
+	 {clas.veiback@liu.se}\vspace{0.5em}
+}
+
+%%
+%% Presentation information
+%%
+\title[LiU Slides Documentation]{LiU Slides Theme Documentation}%
+\subtitle{A guide to getting started with LiU slides}%
+\author{Clas Veibäck}%
+\institute{Automatic Control\\% 
+Department of Electrical Engineering\\% 
+Linköping University}%
+\date{\today}%
+
+%%
+%% Presentation
+%%
+\begin{document}%
+
+\maketitle
+\makeoutline
+
+%%
+\section{Introduction}
+%%
+
+\begin{frame}
+\frametitle{Disclaimer}
+This theme is approved by the Communications and Marketing Division at Linköping University, but is provided ``as is'', without warranty of any kind by the author or the Communications and Marketing Division.
+\\~\\
+Bugs, comments and suggestions for improvements can be sent to Clas Veibäck at \href{mailto:clas.veiback@liu.se}{clas.veiback@liu.se}. 
+\end{frame}
+
+\begin{frame}
+\frametitle{Introduction}
+This theme is based on the PowerPoint template provided by the Communications and Marketing Division and adheres to the graphic profile at Linköping University. 
+\\~\\
+The theme is provided to simplify the process of making a LiU presentation.
+\end{frame}
+
+%%
+\section{Installation}
+%%
+
+\begin{frame}
+\frametitle{Installation}
+The files in the theme should be installed into the \emph{texmf} tree of your \emph{TeX} installation. The installation also includes a template that can be added to your \emph{TeX} installation.
+\\~\\
+See the documentation for details.
+\end{frame}
+
+%%
+\section{Features}
+%%
+\subsection{Using Theme}
+%%
+
+\begin{frame}[fragile]
+\frametitle{Using Theme}
+To use the LiU theme, the command \function{usetheme}{<options>}{LiU} is added to the pre-amble of your beamer presentation.
+\code[\textbackslash usetheme example]{\\usetheme[font=standard]\{LiU\}}
+\end{frame}
+
+%%
+\subsection{Colors}
+%%
+
+\begin{frame}
+\frametitle{Colors}
+There are three standard colors with tones
+{
+\begin{itemize}
+\item \colorbox{LiUblue}{\color{white}blue}, \colorbox{LiUblue3}{\color{black}lightblue},  \colorbox{LiUblue5}{\color{black}brightblue} and \colorbox{LiUblue0}{\color{white}darkblue}
+\item \colorbox{LiUgreen}{\color{white}green}, \colorbox{LiUgreen3}{\color{black}lightgreen},  \colorbox{LiUgreen5}{\color{black}brightgreen} and \colorbox{LiUgreen0}{\color{white}darkgreen}
+\item \colorbox{LiUturquoise}{\color{white}turquoise}, \colorbox{LiUturquoise3}{\color{black}lightturquoise},  \colorbox{LiUturquoise5}{\color{black}brightturquoise} and \colorbox{LiUturquoise0}{\color{white}darkturquoise}
+\end{itemize}
+}
+and four complementary colors with tones
+{
+\begin{itemize}
+\item {\color{LiUorange} orange}, {\color{LiUorange3} lightorange}, {\color{LiUorange5} brightorange}
+\item {\color{LiUpurple} purple}, {\color{LiUpurple3} lightpurple}, {\color{LiUpurple5} brightpurple}
+\item {\color{LiUyellow} yellow},{\color{LiUyellow3} lightyellow}, {\color{LiUyellow5} brightyellow}
+\item {\color{LiUgray} gray}, {\color{LiUgray3} lightgray}, {\color{LiUgray5} brightgray}
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}
+\frametitle{Color Options}
+Colors can be accessed using the command \function{usebeamercolor}{bg}{<color>}
+\code[\textbackslash usebeamercolor example]{\{\\usebeamercolor[bg]\{gray\} This text is gray.\}}
+\end{frame}
+
+%%
+\subsection{LiU Frame}
+%%
+
+\begin{frame}[fragile]
+\frametitle{LiU Frame}
+A solid color frame can be inserted using the environment
+%\environ{LiUframe}{<color>}{<content>}
+\function{LiUframe}{<color>}{<content>}
+Any of the standard colors and their tones can be used.\\~\\
+The macro \macro{LiUframewidth} gives the width of the page and the macro \macro{LiUframemargin} gives the margin of a LiU frame.
+\\~\\
+Do not use a frame title for these frames.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{LiU Frame}
+\begin{codeblock}[LiUframe example]
+\\LiUframe[blue]\{
+\hspace{1em}\\raggedright
+\hspace{1em}\\usebeamerfont\{title\}
+\hspace{2em}``You're the all~singing, all~dancing 
+\hspace{2em}crap of the world.''\\par
+\hspace{1em}\{\\raggedleft \\usebeamerfont\{subtitle\}
+\hspace{2em}--- Tyler Durden\\par\}
+\hspace{1em}\\vspace\{20mm\}
+\}
+\end{codeblock}
+\end{frame}
+
+\LiUframe[blue]{
+	\raggedright
+	\usebeamerfont{title}``You're the all~singing, all~dancing crap of the world.''\par%
+	{\raggedleft \usebeamerfont{subtitle}--- Tyler Durden\par}%
+
+	\vspace{20mm}
+}
+
+%%
+\subsection{Special Frames}
+%%
+
+\begin{frame}[fragile]
+\frametitle{Title Page}
+A title page can be inserted using \macro{maketitle} outside a frame or \macro{titlepage} within a LiU frame.
+\\~\\
+The title, subtitle, author and institute are given by the standard pre-amble commands.
+\end{frame}
+
+%% Undo reset of framenumber
+\newcounter{tempframenumber}
+\setcounter{tempframenumber}{\value{framenumber}}
+\maketitle
+\setcounter{framenumber}{\value{tempframenumber}}
+\addtocounter{framenumber}{1}
+
+\begin{frame}[fragile]
+\frametitle{Outline Page}
+An outline page can be inserted using \macro{makeoutline} outside a frame or \macro{outlinepage} within a LiU frame.
+\\~\\
+The optional argument to \macro{makeoutline} is passed on to \macro{tableofcontents}\hspace{-0.5ex}.
+\\~\\
+An outline of the next section is shown at the beginning of each section.
+\end{frame}
+
+\makeoutline
+
+\begin{frame}[fragile]
+\frametitle{End Page}
+An end page can be inserted using \macro{makeend} outside a frame or \macro{endpage} within a LiU frame.
+\\~\\
+Normally the author is shown, but to modify the text on the end page the command \shortfunction{finaltext}{message} can be added in the pre-amble after the command \shortinlinefunction{usetheme}{LiU}.
+\\~\\
+An end page is automatically shown as the final slide and should normally not be added by the author.
+\end{frame}
+\finaltext{Clas Veibäck\\[-0.5em] {\small \href{mailto:clas.veiback@liu.se}{clas.veiback@liu.se}}\vspace{0.5em}}
+\begin{frame}[fragile]
+\frametitle{End Page}
+\begin{codeblock}[\textbackslash finaltext example]
+\\finaltext\{%
+\hspace{1em}Clas Veibäck\\\\%
+\hspace{1em}\\small \\href\{mailto:clas.veiback@liu.se\}%
+\hspace{1em}\{clas.veiback@liu.se\}%
+\}
+\end{codeblock}
+\end{frame}
+
+\makeend
+
+%%
+\section{Theme Options}
+%%
+\subsection{Color Options}
+%%
+
+\begin{frame}
+\frametitle{Color Options}
+\begin{block}{Color options}
+\centering \footnotesize
+\begin{description}[complementary]
+\item[titlecolor] Color of title page, default is blue
+\item[outlinecolor] Color of outline page, default is blue
+\item[endcolor] Color of outline page, default is blue
+\item[complementary] Color of some details, e.g. alerted text, default is orange
+\item[blockcolor] Color of a block, such as this one, default is blue
+\end{description}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Color Options}
+\begin{codeblock}[Color options example]
+\\usetheme[%
+\hspace{1em}titlecolor=blue,%
+\hspace{1em}outlinecolor=green,%
+\hspace{1em}endcolor=turquoise,%
+\hspace{1em}complementary=purple,%
+\hspace{1em}blockcolor=green%
+]\{LiU\}
+\end{codeblock}
+\end{frame}
+
+%%
+\subsection{Contrast Options}
+%%
+
+\begin{frame}
+\frametitle{Contrast Options}
+\begin{block}{Contrast options}
+\centering \footnotesize
+\begin{description}[superhighcontrast]
+\item[highcontrast] Use the light version of the color theme and black foreground
+\item[superhighcontrast] Use the bright version of the color theme and black foreground
+\item[dark] Use the dark version of the color theme and white foreground
+\item[handout] Remove theme colors, suitable for printing
+\end{description}
+\end{block}
+ \alert{Note: {\footnotesize handout} is an option of \macro{documentclass}}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Contrast Options}
+\begin{codeblock}[Contrast options example]
+\\documentclass[english,handout]\{beamer\}
+
+\\usetheme[%
+\hspace{1em}titlecolor=blue,%
+\hspace{1em}outlinecolor=green,%
+\hspace{1em}endcolor=turquoise,%
+\hspace{1em}highcontrast%
+]\{LiU\}
+\end{codeblock}
+\end{frame}
+
+%%
+\subsection{Font Options}
+%%
+
+\begin{frame}
+\frametitle{Font Options}
+\begin{block}{Font options}
+\centering \footnotesize
+\begin{description}[standard]
+\item[latex] Use native latex fonts, pdfLaTeX can be used, default
+\item[standard] Use Calibri and Georgia
+\item[sansserif] Use native latex with normal text in sans serif 
+\item[calibri] Use Calibri for all text
+\item[liu] Use Korolev LiU and Georgia
+\end{description}
+\end{block}
+\alert{Note: All non-latex fonts are required to be installed and can only be used with LuaLaTeX.}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Font Options}
+\begin{codeblock}[Font options example]
+\\usetheme[font=standard]\{LiU\}
+\end{codeblock}
+\end{frame}
+
+%%
+\subsection{Header Options}
+%%
+
+\begin{frame}
+\frametitle{Header Options}
+\begin{block}{Header options}
+\centering \footnotesize
+\begin{description}[noheadernumber]
+\item[noheadertitle] Remove title in header
+\item[noheaderauthor] Remove author in header
+\item[noheaderdate] Remove date in header
+\item[noheadernumber] Remove frame number in header
+\item[totalframes] Add total number of frames in header
+\end{description}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Header Options}
+\begin{codeblock}[Header options example]
+\\usetheme[%
+\hspace{1em}noheaderdate,%
+\hspace{1em}totalframes%
+]\{LiU\}
+\end{codeblock}
+\end{frame}
+
+%%
+\subsection{Footer Options}
+%%
+
+\begin{frame}
+\frametitle{Footer Options}
+\begin{block}{Footer options}
+\centering \footnotesize
+\begin{description}[navigation]
+\item[navigation] Add navigation symbols to the footer
+\end{description}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Footer Options}
+\begin{codeblock}[Footer options example]
+\\usetheme[navigation]\{LiU\}
+\end{codeblock}
+\end{frame}
+
+%%
+\subsection{Special Page Options}
+%%
+
+\begin{frame}
+\frametitle{Special Page Options}
+The following are options for modifying the appearance of the outline page and end page.
+\begin{block}{Special page options}
+\centering \footnotesize
+\begin{description}[noheadernumber]
+\item[noendpage] Remove end page
+\item[nooutline] Do not insert outline at start of each section
+\item[outlinecolumns={\it n}] Use {\it n} columns for the outline page
+\end{description}
+\end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Special Page Options}
+The following is an example of using the special page options.
+\begin{codeblock}[Special page options]
+\\usetheme[%
+\hspace{1em}showinstitute,%
+\hspace{1em}noendpage,%
+\hspace{1em}outlinecolumns=2%
+]\{LiU\}
+\end{codeblock}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,72 @@
+%% Copyright 2015 by Clas Veibäck, Automatic Control, Linköping University
+
+%% Notes on usage
+%% With latex and sansserif fonts, pdfLaTeX can be used
+%% With standard font, LuaLaTeX needs to be used and Calibri and Georgia need to be installed
+%% With LiU font, LuaLaTeX needs to be used and Korolev LiU and Georgi need to be installed
+%% With calibri font, LuaLaTeX needs to be used and Calibri need to be installed
+ 
+\documentclass[noamsthm, english]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage{babel}
+
+\usetheme[
+%% Standard colors {blue, green, turquoise} for title, outline and end pages
+titlecolor=blue,%
+outlinecolor=green,%
+endcolor=turquoise,%
+%% Complementary colors {orange, purple, yellow, gray} for some details
+complementary=orange,%
+%% All colors {blue, green, turquoise, orange, purple, yellow, gray} for blocks
+blockcolor=blue,%
+%% Font schemes {latex, standard, sansserif, calibri, liu} to use
+font=latex,%
+%% Select color themes {highcontrast, superhighcontrast, dark} with high contrast or add handout option in documentclass
+%highcontrast,%
+%superhighcontrast,%
+%% Remove outline before each section and end page with {nooutline, noendpage}
+nooutline, %
+%noendpage,%
+%% Add navigation symbols with {navigation}
+%navigation,%
+%% Add total number of frames to frame count with {totalframes}
+%totalframes,%
+% Remove parts of header with {noheadertitle, noheaderauthor, noheaderdate, noheadernumber, minimalheader, noheader}
+%noheadertitle,%
+%noheaderauthor,% 
+%noheaderdate,%
+%noheadernumber,%
+%% Show institute in title frame
+%showinstitute,
+%% Show outline in two columns
+%outlinecolumns,
+]{LiU}
+
+%% Add a text on end page, leave blank to add author
+\finaltext{Final text}
+
+%% Presentation information
+\title[Short title]{Long title}
+\subtitle{Subtitle}
+\author{Your name}
+\institute{Your division\\ 
+Your department \\ 
+Linköping University}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\makeoutline
+
+\section{Section title}
+\subsection{Sub section title}
+
+\begin{frame}
+\frametitle{Frame title}
+\framesubtitle{Frame subtitle}
+Content
+\end{frame}
+
+\end{document}
