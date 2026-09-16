@@ -191,14 +191,26 @@ require("lazy").setup({
 				opts.picker.sources.files.win.input = opts.picker.sources.files.win.input or {}
 				opts.picker.sources.files.win.input.keys = opts.picker.sources.files.win.input.keys or {}
 				opts.picker.sources.files.win.input.keys["y"] = function()
-					local pickers = Snacks.picker.get({ source = "files" })
-					if #pickers > 0 then
-						local item = pickers[1]:current()
-						if item and item.file then
-							vim.fn.setreg("+", item.file)
-							vim.notify("Copied: " .. item.file)
+					vim.defer_fn(function()
+						local c = vim.fn.getcharstr()
+						local pickers = Snacks.picker.get({ source = "files" })
+						if #pickers == 0 then
+							return
 						end
-					end
+						local item = pickers[1]:current()
+						if not item or not item.file then
+							return
+						end
+						if c == "y" then
+							local name = vim.fn.fnamemodify(item.file, ":t")
+							vim.fn.setreg("+", name)
+							vim.notify("Copied name: " .. name)
+						elseif c == "b" then
+							local abs_path = vim.fn.fnamemodify(item.file, ":p")
+							vim.fn.setreg("+", abs_path)
+							vim.notify("Copied path: " .. abs_path)
+						end
+					end, 0)
 				end
 
 				opts.picker.sources.explorer = opts.picker.sources.explorer or {}
@@ -336,6 +348,43 @@ require("lazy").setup({
 						end)
 					end,
 					desc = "Open file to the right in bufferline",
+				}
+
+				keys["d"] = {
+					function()
+						local pickers = Snacks.picker.get({ source = "explorer" })
+						if #pickers == 0 then
+							return
+						end
+						local picker = pickers[1]
+						local item = picker:current()
+						if not item or not item.file then
+							return
+						end
+						local path = item.file
+						local short = vim.fn.fnamemodify(path, ":~:.")
+						local is_symlink = vim.uv.fs_lstat(path) and vim.uv.fs_lstat(path).type == "link"
+						local action = is_symlink and "unlink" or "rm"
+						vim.ui.input({ prompt = action .. " " .. short .. "? (y/N): " }, function(input)
+							if input ~= "y" and input ~= "Y" then
+								return
+							end
+							if is_symlink then
+								vim.uv.fs_unlink(path)
+							else
+								local shell = os.getenv("SHELL") or "bash"
+								vim.fn.system(shell .. " -lic " .. vim.fn.shellescape("rm " .. vim.fn.shellescape(path)))
+							end
+							if vim.v.shell_error ~= 0 then
+								vim.notify("rm failed (exit " .. vim.v.shell_error .. ")", vim.log.levels.ERROR)
+								return
+							end
+							local Tree = require("snacks.explorer.tree")
+							local Actions = require("snacks.explorer.actions")
+							Actions.update(picker, { refresh = true })
+						end)
+					end,
+					desc = "Delete with shell rm",
 				}
 
 				keys["p"] = "explorer_close"
