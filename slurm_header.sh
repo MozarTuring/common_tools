@@ -15,6 +15,9 @@ trap early_warning SIGUSR1    # 120s before limit — your warning
 
 trap final_cleanup SIGTERM    # 0s — SLURM is killing you
 
+module --force purge
+module load ${PKQ_MODULES}
+
 conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
 
 which python
