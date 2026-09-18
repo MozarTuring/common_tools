@@ -4,13 +4,13 @@ set -e
 
 if false; then
     sudo chmod -R a+rwX /data/huggingface_cache
-    sudo setfacl -R -m u:pkquser:rwx,u:custodian:rwx /data/huggingface_cache
-    sudo setfacl -R -d -m u:pkquser:rwx,u:custodian:rwx /data/huggingface_cache
+    sudo setfacl -R -m u:jinma63:rwx,u:custodian:rwx /data/huggingface_cache
+    sudo setfacl -R -d -m u:jinma63:rwx,u:custodian:rwx /data/huggingface_cache
 fi
 
 if false; then
-    rsync -aP berzeliusampere:/home/x_pkquser/project_remote_pkq/llm2vec_pkq/output/mntp/Meta-Llama-3.1-8B-msmarco ./
-    rsync -aP greatrawr:/home/pkquser/project_remote_pkq/remote_data/llm2vec/reranker_parts /Users/pkquser/project/tmp_data/cache/
+    rsync -aP berzeliusampere:/home/x_jinma63/project_remote_pkq/llm2vec_pkq/output/mntp/Meta-Llama-3.1-8B-msmarco ./
+    rsync -aP greatrawr:/home/jinma63/project_remote_pkq/remote_data/llm2vec/reranker_parts /Users/jinma63/project/tmp_data/cache/
 fi
 
 slurm_job_status() {
@@ -336,7 +336,7 @@ if [[ $# -lt 3 ]]; then
         [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
 
         tmp_path=${run_dir_home}/project_remote_pkq/project_nogit/common_tools/
-        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/pkquser/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
+        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
 
         echo "rsync done"
         exit
