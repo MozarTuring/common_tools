@@ -2919,7 +2919,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	-- here shellescape is to correct interpret path with space
 	vim.fn.writefile({ cmd }, log_file)
 
-	local bg_cmd = cmd .. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
+	local bg_cmd = cmd --.. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
 	local full_cmd = cmd_base .. tmpdate
 	vim.fn.setreg("+", full_cmd)
 
