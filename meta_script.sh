@@ -260,10 +260,12 @@ EOF
         cat pkq_configs/remote/template.sh >>pkq_configs/remote/remote_tmps/remote2.sh
     fi
     cat pkq_configs/common.sh >>pkq_configs/remote/remote_tmps/remote2.sh
-    if [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
+    if [[ -n ${PKQ_INSTALL} && ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
         interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
-    else
+    elif [[ -n ${PKQ_INSTALL} ]]; then
         source pkq_configs/remote/remote_tmps/remote2.sh
+    else
+        echo "pass"
     fi
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 
@@ -471,7 +473,7 @@ EOF
             PKQ_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
             PKQ_SLURM_RUN_ARGS=""
         fi
-        cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pkq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pkq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}
+        cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}
         sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out --error=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
@@ -537,16 +539,16 @@ EOF
 
         fi
 
-        echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}"
         cat pkq_configs/remote/remote_tmps/remote.sh pkq_configs/remote/remote_tmps/remote2.sh >pkq_configs/remote/remote_tmps/remote_all.sh
         echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}" >>pkq_configs/remote/remote_tmps/remote_all.sh
-        SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}) || {
-            return 1 2>/dev/null
-            exit 1
-        }
+
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
-                cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
+                echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}"
+                SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}) || {
+                    return 1 2>/dev/null
+                    exit 1
+                }
                 PKQ_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
                 echo "$PKQ_JOB_ID" >"remote_job_id.txt"
                 break
@@ -767,7 +769,7 @@ EOF
         done
         # echo "1" >"${PKQ_RUN_START_TIME}".pkq
 
-        nohup bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pkq/resource_usage.sh ${PKQ_JOB_ID} >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log 2>&1 &
+        nohup bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh ${PKQ_JOB_ID} >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
         echo "ps -ef|grep ${PKQ_JOB_ID}"
         echo "pkill -TERM -P ${PKQ_JOB_ID}"
