@@ -183,7 +183,11 @@ EOF
             cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
 module --force purge
 module load ${PKQ_MODULES}
-
+if [ -z ${PKQ_CONDAENV} ]; then
+    export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
+    export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
+fi
+echo "condaenv path ${PKQ_CONDAENV}"
 for _eroot in "$EBROOTCUDA/lib64" "$EBROOTCUDNN/lib" "$EBROOTCUSPARSELT/lib"; do
     [[ -d "$_eroot" ]] && export LD_LIBRARY_PATH="${_eroot}:${LD_LIBRARY_PATH:-}"
 done
@@ -193,11 +197,6 @@ EOF
         fi
 
         cat >pkq_configs/remote/remote_tmps/remote3.sh <<'EOF'
-if [ -z ${PKQ_CONDAENV} ]; then
-    export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
-    export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
-fi
-echo "condaenv path ${PKQ_CONDAENV}"
 if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
     conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} -y
 fi
