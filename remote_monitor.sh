@@ -18,11 +18,11 @@ remote_dir="$1"
 shift
 local_dir="$1"
 shift
-JWM_RUN_START_TIME="$1"
+PKQ_RUN_START_TIME="$1"
 
 port_forward=false
 ports_before_file=""
-mkdir -p "$local_dir/jwmlogs"
+mkdir -p "$local_dir/pkqlogs"
 
 print_slurm_summary() {
     ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" |
@@ -31,9 +31,9 @@ print_slurm_summary() {
 }
 
 fetch_new_content() {
-    local tmppath="${local_dir}/jwmlogs/${JWM_RUN_START_TIME}/"
+    local tmppath="${local_dir}/pkqlogs/${PKQ_RUN_START_TIME}/"
     if [[ -d ${tmppath} ]]; then
-        cd "${local_dir}/jwmlogs/${JWM_RUN_START_TIME}/"
+        cd "${local_dir}/pkqlogs/${PKQ_RUN_START_TIME}/"
     else
         echo "no log yet"
         return 0
@@ -87,7 +87,7 @@ is_job_running() {
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
-saved_ts="$HOME/project/${_project_name}/jwm_configs/.last_remote_ts"
+saved_ts="$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
 ts=$(cat "$saved_ts")
 echo "remote time ${ts}"
 
@@ -100,29 +100,29 @@ sync_remote() {
         rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
     # delete only stale ipynb files from local
-    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/jwm_configs/" "$local_dir/jwm_configs/"
+    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/pkq_configs/" "$local_dir/pkq_configs/"
 
-    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/jwmlogs/${JWM_RUN_START_TIME}" "$local_dir/jwmlogs/"
+    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/pkqlogs/${PKQ_RUN_START_TIME}" "$local_dir/pkqlogs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
-    tmppath="$local_dir/jwm_configs"
+    tmppath="$local_dir/pkq_configs"
     if [[ -d ${tmppath} ]]; then
-        rsync -a --delete --include='*.ipynb' --exclude='*' ${tmppath}/ "$HOME/project/${_project_name}/jwm_configs/"
+        rsync -a --delete --include='*.ipynb' --exclude='*' ${tmppath}/ "$HOME/project/${_project_name}/pkq_configs/"
     fi
 }
 
 tmpdirname=$(basename "$local_dir")
 
-jobsfile=$HOME/project/${_project_name}/jwm_configs/docs/jobs.txt
+jobsfile=$HOME/project/${_project_name}/pkq_configs/docs/jobs.txt
 
 # --- main monitoring loop ---
 _check_count=0
 _final_lines="-1"
 _job_finished=""
-JWM_NOTEBOOK=$(sed -n 's/^export JWM_NOTEBOOK=//p' "$HOME/project/${_project_name}/jwm_configs/remote/remote_tmps/remote.sh" | tail -1)
-JWM_NOTEBOOK_start=""
+PKQ_NOTEBOOK=$(sed -n 's/^export PKQ_NOTEBOOK=//p' "$HOME/project/${_project_name}/pkq_configs/remote/remote_tmps/remote.sh" | tail -1)
+PKQ_NOTEBOOK_start=""
 
-if [[ ${JWM_NOTEBOOK} != 1 ]]; then
+if [[ ${PKQ_NOTEBOOK} != 1 ]]; then
 
     grep -qxF ${tmpdirname} ${jobsfile} || echo "${tmpdirname}" >>${jobsfile}
 fi
@@ -162,7 +162,7 @@ while true; do
         exit
     fi
 
-    if [[ ${JWM_NOTEBOOK} == 1 && -z ${JWM_NOTEBOOK_start} ]]; then
+    if [[ ${PKQ_NOTEBOOK} == 1 && -z ${PKQ_NOTEBOOK_start} ]]; then
         # pre_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{for(i=1;i<=NF;i++) if($i=="-L") {split($(i+1),a,":"); print a[2]}}')
         #
         # pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
@@ -185,7 +185,7 @@ while true; do
             ssh -o ConnectTimeout=5 -o ExitOnForwardFailure=yes -f -N -L ${FREE_PORT}:$node:18889 $host sleep 108000
         fi
         # pgrep -fl 'ssh.*node.*berzeliusampere'
-        JWM_NOTEBOOK_start=1
+        PKQ_NOTEBOOK_start=1
     fi
 
     # echo "run_flag, ${run_flag}"

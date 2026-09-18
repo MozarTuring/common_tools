@@ -15,7 +15,7 @@ local function isWindows()
 end
 is_win = isWindows()
 
-local jwMacHome = os.getenv("HOME")
+local pkqMacHome = os.getenv("HOME")
 
 if is_win then
 	jwHomePath = "C:/Users/Mozar/BaiduSyncdisk/project"
@@ -485,7 +485,7 @@ require("lazy").setup({
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
 				vim.g.vimtex_view_skim_activate = 0 -- don't steal focus from Neovim
 				vim.g.vimtex_compiler_method = "latexmk"
-				local base_latex_out = "/Users/jinma63/project/zzzjwmoutput/latex_compilation"
+				local base_latex_out = pkqMacHome .. "/project/zzzpkqoutput/latex_compilation"
 				vim.fn.mkdir(base_latex_out, "p")
 
 				local function get_latex_out_dir()
@@ -836,12 +836,12 @@ local function append_content(content, destination_file_path)
 end
 
 -- Main function to append content from source to destination
-local function jw_append(source, dst)
+local function pkq_append(source, dst)
 	local content = read_source(source)
 	append_content(content, dst)
 end
 
-local function jw_mkdir(inp_dir)
+local function pkq_mkdir(inp_dir)
 	if not directory_exists(inp_dir) then
 		vim.cmd("!mkdir -p " .. inp_dir)
 	end
@@ -860,7 +860,7 @@ local function find_window_for_file(file_path)
 	return nil
 end
 
-local function jw_center()
+local function pkq_center()
 	vim.cmd("normal! zz") -- in the middle
 end
 
@@ -899,7 +899,7 @@ local function RefreshFile(buffer_name)
 			vim.cmd("checktime")
 			--            local last_line_number = vim.api.nvim_buf_line_count(0)
 			--            vim.api.nvim_win_set_cursor(0, {last_line_number, 0})
-			--            jw_center()
+			--            pkq_center()
 		end)
 	else
 		--        print("refresh error")
@@ -965,8 +965,8 @@ local function get_log_path(inp)
 	if inp == "restart" then
 		_G.jwsession = tmp[1]
 		_G.tmp_dir2 = tmp_dir .. "/" .. current_time
-		jw_mkdir(_G.tmp_dir2)
-		jw_mkdir(tmp_dir)
+		pkq_mkdir(_G.tmp_dir2)
+		pkq_mkdir(tmp_dir)
 		return current_time
 	end
 
@@ -992,7 +992,7 @@ function OpenLog()
 	vim.cmd("edit")
 	local last_line_number = vim.api.nvim_buf_line_count(0)
 	vim.api.nvim_win_set_cursor(0, { last_line_number, 0 })
-	jw_center()
+	pkq_center()
 	if _G.jwtimer ~= tmp_path then
 		timer:start(
 			1000,
@@ -1006,7 +1006,7 @@ function OpenLog()
 	open_cur()
 end
 
---local function jw_restart()
+--local function pkq_restart()
 --    local current_time = os.date("%Y%m%d_%H%M%S")
 --    local tmp = vim.fn.GetAbsPath("a")
 --    local abs_dir = tmp[2]
@@ -1016,12 +1016,12 @@ end
 ----    clear_file(tmp_path)
 --    _G.jwsession = tmp[1]
 --    _G.tmp_dir2 = tmp_dir .. '/logs/' .. current_time
---    jw_mkdir(_G.tmp_dir2)
---    jw_mkdir(tmp_dir)
+--    pkq_mkdir(_G.tmp_dir2)
+--    pkq_mkdir(tmp_dir)
 --    return current_time
 --end
 
-local jw_send = function(inp_send, inp_line)
+local pkq_send = function(inp_send, inp_line)
 	--    local today = os.date("%Y-%m-%d")
 	--    session_start = '\n\n**********' .. today .. '**********\n'
 	--    print(_G.jwsession) it will be set to nil when restart nvim
@@ -1048,7 +1048,7 @@ local jw_send = function(inp_send, inp_line)
 			.. '")\nsys.stdout.close()\nsys.stderr.close()\n'
 	elseif _G.jwsession ~= tmp[1] then
 		tmp_time = get_log_path("restart")
-		--        tmp_time = jw_restart()
+		--        tmp_time = pkq_restart()
 		session_start = "\n************ " .. tmp_time .. " ************\n"
 		tmp_path, tmp_path2, abs_path, tmp_dir = get_log_path()
 		iron.repl_restart()
@@ -1073,13 +1073,13 @@ local jw_send = function(inp_send, inp_line)
 
 	inp_send = inp_send:gsub("^%s%s%s%s", "")
 	local new_send = init .. err .. ou .. startstamp .. inp_send .. tmp_copy .. timecost
-	jw_append(session_start .. "\n[I] " .. inp_send .. "\n", tmp_path)
+	pkq_append(session_start .. "\n[I] " .. inp_send .. "\n", tmp_path)
 	iron.send(nil, new_send)
 	OpenLog()
 	--    local tmp_content = jwread(tmp_path2)
 end
 
-function Jw_send_l()
+function Pkq_send_l()
 	--    local mode_info = vim.api.nvim_get_mode()
 	--    vim.api.nvim_echo({{"Current mode: " .. mode_info.mode}}, true)
 	--    vim.api.nvim_feedkeys("<Esc>", "i", true)
@@ -1088,7 +1088,7 @@ function Jw_send_l()
 	local tmp_send = vim.fn.getline(".")
 	local cursor_position = vim.api.nvim_win_get_cursor(0)
 	local current_line_number = cursor_position[1]
-	jw_send(tmp_send, current_line_number)
+	pkq_send(tmp_send, current_line_number)
 	--    if current_line:match("^%s*$") then
 	--        Jwcl()
 	--    elseif string.sub(current_line, 1, 3) == "jwp" then
@@ -1101,7 +1101,7 @@ function Jw_send_l()
 	--    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
 end
 
-function Jw_send_v()
+function Pkq_send_v()
 	--    local mode_info = vim.api.nvim_get_mode()
 	--    print("Current mode: " .. mode_info.mode)
 	--    local mode = vim.api.nvim_get_mode().mode
@@ -1112,10 +1112,10 @@ function Jw_send_v()
 	vim.api.nvim_feedkeys(tmp_gap .. "j", "n", true)
 	local lines = vim.fn.getline(tmp_start, tmp_end)
 	local tmp_send = table.concat(lines, "\n")
-	jw_send(tmp_send, tmp_start)
+	pkq_send(tmp_send, tmp_start)
 end
 
-function jw_iron_restart()
+function pkq_iron_restart()
 	_G.jwsession = nil
 	iron.repl_restart()
 end
@@ -1159,7 +1159,7 @@ function myWriteFile()
 		end
 		if not has_begin_doc then
 			local header_lines = {}
-			local hf = io.open("/Users/jinma63/project/common_tools/tex_header.txt", "r")
+			local hf = io.open("/Users/pkquser/project/common_tools/tex_header.txt", "r")
 			if hf then
 				for l in hf:lines() do
 					header_lines[#header_lines + 1] = l
@@ -1167,7 +1167,7 @@ function myWriteFile()
 				hf:close()
 			end
 			local tail_lines = {}
-			local tf = io.open("/Users/jinma63/project/common_tools/tex_tail.txt", "r")
+			local tf = io.open("/Users/pkquser/project/common_tools/tex_tail.txt", "r")
 			if tf then
 				for l in tf:lines() do
 					tail_lines[#tail_lines + 1] = l
@@ -1195,7 +1195,7 @@ function myWriteFile()
 		end
 	end
 
-	if is_in_inp_dir(file_path, "/home/maojingwei/project/common_tools") then
+	if is_in_inp_dir(file_path, "/home/pkquser/project/common_tools") then
 	end
 end
 
@@ -1269,7 +1269,7 @@ function OpenOrSwitchToFile(filename)
 
 	if not bfound then
 		local dir = filename:match("^(.*)/")
-		jw_mkdir(dir)
+		pkq_mkdir(dir)
 		local bufnr = vim.fn.bufadd(filename)
 		vim.bo[bufnr].buflisted = true
 		vim.cmd("buffer " .. bufnr)
@@ -1366,27 +1366,27 @@ function MyRefreshFile()
 	vim.cmd("normal G")
 end
 
-local _jw_auto_refresh_timers = {} -- abspath -> timer
-local _jw_auto_refresh_indicator_win = nil
-local _jw_auto_refresh_indicator_buf = nil
+local _pkq_auto_refresh_timers = {} -- abspath -> timer
+local _pkq_auto_refresh_indicator_win = nil
+local _pkq_auto_refresh_indicator_buf = nil
 
 local function update_auto_refresh_indicator()
-	if _jw_auto_refresh_indicator_win and vim.api.nvim_win_is_valid(_jw_auto_refresh_indicator_win) then
-		vim.api.nvim_win_close(_jw_auto_refresh_indicator_win, true)
+	if _pkq_auto_refresh_indicator_win and vim.api.nvim_win_is_valid(_pkq_auto_refresh_indicator_win) then
+		vim.api.nvim_win_close(_pkq_auto_refresh_indicator_win, true)
 	end
-	_jw_auto_refresh_indicator_win = nil
-	_jw_auto_refresh_indicator_buf = nil
+	_pkq_auto_refresh_indicator_win = nil
+	_pkq_auto_refresh_indicator_buf = nil
 
-	local count = vim.tbl_count(_jw_auto_refresh_timers)
+	local count = vim.tbl_count(_pkq_auto_refresh_timers)
 	if count == 0 then
 		return
 	end
 
 	local text = " AUTO-REFRESH(" .. count .. ") "
-	_jw_auto_refresh_indicator_buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(_jw_auto_refresh_indicator_buf, 0, -1, false, { text })
-	vim.api.nvim_set_option_value("modifiable", false, { buf = _jw_auto_refresh_indicator_buf })
-	_jw_auto_refresh_indicator_win = vim.api.nvim_open_win(_jw_auto_refresh_indicator_buf, false, {
+	_pkq_auto_refresh_indicator_buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(_pkq_auto_refresh_indicator_buf, 0, -1, false, { text })
+	vim.api.nvim_set_option_value("modifiable", false, { buf = _pkq_auto_refresh_indicator_buf })
+	_pkq_auto_refresh_indicator_win = vim.api.nvim_open_win(_pkq_auto_refresh_indicator_buf, false, {
 		relative = "editor",
 		row = 0,
 		col = vim.o.columns - #text,
@@ -1396,15 +1396,15 @@ local function update_auto_refresh_indicator()
 		focusable = false,
 		zindex = 100,
 	})
-	vim.api.nvim_set_option_value("winhl", "Normal:DiffAdd", { win = _jw_auto_refresh_indicator_win })
+	vim.api.nvim_set_option_value("winhl", "Normal:DiffAdd", { win = _pkq_auto_refresh_indicator_win })
 end
 
 local function stop_auto_refresh_for_path(abspath)
-	local timer = _jw_auto_refresh_timers[abspath]
+	local timer = _pkq_auto_refresh_timers[abspath]
 	if timer then
 		timer:stop()
 		timer:close()
-		_jw_auto_refresh_timers[abspath] = nil
+		_pkq_auto_refresh_timers[abspath] = nil
 	end
 end
 
@@ -1424,14 +1424,14 @@ function ToggleAutoRefresh()
 		vim.notify("Cannot auto-refresh unnamed buffer", vim.log.levels.WARN)
 		return
 	end
-	if _jw_auto_refresh_timers[abspath] then
+	if _pkq_auto_refresh_timers[abspath] then
 		stop_auto_refresh_for_path(abspath)
 		update_auto_refresh_indicator()
 		local short = vim.fn.fnamemodify(abspath, ":.")
 		vim.notify("Auto-refresh OFF: " .. short)
 	else
 		local timer = vim.uv.new_timer()
-		_jw_auto_refresh_timers[abspath] = timer
+		_pkq_auto_refresh_timers[abspath] = timer
 		timer:start(
 			2000,
 			2000,
@@ -1514,7 +1514,7 @@ vim.api.nvim_set_keymap("n", "sy", ":lua copy_normal_lines()<CR>", { noremap = t
 -- Functions ported from init_nvim.vim
 ---------------------------------------------
 
-local function _jw_contains(list, val)
+local function _pkq_contains(list, val)
 	for _, v in ipairs(list) do
 		if v == val then
 			return true
@@ -1525,7 +1525,7 @@ end
 
 --- Escape a string for use as a \V (very nomagic) search pattern in :s
 --- In \V mode only \ is special; we also escape / (the delimiter) and newlines
-local function _jw_escape_search(str)
+local function _pkq_escape_search(str)
 	str = str:gsub("\\", "\\\\") -- \ → \\  (must be first)
 	str = str:gsub("\n", "\\n") -- newline → \n  (\V still reads \n as newline atom)
 	str = str:gsub("/", "\\/") -- / → \/  (separator)
@@ -1534,7 +1534,7 @@ end
 
 --- Escape a string for the replacement part of :s
 --- Special chars in replacement: \ / & ~   and \r = newline
-local function _jw_escape_replace(str)
+local function _pkq_escape_replace(str)
 	str = str:gsub("\\", "\\\\") -- \ → \\  (must be first)
 	str = str:gsub("\n", "\\r") -- newline → \r  (in :s replacement \r = newline)
 	str = str:gsub("/", "\\/") -- / → \/  (separator)
@@ -1545,7 +1545,7 @@ end
 
 -- Comment toggle --
 
-local function _jw_comment(firstline, lastline)
+local function _pkq_comment(firstline, lastline)
 	local first_line_content = vim.fn.getline(firstline)
 	vim.print(vim.bo.filetype)
 
@@ -1564,13 +1564,13 @@ local function _jw_comment(firstline, lastline)
 	local prefix = firstline .. "," .. lastline
 	local cmds = {}
 
-	if _jw_contains(filetype_ls2, ft) then
+	if _pkq_contains(filetype_ls2, ft) then
 		if first_line_content:sub(1, 2) == "<!" then
 			cmds = { firstline .. "s/<!--//", lastline .. "s/-->//" }
 		else
 			cmds = { firstline .. "s/^/<!--/", lastline .. "s/$/-->/" }
 		end
-	elseif _jw_contains(filetype_ls3, ft) then
+	elseif _pkq_contains(filetype_ls3, ft) then
 		if first_line_content:sub(1, 2) == "/*" then
 			cmds = {
 				firstline .. [[s/\/\*//]],
@@ -1610,47 +1610,47 @@ local function _jw_comment(firstline, lastline)
 end
 
 -- Expose for the visual-mode command-line mapping
-function _G._jw_comment_visual()
-	_jw_comment(vim.fn.line("'<"), vim.fn.line("'>"))
+function _G._pkq_comment_visual()
+	_pkq_comment(vim.fn.line("'<"), vim.fn.line("'>"))
 end
 
-vim.keymap.set("v", "?", ":<C-u>lua _jw_comment_visual()<CR>", { silent = true, noremap = true })
+vim.keymap.set("v", "?", ":<C-u>lua _pkq_comment_visual()<CR>", { silent = true, noremap = true })
 vim.keymap.set("n", "?", function()
 	local line = vim.fn.line(".")
-	_jw_comment(line, line)
+	_pkq_comment(line, line)
 end, { silent = true, noremap = true })
 
 -- MyReplace (visual mode) --
 -- Uses \V (very nomagic) so every character is matched literally.
 -- This fixes patterns like $\star$, [brackets], etc.
 
-function _G._jw_my_replace()
+function _G._pkq_my_replace()
 	-- Re-enter last visual selection and yank into register a
 	vim.cmd('normal! gv"ay')
 	local selected = vim.fn.getreg("a")
 	print(selected)
-	local escaped = _jw_escape_search(selected)
+	local escaped = _pkq_escape_search(selected)
 	print(escaped)
 	local rep_input = vim.fn.input("substitute with:")
-	local escaped_rep = _jw_escape_replace(rep_input)
+	local escaped_rep = _pkq_escape_replace(rep_input)
 	-- \V = very nomagic: every char is literal except \
 	local cmd = [[%s/\V]] .. escaped .. "/" .. escaped_rep .. "/gc"
 	print(cmd)
 	vim.cmd(cmd)
 end
 
-vim.keymap.set("v", "<C-s>", ":<C-u>lua _jw_my_replace()<CR>", { silent = true, noremap = true })
+vim.keymap.set("v", "<C-s>", ":<C-u>lua _pkq_my_replace()<CR>", { silent = true, noremap = true })
 
 -- MyReplaceNormal (normal mode) --
 -- Search pattern is typed by the user (can use regex); replacement is escaped.
 
-function _G._jw_my_replace_normal()
+function _G._pkq_my_replace_normal()
 	local pattern = vim.fn.input("search for:")
 	if #pattern == 0 then
 		return
 	end
 	local rep_input = vim.fn.input("substitute with:")
-	local escaped_rep = _jw_escape_replace(rep_input)
+	local escaped_rep = _pkq_escape_replace(rep_input)
 	local cmd = ":%s/" .. pattern .. "/" .. escaped_rep .. "/gc"
 	print(cmd)
 	vim.cmd(cmd)
@@ -1695,7 +1695,7 @@ end
 
 -- GetCommand --
 
-local function _jw_get_command(strStart, strEnd)
+local function _pkq_get_command(strStart, strEnd)
 	local shell_start_line = vim.fn.search(strStart, "b")
 	local shell_end_line = vim.fn.search(strEnd, "b")
 	local content_ls = {}
@@ -1751,7 +1751,7 @@ function CompileStop()
 	local tmp = GetAbsPath("a")
 	local abs_path = tmp[1]
 	if vim.bo.filetype == "sh" then
-		local _, stop_command = _jw_get_command(":<<EOF", "EOF")
+		local _, stop_command = _pkq_get_command(":<<EOF", "EOF")
 		if #stop_command ~= 0 then
 			vim.cmd("!jwkill " .. stop_command)
 		end
@@ -1830,11 +1830,11 @@ vim.keymap.set("n", ",t", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
 
 	local curfile = vim.fn.expand("%:p")
-	local project_name = curfile:match(jwMacHome .. "/project/([^/]+)/jwm_configs")
+	local project_name = curfile:match(pkqMacHome .. "/project/([^/]+)/pkq_configs")
 	if project_name then
 		local word = vim.fn.expand("<cword>")
 		if word and word ~= "" then
-			local output_dir = jwMacHome .. "/project/zzzjwmoutput/" .. project_name .. "/" .. word
+			local output_dir = pkqMacHome .. "/project/zzzpkqoutput/" .. project_name .. "/" .. word
 			if directory_exists(output_dir) then
 				local log_path = output_dir .. "/nohup_monitor.log"
 				OpenOrSwitchToFile(log_path)
@@ -1923,7 +1923,7 @@ let g:mkdp_browser = 'safari'
 ]])
 
 local grip_port = 6419
-local grip_bin = jwMacHome .. "/go/bin/go-grip"
+local grip_bin = pkqMacHome .. "/go/bin/go-grip"
 local grip_root = nil
 
 local function grip_running()
@@ -2063,7 +2063,7 @@ vim.api.nvim_create_autocmd("FileType", {
 	callback = function()
 		vim.opt_local.spell = false
 		vim.keymap.set("n", "m", function()
-			vim.b._jw_mkdp_started = true
+			vim.b._pkq_mkdp_started = true
 			vim.cmd("MarkdownPreview")
 		end, { buffer = true, desc = "Markdown Preview" })
 	end,
@@ -2073,8 +2073,8 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 	pattern = "*.md",
 	callback = function()
 		if vim.fn.exists(":MarkdownPreview") == 2 then
-			if not vim.b._jw_mkdp_started then
-				vim.b._jw_mkdp_started = true
+			if not vim.b._pkq_mkdp_started then
+				vim.b._pkq_mkdp_started = true
 				vim.cmd("MarkdownPreview")
 			else
 				vim.cmd("silent! doautocmd TextChanged")
@@ -2118,7 +2118,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 
 require("img-clip").setup({
 	default = {
-		dir_path = "jw_md_imgs",
+		dir_path = "pkq_md_imgs",
 		relative_to_current_file = true,
 		prompt_for_file_name = false,
 	},
@@ -2203,7 +2203,7 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 })
 
 -- Filter out noisy pyright diagnostics
-local jw_suppress = {
+local pkq_suppress = {
 	"is possibly unbound",
 	"Expression value is unused",
 	"Expected indented block",
@@ -2214,7 +2214,7 @@ do
 		local filtered = {}
 		for _, d in ipairs(result.diagnostics or {}) do
 			local dominated = false
-			for _, pattern in ipairs(jw_suppress) do
+			for _, pattern in ipairs(pkq_suppress) do
 				if d.message and d.message:match(pattern) then
 					dominated = true
 					break
@@ -2375,7 +2375,7 @@ vim.opt.shiftwidth = 4
 vim.opt.softtabstop = 4
 vim.opt.conceallevel = 0 -- Show all markup syntax (don't hide image links, etc.)
 -- File diff (no git): mark first file with ;d, then ;d on second file to compare
-local _jw_diff_file = nil
+local _pkq_diff_file = nil
 
 local function diff_two_files(file_a, file_b)
 	vim.cmd("tabnew " .. vim.fn.fnameescape(file_a))
@@ -2420,13 +2420,13 @@ vim.defer_fn(function()
 	vim.keymap.set(
 		"v",
 		"<leader>s",
-		":<C-u>lua _jw_my_replace()<CR>",
+		":<C-u>lua _pkq_my_replace()<CR>",
 		{ noremap = true, silent = true, desc = "Search and replace selection" }
 	)
 	vim.keymap.set(
 		"n",
 		"<leader>s",
-		"<cmd>lua _jw_my_replace_normal()<CR>",
+		"<cmd>lua _pkq_my_replace_normal()<CR>",
 		{ noremap = true, silent = true, desc = "Search and replace (prompt both)" }
 	)
 	-- Disable F after flash.nvim has loaded (flash overrides f/F/t/T)
@@ -2453,12 +2453,12 @@ vim.defer_fn(function()
 			vim.notify("No file in current buffer", vim.log.levels.WARN)
 			return
 		end
-		if _jw_diff_file == nil then
-			_jw_diff_file = cur
+		if _pkq_diff_file == nil then
+			_pkq_diff_file = cur
 			vim.notify("Diff A: " .. vim.fn.fnamemodify(cur, ":.") .. "  (open file B and press ;d)")
 		else
-			local file_a = _jw_diff_file
-			_jw_diff_file = nil
+			local file_a = _pkq_diff_file
+			_pkq_diff_file = nil
 			if file_a == cur then
 				vim.notify("Same file — diff cancelled", vim.log.levels.WARN)
 				return
@@ -2640,8 +2640,8 @@ end tell]],
 	end
 end
 
-local claude_sessions_dir = jwMacHome
-	.. "project/project_nogit/claude_settings/.claude/projects/-Users-maojingwei-baidu-project"
+local claude_sessions_dir = pkqMacHome
+	.. "project/project_nogit/claude_settings/.claude/projects/-Users-pkquser-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,
@@ -2660,7 +2660,7 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 	end,
 })
 
-local _jw_prompted_deleted = {}
+local _pkq_prompted_deleted = {}
 
 local function prompt_close_deleted_buf()
 	local buf = vim.api.nvim_get_current_buf()
@@ -2673,13 +2673,13 @@ local function prompt_close_deleted_buf()
 		return
 	end
 	if vim.fn.filereadable(name) == 1 then
-		_jw_prompted_deleted[buf] = nil
+		_pkq_prompted_deleted[buf] = nil
 		return
 	end
-	if _jw_prompted_deleted[buf] then
+	if _pkq_prompted_deleted[buf] then
 		return
 	end
-	_jw_prompted_deleted[buf] = true
+	_pkq_prompted_deleted[buf] = true
 
 	local short = vim.fn.fnamemodify(name, ":.")
 	vim.ui.select({ "Yes", "No" }, { prompt = "File deleted: " .. short .. " — close buffer?" }, function(choice)
@@ -2718,7 +2718,7 @@ local function prompt_close_deleted_buf()
 			::continue::
 		end
 		pcall(vim.api.nvim_buf_delete, buf, { force = true })
-		_jw_prompted_deleted[buf] = nil
+		_pkq_prompted_deleted[buf] = nil
 	end)
 end
 
@@ -2840,7 +2840,7 @@ local function generate_from_template(template_path, output_path, overrides, key
 	end
 
 	-- Always prepend ALL overrides in batch-file order so variable
-	-- references like ${JWM_TASK_NAMES} expand correctly
+	-- references like ${PKQ_TASK_NAMES} expand correctly
 	local prepend = {}
 	if keys_order then
 		for _, key in ipairs(keys_order) do
@@ -2898,20 +2898,20 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	-- end
 
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
-	local prefix = jwMacHome .. "/project/"
+	local prefix = pkqMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
 	local dir_name = rel:match("^([^/]+)")
 	if not dir_name then
 		vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
 		return
 	end
-	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
+	local log_dir = prefix .. "zzzpkqoutput/" .. dir_name
 	vim.fn.mkdir(log_dir, "p")
 	vim.fn.mkdir(log_dir .. "/" .. tmpdate, "p")
 	local log_file = log_dir .. "/" .. tmpdate .. "/nohup_monitor.log"
 
 	local cmd = "bash "
-		.. jwMacHome
+		.. pkqMacHome
 		.. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
 		.. " "
@@ -2948,7 +2948,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		})
 	end
 
-	local server_name = entry.overrides["JWM_SERVER_NAME"]
+	local server_name = entry.overrides["PKQ_SERVER_NAME"]
 	local is_first_server = server_name == nil or not seen_servers[server_name]
 	if server_name then
 		seen_servers[server_name] = true
@@ -2960,7 +2960,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end
 
 	local cmd_no_date = "bash "
-		.. jwMacHome
+		.. pkqMacHome
 		.. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
 	local mark_dir = vim.fn.fnamemodify(log_file, ":h")
@@ -3090,8 +3090,8 @@ vim.keymap.set("n", "fr", function()
 	local dir = vim.fn.fnamemodify(filepath, ":h")
 	local template_path, output_path, batch_file
 
-	if not filepath:match("/jwm_configs/remote[^/]*%/jwmbatch[^/]*%.sh$") then
-		vim.notify("must be pressed on a jwmbatch*.sh", vim.log.levels.ERROR)
+	if not filepath:match("/pkq_configs/remote[^/]*%/pkqbatch[^/]*%.sh$") then
+		vim.notify("must be pressed on a pkqbatch*.sh", vim.log.levels.ERROR)
 		return
 	end
 
@@ -3118,12 +3118,12 @@ end, { noremap = true, silent = true, desc = "Run meta_script from template + .b
 
 local function f10_run_lines(lines)
 	local filepath = vim.fn.expand("%:p")
-	local prefix = jwMacHome .. "/project/"
+	local prefix = pkqMacHome .. "/project/"
 	local rel = filepath ~= "" and filepath:sub(#prefix + 1) or ""
 	local dir_name = rel:match("^([^/]+)") or "misc"
 
-	local log_dir = prefix .. "zzzjwmoutput/" .. dir_name
-	local tmp_dir = log_dir .. "/jwmtmptmp"
+	local log_dir = prefix .. "zzzpkqoutput/" .. dir_name
+	local tmp_dir = log_dir .. "/pkqtmptmp"
 	vim.fn.mkdir(tmp_dir, "p")
 	local timestamp = os.date("%Y%m%d_%H%M%S")
 

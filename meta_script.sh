@@ -4,13 +4,13 @@ set -e
 
 if false; then
     sudo chmod -R a+rwX /data/huggingface_cache
-    sudo setfacl -R -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
-    sudo setfacl -R -d -m u:jinma:rwx,u:custodian:rwx /data/huggingface_cache
+    sudo setfacl -R -m u:pkquser:rwx,u:custodian:rwx /data/huggingface_cache
+    sudo setfacl -R -d -m u:pkquser:rwx,u:custodian:rwx /data/huggingface_cache
 fi
 
 if false; then
-    rsync -aP berzeliusampere:/home/x_jinma/project_remote_jwm/llm2vec_jingwei/output/mntp/Meta-Llama-3.1-8B-msmarco ./
-    rsync -aP greatrawr:/home/jinma/project_remote_jwm/remote_data/llm2vec/reranker_parts /Users/jinma63/project/tmp_data/cache/
+    rsync -aP berzeliusampere:/home/x_pkquser/project_remote_pkq/llm2vec_pkq/output/mntp/Meta-Llama-3.1-8B-msmarco ./
+    rsync -aP greatrawr:/home/pkquser/project_remote_pkq/remote_data/llm2vec/reranker_parts /Users/pkquser/project/tmp_data/cache/
 fi
 
 slurm_job_status() {
@@ -118,12 +118,12 @@ dockerfile_to_def() {
 }
 
 _remote_setup() {
-    source ${RUN_DIR_HOME}/project_remote_jwm/project_nogit/common_tools/common_tokens.sh
+    source ${RUN_DIR_HOME}/project_remote_pkq/project_nogit/common_tools/common_tokens.sh
 
-    mkdir -p ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}/jwm_configs/remote/remote_tmps
-    mkdir -p ${JWM_DATA_DIR}
+    mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}/pkq_configs/remote/remote_tmps
+    mkdir -p ${PKQ_DATA_DIR}
 
-    if [[ -d /data && ${JWM_MODE} == "remotedocker"* ]]; then
+    if [[ -d /data && ${PKQ_MODE} == "remotedocker"* ]]; then
         # failure inside the if block will just not stop, regardless of set -e
         mkdir -p /data/huggingface_cache
         mkdir -p ${RUN_DIR_HOME}/.cache
@@ -142,11 +142,11 @@ _remote_setup() {
             systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && ln -s /data/docker ${tmpcache} && systemctl --user restart docker && echo "hard remove, check"
         fi
     fi
-    mkdir -p jwmlogs/${JWM_RUN_START_TIME}
-    mkdir -p jwm_configs/remote/remote_tmps
+    mkdir -p pkqlogs/${PKQ_RUN_START_TIME}
+    mkdir -p pkq_configs/remote/remote_tmps
     sleep 1
-    # echo "" > jwm_configs/${JWM_MODE}/remote_tmps/remote.sh # init in nvim
-    #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<'EOF'
+    # echo "" > pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh # init in nvim
+    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh <<'EOF'
     #
     # require_env() {
     # for var in "$@"; do
@@ -160,77 +160,74 @@ _remote_setup() {
     # EOF
 
     export PYTHONUNBUFFERED=1
-    export RUN_BACKGROUND_JWM=1
+    export RUN_BACKGROUND_PKQ=1
 
-    if [ -n ${JWM_PYTHON} ]; then
-        if [[ ${JWM_MODE} == "remotenone" ]]; then
-            cat >jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
+    if [ -n ${PKQ_PYTHON} ]; then
+        if [[ ${PKQ_MODE} == "remotenone" ]]; then
+            cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
 eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
 EOF
 
-        elif [[ ${JWM_MODE} == "remoteslurm" ]]; then
-            if [[ ${JWM_SERVER_NAME} == "berzeliusampere" ]]; then
-                export JWM_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
-                JWM_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
-            elif [[ ${JWM_SERVER_NAME} == "arrhenius" ]]; then
-                cat >jwm_configs/remote/remote_tmps/remote2.sh <<EOF
-export JWM_ARCH="aarch64"
-export JWM_MODULES="Miniforge"
+        elif [[ ${PKQ_MODE} == "remoteslurm" ]]; then
+            if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
+                export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
+                PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
+            elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
+                cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
+export PKQ_ARCH="aarch64"
+export PKQ_MODULES="Miniforge"
 EOF
             fi
             #            module --force purge
-            cat >>jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
-module load ${JWM_MODULES}
+            cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+module load ${PKQ_MODULES}
 EOF
 
         fi
 
-        cat >>jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
-if [ -z ${JWM_CONDAENV} ]; then
-    export JWM_CONDAENV=${RUN_DIR_HOME}/jwmcondaenv/${RUN_PROJ}
-    export JWM_WHEELS=${RUN_DIR_HOME}/jwmwheels/${RUN_PROJ}
+        cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+if [ -z ${PKQ_CONDAENV} ]; then
+    export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
+    export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
 fi
-echo "condaenv path ${JWM_CONDAENV}"
-if [ ! -d ${JWM_CONDAENV} ]; then
-    conda create -p ${JWM_CONDAENV} python=${JWM_PYTHON} -y
+echo "condaenv path ${PKQ_CONDAENV}"
+if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
+    conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} -y
 fi
-if [[ -n ${JWM_ARCH} && ! -d ${JWM_CONDAENV}${JWM_ARCH} ]]; then
-    CONDA_SUBDIR=linux-aarch64 conda create -p ${JWM_CONDAENV}${JWM_ARCH} python=${JWM_PYTHON} -y
-fi
-conda activate ${JWM_CONDAENV}
+conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
 which python
 python --version
 which pip
 EOF
     fi
     # no '' around EOF, it will expand vars
-    #     cat >>jwm_configs/${JWM_MODE}/remote_tmps/remote.sh <<EOF
+    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh <<EOF
     # # change the following based on your running preference
     # export RUN_DIR_HOME="${RUN_DIR_HOME}"
     # export RUN_PROJ="${RUN_PROJ}"
     #
     # EOF
 
-    # echo "${JWM_RUN_DIR_REMOTE}, ${PWD}"
-    # if [[ ${JWM_RUN_DIR_REMOTE} != "${PWD}" ]]; then
-    #     cp -R . ${JWM_RUN_DIR_REMOTE}/
-    #     cd ${JWM_RUN_DIR_REMOTE}
+    # echo "${PKQ_RUN_DIR_REMOTE}, ${PWD}"
+    # if [[ ${PKQ_RUN_DIR_REMOTE} != "${PWD}" ]]; then
+    #     cp -R . ${PKQ_RUN_DIR_REMOTE}/
+    #     cd ${PKQ_RUN_DIR_REMOTE}
     # fi
 
-    if [[ ${JWM_MODE} == "remotedocker" ]]; then
-        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
-export JWM_CACHE_DIR=${RUN_DIR_HOME}/.cache
+    if [[ ${PKQ_MODE} == "remotedocker" ]]; then
+        cat >>pkq_configs/remote/remote_tmps/remote.sh <<'EOF'
+export PKQ_CACHE_DIR=${RUN_DIR_HOME}/.cache
 EOF
     fi
 
     # ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-    if [[ ${JWM_MODE} == "remotenone" ]]; then
+    if [[ ${PKQ_MODE} == "remotenone" ]]; then
 
-        cat >>jwm_configs/remote/remote_tmps/remote2.sh <<'EOF'
-if [ ! -d ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda ]; then
-    conda create -y -p ${RUN_DIR_HOME}/jwmcondaenv/shared_cuda -c nvidia cuda-toolkit
+        cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+if [ ! -d ${RUN_DIR_HOME}/pkqcondaenv/shared_cuda ]; then
+    conda create -y -p ${RUN_DIR_HOME}/pkqcondaenv/shared_cuda -c nvidia cuda-toolkit
 fi
-export CUDA_HOME=${RUN_DIR_HOME}/jwmcondaenv/shared_cuda
+export CUDA_HOME=${RUN_DIR_HOME}/pkqcondaenv/shared_cuda
 export PATH=${CUDA_HOME}/bin:${PATH}
 export CPATH=${CUDA_HOME}/targets/x86_64-linux/include:${CPATH}
 export LD_LIBRARY_PATH=${CUDA_HOME}/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
@@ -238,10 +235,10 @@ EOF
 
     fi
 
-    # if [[ ${JWM_MODE} == "remotedocker" ]]; then
-    #     eval "$(grep '^JWM_CONTAINERS=' "jwm_configs/${JWM_MODE}/remote_tmps/${batch_file}" | tail -1)"
+    # if [[ ${PKQ_MODE} == "remotedocker" ]]; then
+    #     eval "$(grep '^PKQ_CONTAINERS=' "pkq_configs/${PKQ_MODE}/remote_tmps/${batch_file}" | tail -1)"
     #     clearflag=0
-    #     for _ctn in "${JWM_CONTAINERS[@]}"; do
+    #     for _ctn in "${PKQ_CONTAINERS[@]}"; do
     #         echo "removing ${_ctn}"
     #         docker rm -f "${_ctn}"
     #         clearflag=1
@@ -253,20 +250,20 @@ EOF
     # fi
     # touch ".submit_marker"
 
-    source jwm_configs/remote/remote_tmps/remote2.sh
-    if [[ -f jwm_configs/remote/template.sh ]]; then
+    source pkq_configs/remote/remote_tmps/remote2.sh
+    if [[ -f pkq_configs/remote/template.sh ]]; then
         echo "start running template.sh"
-        source jwm_configs/remote/template.sh
+        source pkq_configs/remote/template.sh
     fi
     echo "start running common.sh"
-    source jwm_configs/common.sh
-    # sed -i '/^# JWM_SERVER_NAME=/d' jwm_configs/${JWM_MODE}/remote_tmps/remote.sh
+    source pkq_configs/common.sh
+    # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 
 }
 
 if [[ $# -lt 3 ]]; then
-    JWM_RUN_START_TIME=$2
-    echo "JWM_RUN_START_TIME, ${JWM_RUN_START_TIME}"
+    PKQ_RUN_START_TIME=$2
+    echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
     echo "abspath, $1"
     _project_dir=$(cd "$(dirname "$1")"/../../../ && pwd)
@@ -275,48 +272,48 @@ if [[ $# -lt 3 ]]; then
     _project_name=$(basename "$_project_dir")
     echo "project_name, $_project_name"
 
-    export server_name=$(sed -n 's/^export JWM_SERVER_NAME=//p' "$1" | tail -1)
+    export server_name=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
 
-    JWM_MODE=$(sed -n 's/^export JWM_MODE=//p' "$1" | tail -1)
-    if [[ -z ${JWM_MODE} ]]; then
-        JWM_MODE=remotenone
+    PKQ_MODE=$(sed -n 's/^export PKQ_MODE=//p' "$1" | tail -1)
+    if [[ -z ${PKQ_MODE} ]]; then
+        PKQ_MODE=remotenone
     fi
     case "$server_name" in
     berzeliusampere | jusuf | juwelscluster | arrhenius)
-        JWM_MODE=remoteslurm
+        PKQ_MODE=remoteslurm
         ;;
     *)
         ;;
     esac
 
-    case "$JWM_MODE" in
+    case "$PKQ_MODE" in
     remoteslurm | remotedocker | remotedockercompose | remotenone)
 
         ;;
     *)
-        echo "ERROR: unknown mode '$JWM_MODE'"
+        echo "ERROR: unknown mode '$PKQ_MODE'"
         exit 1
         ;;
     esac
 
     case "${server_name}" in
     juwels | jusuf | juwelscluster)
-        export run_dir_home=/p/project1/trustllm-eu/mao4
+        export run_dir_home=/p/project1/trustllm-eu/pkquser
         ;;
     custodian@*)
         export run_dir_home=/home/custodian
         ;;
     ferragon | greatrawr | balawar)
-        export run_dir_home=/home/jinma
+        export run_dir_home=/home/pkquser
         ;;
     alvis*)
         export run_dir_home=/cephyr/users/shuyir/Alvis
         ;;
     berzelius*)
-        export run_dir_home=/home/x_jinma
+        export run_dir_home=/home/x_pkquser
         ;;
     arrhenius)
-        export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/jinma63
+        export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/pkquser
         ;;
     *)
         echo "ERROR: unknown server '$server_name'"
@@ -328,31 +325,31 @@ if [[ $# -lt 3 ]]; then
 
     cd $HOME/project
 
-    if [[ -z ${JWM_RUN_START_TIME} ]]; then
+    if [[ -z ${PKQ_RUN_START_TIME} ]]; then
         remote_ts=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" 'date +"%Y-%m-%d %H:%M:%S"')
-        echo "$remote_ts" >"$HOME/project/${_project_name}/jwm_configs/.last_remote_ts"
+        echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
         bash common_tools/sync_and_commit_repo.sh "common_tools"
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
-        tmp_path=${run_dir_home}/project_remote_jwm/remote_data/${_project_name}
+        tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
         rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$server_name":${tmp_path}/
         [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
 
-        tmp_path=${run_dir_home}/project_remote_jwm/project_nogit/common_tools/
-        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
+        tmp_path=${run_dir_home}/project_remote_pkq/project_nogit/common_tools/
+        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/pkquser/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
 
         echo "rsync done"
         exit
     fi
-    local_dir="$HOME/project/zzzjwmoutput/${_project_name}"
-    { [[ -f "$_project_name/jwm_configs/local_pre.sh" ]] && source "$_project_name/jwm_configs/local_pre.sh" || true; }
+    local_dir="$HOME/project/zzzpkqoutput/${_project_name}"
+    { [[ -f "$_project_name/pkq_configs/local_pre.sh" ]] && source "$_project_name/pkq_configs/local_pre.sh" || true; }
     cd ${_project_name}
     _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
     last_commit=$(git rev-parse HEAD)
     cd -
 
-    run_dir_remote="${run_dir_home}/project_remote_jwm/${_project_name}_${_git_branch}"
-    local_dir="${local_dir}/${JWM_RUN_START_TIME}"
+    run_dir_remote="${run_dir_home}/project_remote_pkq/${_project_name}_${_git_branch}"
+    local_dir="${local_dir}/${PKQ_RUN_START_TIME}"
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
@@ -365,7 +362,7 @@ if [[ $# -lt 3 ]]; then
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
     echo "ssh start"
-    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_jwm/common_tools_jingwei/meta_script.sh ${JWM_MODE} ${run_dir_home} ${last_commit} ${_project_name}_${_git_branch} $server_name ${run_dir_remote} ${JWM_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
+    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pkq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name}_${_git_branch} $server_name ${run_dir_remote} ${PKQ_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
     _ssh_pid=$!
     (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     _timer_pid=$!
@@ -373,19 +370,19 @@ if [[ $# -lt 3 ]]; then
     kill "$_timer_pid" 2>/dev/null
     wait "$_timer_pid" 2>/dev/null || true
     # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
-    mkdir -p ./${_project_name}/jwm_configs/remote/remote_tmps
-    rsync -a "$server_name":"${run_dir_remote}/jwm_configs/remote/remote_tmps/" "./${_project_name}/jwm_configs/remote/remote_tmps/"
+    mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps
+    rsync -a "$server_name":"${run_dir_remote}/pkq_configs/remote/remote_tmps/" "./${_project_name}/pkq_configs/remote/remote_tmps/"
 
     if [[ $_ssh_rc -ne 0 ]]; then
         echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
         exit $_ssh_rc
     fi
 
-    if [[ -f "$_project_name/jwm_configs/local_after.sh" ]]; then
-        source "$_project_name/jwm_configs/local_after.sh"
+    if [[ -f "$_project_name/pkq_configs/local_after.sh" ]]; then
+        source "$_project_name/pkq_configs/local_after.sh"
     fi
 
-    if [[ "$JWM_MODE" == "remotedockercompose" ]]; then
+    if [[ "$PKQ_MODE" == "remotedockercompose" ]]; then
         echo " local done"
         exit 0
     fi
@@ -398,7 +395,7 @@ if [[ $# -lt 3 ]]; then
     if [ -n "${remote_job_id}" ]; then
         echo "local dir: ${local_dir}"
 
-        monitor_args=(${JWM_MODE} "$server_name" "$remote_job_id" "$run_dir_remote" "$local_dir" "${JWM_RUN_START_TIME}")
+        monitor_args=(${PKQ_MODE} "$server_name" "$remote_job_id" "$run_dir_remote" "$local_dir" "${PKQ_RUN_START_TIME}")
 
         echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
 
@@ -421,38 +418,38 @@ if [[ $# -lt 3 ]]; then
         echo "FAILED: remote setup on $server_name failed."
     fi
 elif [[ "$1" == "remote"* ]]; then
-    export JWM_MODE=$1
+    export PKQ_MODE=$1
     shift
     export RUN_DIR_HOME="$1"
     shift
-    export JWM_COMMIT_ID="$1"
+    export PKQ_COMMIT_ID="$1"
     shift
     export RUN_PROJ="$1"
     shift
-    export JWM_SERVER_NAME="${1##*@}"
+    export PKQ_SERVER_NAME="${1##*@}"
     shift
-    export JWM_RUN_DIR_REMOTE=$1
+    export PKQ_RUN_DIR_REMOTE=$1
     shift
-    export JWM_RUN_START_TIME=$1
+    export PKQ_RUN_START_TIME=$1
 
-    export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
-    cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
-    source jwm_configs/remote/remote_tmps/local.sh
+    export PKQ_DATA_DIR=${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ%_*}
+    cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
+    source pkq_configs/remote/remote_tmps/local.sh
     # the following file is init on local
-    cat >jwm_configs/remote/remote_tmps/remote.sh <<EOF
+    cat >pkq_configs/remote/remote_tmps/remote.sh <<EOF
 
 set -e
-# change the following vars based on your preference, and then make sure this repo is cloned to ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+# change the following vars based on your preference, and then make sure this repo is cloned to ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
 export RUN_DIR_HOME=${RUN_DIR_HOME}
 export RUN_PROJ=${RUN_PROJ}
-export JWM_DATA_DIR=${RUN_DIR_HOME}/project_remote_jwm/remote_data/${RUN_PROJ%_*}
+export PKQ_DATA_DIR=${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ%_*}
 
 EOF
-    echo 'cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}' >>jwm_configs/remote/remote_tmps/remote.sh
-    cat jwm_configs/remote/remote_tmps/local.sh >>jwm_configs/remote/remote_tmps/remote.sh
-    echo "JWM_PYTHON, ${JWM_PYTHON}"
+    echo 'cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}' >>pkq_configs/remote/remote_tmps/remote.sh
+    cat pkq_configs/remote/remote_tmps/local.sh >>pkq_configs/remote/remote_tmps/remote.sh
+    echo "PKQ_PYTHON, ${PKQ_PYTHON}"
     _remote_setup
-    if [[ "${JWM_MODE}" == "remoteslurm" ]]; then
+    if [[ "${PKQ_MODE}" == "remoteslurm" ]]; then
         sinfo # show partitions
         sinfo -a -o "%N %G %f %m"
         # Show all QOS policies and their limits
@@ -462,88 +459,88 @@ EOF
         # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
         sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
 
-        if [[ ${JWM_NOTEBOOK} == 1 ]]; then
-            JWM_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
-            JWM_SLURM_RUN_ARGS=""
+        if [[ ${PKQ_NOTEBOOK} == 1 ]]; then
+            PKQ_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
+            PKQ_SLURM_RUN_ARGS=""
         fi
-        cat ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_header.sh ${JWM_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/slurm_tail.sh >jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}
-        sbatch_args="--signal=B:USR1@120 --time=${JWM_RUN_TIME} --nodes=${JWM_NODES_NUM} --output=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out --error=jwmlogs/${JWM_RUN_START_TIME}/job-%j.out ${JWM_SLURM_NODES}"
+        cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pkq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pkq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}
+        sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out --error=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
         # berzelius-2026-243
-        if [[ "${JWM_SERVER_NAME}" == "berzeliusampere" ]]; then
-            if (("${JWM_GPU_NUM}" == "0")); then
-                JWM_PARTITION="berzelius-cpu"
+        if [[ "${PKQ_SERVER_NAME}" == "berzeliusampere" ]]; then
+            if (("${PKQ_GPU_NUM}" == "0")); then
+                PKQ_PARTITION="berzelius-cpu"
                 export CPUS_PER_TASK=32
                 export MEM_PER_TASK="128G"
 
             else
-                export CPUS_PER_TASK=$((8 * JWM_GPU_NUM))
-                export MEM_PER_TASK="$((24 * JWM_GPU_NUM))G"
-                JWM_PARTITION="berzelius"
+                export CPUS_PER_TASK=$((8 * PKQ_GPU_NUM))
+                export MEM_PER_TASK="$((24 * PKQ_GPU_NUM))G"
+                PKQ_PARTITION="berzelius"
                 export TORCH_CUDA_ARCH_LIST="9.0"
             fi
 
-            sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=${JWM_PARTITION}"
+            sbatch_args="${sbatch_args} --gpus=${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=${PKQ_PARTITION}"
 
-        elif [[ "${JWM_SERVER_NAME}" == "arrhenius" ]]; then
+        elif [[ "${PKQ_SERVER_NAME}" == "arrhenius" ]]; then
 
-            if (("${JWM_GPU_NUM}" == "0")); then
-                JWM_PARTITION="cpu"
+            if (("${PKQ_GPU_NUM}" == "0")); then
+                PKQ_PARTITION="cpu"
                 export CPUS_PER_TASK=32
                 export MEM_PER_TASK="128G"
 
             else
                 export TORCH_CUDA_ARCH_LIST="9.0"
-                JWM_PARTITION="gpu"
+                PKQ_PARTITION="gpu"
             fi
 
-            sbatch_args="${sbatch_args} --gpus=${JWM_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A naiss2026-3-658-gpu  --partition=${JWM_PARTITION}"
+            sbatch_args="${sbatch_args} --gpus=${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A naiss2026-3-658-gpu  --partition=${PKQ_PARTITION}"
 
-        elif [[ "${JWM_SERVER_NAME}" == "jusuf" ]]; then
+        elif [[ "${PKQ_SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
 
             sbatch_args="${sbatch_args} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK} --partition=batch -A trustllm-eu"
         else
-            if check_gpu A40 ${JWM_GPU_NUM} >/dev/null; then
-                export JWM_GPU_TYPE=A40
+            if check_gpu A40 ${PKQ_GPU_NUM} >/dev/null; then
+                export PKQ_GPU_TYPE=A40
                 echo "A40 available"
-            elif check_gpu T4 ${JWM_GPU_NUM} >/dev/null; then
-                export JWM_GPU_TYPE=T4
+            elif check_gpu T4 ${PKQ_GPU_NUM} >/dev/null; then
+                export PKQ_GPU_TYPE=T4
                 echo "T4 available"
             else
                 echo "no gpu available"
                 return 2>/dev/null
                 exit 1
             fi
-            echo "GPU_TYPE: $JWM_GPU_TYPE"
-            echo "COMMIT:   $JWM_COMMIT_ID"
+            echo "GPU_TYPE: $PKQ_GPU_TYPE"
+            echo "COMMIT:   $PKQ_COMMIT_ID"
 
-            if (("${JWM_GPU_NUM}" == "0")); then
+            if (("${PKQ_GPU_NUM}" == "0")); then
                 GPU_FLAG="--constraint=NOGPU"
             else
-                GPU_FLAG="--gpus-per-node=${JWM_GPU_TYPE}:${JWM_GPU_NUM}"
+                GPU_FLAG="--gpus-per-node=${PKQ_GPU_TYPE}:${PKQ_GPU_NUM}"
             fi
-            if [[ "${JWM_SERVER_NAME}" == "juwelscluster" ]]; then
-                GPU_FLAG="--gres=gpu:${JWM_GPU_NUM}"
+            if [[ "${PKQ_SERVER_NAME}" == "juwelscluster" ]]; then
+                GPU_FLAG="--gres=gpu:${PKQ_GPU_NUM}"
                 CPUS_PER_TASK_FLAG="--cpus-per-task=${CPUS_PER_TASK}"
             fi
             sbatch_args="${sbatch_args} ${GPU_FLAG} ${CPUS_PER_TASK_FLAG}"
 
         fi
 
-        echo "cd ${PWD} && sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}"
-        cat jwm_configs/remote/remote_tmps/remote.sh jwm_configs/remote/remote_tmps/remote2.sh jwm_configs/common.sh >jwm_configs/remote/remote_tmps/remote_all.sh
-        echo "sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}" >>jwm_configs/remote/remote_tmps/remote_all.sh
-        SBATCH_OUT=$(sbatch ${sbatch_args} jwm_configs/remote/remote_tmps/${JWM_SLURM_FILE}) || {
+        echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}"
+        cat pkq_configs/remote/remote_tmps/remote.sh pkq_configs/remote/remote_tmps/remote2.sh pkq_configs/common.sh >pkq_configs/remote/remote_tmps/remote_all.sh
+        echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}" >>pkq_configs/remote/remote_tmps/remote_all.sh
+        SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}) || {
             return 1 2>/dev/null
             exit 1
         }
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
-                cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
-                JWM_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-                echo "$JWM_JOB_ID" >"remote_job_id.txt"
+                cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
+                PKQ_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
+                echo "$PKQ_JOB_ID" >"remote_job_id.txt"
                 break
             fi
             sleep 2
@@ -551,24 +548,24 @@ EOF
         done
 
         # export -f slurm_job_status
-        # nohup bash -c "slurm_job_status ${JWM_JOB_ID}" >jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 & # if using stdout rather than redirct, the ssh will hold even using disown
+        # nohup bash -c "slurm_job_status ${PKQ_JOB_ID}" >pkqlogs/${PKQ_RUN_START_TIME}/job_out.log 2>&1 & # if using stdout rather than redirct, the ssh will hold even using disown
         # disown
-        # echo "1" >"${JWM_RUN_START_TIME}".jwm
+        # echo "1" >"${PKQ_RUN_START_TIME}".pkq
 
-        # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${JWM_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${JWM_JOB_ID}.txt"
-    elif [[ "${JWM_MODE}" == "remotedockercompose" ]]; then
-        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
+        # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${PKQ_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${PKQ_JOB_ID}.txt"
+    elif [[ "${PKQ_MODE}" == "remotedockercompose" ]]; then
+        cat >>pkq_configs/remote/remote_tmps/remote.sh <<'EOF'
 docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
 EOF
         # Without -d, the docker compose up process would stay in the foreground, streaming container logs until you hit Ctrl+C or the containers stop.
-        if [[ -n ${JWM_COMPOSE_PRE} ]]; then
-            eval "${JWM_COMPOSE_PRE}"
+        if [[ -n ${PKQ_COMPOSE_PRE} ]]; then
+            eval "${PKQ_COMPOSE_PRE}"
         fi
         sleep 1
-        JWM_JOB_ID=$(docker compose ps -q)
-        echo "docker rm -f ${JWM_JOB_ID}"
+        PKQ_JOB_ID=$(docker compose ps -q)
+        echo "docker rm -f ${PKQ_JOB_ID}"
 
-        cd "${RUN_DIR_HOME}/project_remote_jwm"/"${RUN_PROJ}"
+        cd "${RUN_DIR_HOME}/project_remote_pkq"/"${RUN_PROJ}"
         # echo "current dir ${PWD}"
         # # cd - >/dev/null
         # export COMPOSE_DIR="llm_services/${MODEL_DIR}"
@@ -576,7 +573,7 @@ EOF
         #     export COMPOSE_DIR="./"
         # fi
 
-        # _compose_dir="${COMPOSE_DIR:-${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}}"
+        # _compose_dir="${COMPOSE_DIR:-${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}}"
         # trap 'echo "Cancelled — stopping containers..."; docker compose -f "${_compose_dir}/docker-compose.yml" down 2>/dev/null && echo "Containers stopped and removed." || echo "Warning: failed to stop containers."; exit 1' SIGTERM SIGINT
         # _docker_since=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
         # _has_rebuilt=false
@@ -679,7 +676,7 @@ EOF
         #         echo ""
         #         echo "All services are ready!"
         #         echo "current dir ${PWD}"
-        #         _after_hook="jwm_configs/remote_after.sh"
+        #         _after_hook="pkq_configs/remote_after.sh"
         #         if [[ -f "$_after_hook" ]]; then
         #             source "$_after_hook"
         #             echo "after hook finished"
@@ -691,89 +688,89 @@ EOF
         #     sleep 10
         # done
 
-        _after_hook="jwm_configs/remote_after.sh"
+        _after_hook="pkq_configs/remote_after.sh"
         if [[ -f "$_after_hook" ]]; then
             source "$_after_hook"
             echo "after hook finished"
         fi
 
-    elif [[ "${JWM_MODE}" == "remotedocker" ]]; then
-        cat >>jwm_configs/remote/remote_tmps/remote.sh <<'EOF'
-if [[ ${JWM_NOTEBOOK} == 1 ]]; then
+    elif [[ "${PKQ_MODE}" == "remotedocker" ]]; then
+        cat >>pkq_configs/remote/remote_tmps/remote.sh <<'EOF'
+if [[ ${PKQ_NOTEBOOK} == 1 ]]; then
     echo "ARGS_AFTER_ENTRY:"
     echo "${ARGS_AFTER_ENTRY[@]}"
-    docker rm -f jwm_notebook
+    docker rm -f pkq_notebook
     sleep 5
-#    DOCKER_RUN_ARGS=(--name "jwm_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''")
+#    DOCKER_RUN_ARGS=(--name "pkq_notebook" -p 18889:18889 --entrypoint /bin/bash -v $PWD:/app "${DOCKER_RUN_ARGS[@]}" -c "jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && jupyter lab --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''")
 else
     DOCKER_RUN_ARGS=("${DOCKER_RUN_ARGS[@]}" "${ARGS_AFTER_ENTRY[@]}")
 fi
 echo "docker run args, ${DOCKER_RUN_ARGS[@]}"
-if [ -z ${RUN_BACKGROUND_JWM} ]; then
+if [ -z ${RUN_BACKGROUND_PKQ} ]; then
     docker run "${DOCKER_RUN_ARGS[@]}"
 else
-    export JWM_JOB_ID=$(docker run -d "${DOCKER_RUN_ARGS[@]}")
+    export PKQ_JOB_ID=$(docker run -d "${DOCKER_RUN_ARGS[@]}")
 fi
 EOF
 
-        cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+        cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
 
-        echo "docker rm -f ${JWM_JOB_ID}"
+        echo "docker rm -f ${PKQ_JOB_ID}"
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
-                echo "$JWM_JOB_ID" >"remote_job_id.txt"
+                echo "$PKQ_JOB_ID" >"remote_job_id.txt"
                 break
             fi
             sleep 2
             echo "wait for remote_job_id.txt to be deleted"
         done
 
-        # echo "1" >"${JWM_RUN_START_TIME}".jwm
+        # echo "1" >"${PKQ_RUN_START_TIME}".pkq
 
-        nohup bash -c "cd jwmlogs/${JWM_RUN_START_TIME}/ && docker logs -f $JWM_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp " >/dev/null 2>&1 &
+        nohup bash -c "cd pkqlogs/${PKQ_RUN_START_TIME}/ && docker logs -f $PKQ_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp " >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
 
-    elif [[ "${JWM_MODE}" == "remotenone" ]]; then
+    elif [[ "${PKQ_MODE}" == "remotenone" ]]; then
         echo ${PWD}
-        JWM_RUN_COMMAND="${JWM_RUN_COMMAND_PRE} ${JWM_RUN_COMMAND}"
+        PKQ_RUN_COMMAND="${PKQ_RUN_COMMAND_PRE} ${PKQ_RUN_COMMAND}"
 
         kill $(pgrep -f "port=18889") || echo "18889 port free"
         sleep 5
 
-        if [[ ${JWM_NOTEBOOK} == 1 ]]; then
-            JWM_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && CUDA_VISIBLE_DEVICES='${CUDA_VISIBLE_DEVICES}' jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
+        if [[ ${PKQ_NOTEBOOK} == 1 ]]; then
+            PKQ_RUN_COMMAND="jupyter labextension disable '@jupyterlab/apputils-extension:announcements' && CUDA_VISIBLE_DEVICES='${CUDA_VISIBLE_DEVICES}' jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
         fi
 
-        echo "JWM_RUN_COMMAND, ${JWM_RUN_COMMAND}"
+        echo "PKQ_RUN_COMMAND, ${PKQ_RUN_COMMAND}"
 
-        CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}" nohup ${JWM_RUN_COMMAND} >jwmlogs/${JWM_RUN_START_TIME}/job_out.log 2>&1 &
-        export JWM_JOB_ID=$!
-        disown ${JWM_JOB_ID}
-        cd ${RUN_DIR_HOME}/project_remote_jwm/${RUN_PROJ}
+        CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}" nohup ${PKQ_RUN_COMMAND} >pkqlogs/${PKQ_RUN_START_TIME}/job_out.log 2>&1 &
+        export PKQ_JOB_ID=$!
+        disown ${PKQ_JOB_ID}
+        cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
 
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
-                echo "$JWM_JOB_ID" >"remote_job_id.txt"
+                echo "$PKQ_JOB_ID" >"remote_job_id.txt"
                 break
             fi
             sleep 2
             echo "wait for remote_job_id.txt to be deleted"
         done
-        # echo "1" >"${JWM_RUN_START_TIME}".jwm
+        # echo "1" >"${PKQ_RUN_START_TIME}".pkq
 
-        nohup bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh ${JWM_JOB_ID} >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log 2>&1 &
+        nohup bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pkq/resource_usage.sh ${PKQ_JOB_ID} >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
-        echo "ps -ef|grep ${JWM_JOB_ID}"
-        echo "pkill -TERM -P ${JWM_JOB_ID}"
+        echo "ps -ef|grep ${PKQ_JOB_ID}"
+        echo "pkill -TERM -P ${PKQ_JOB_ID}"
     fi
     echo "PWD: ${PWD}"
-    echo "JWM_JOB_ID: ${JWM_JOB_ID}"
+    echo "PKQ_JOB_ID: ${PKQ_JOB_ID}"
     echo "ssh done"
 
 else
     echo "ERROR: unrecognized arguments. Usage:"
-    echo "  meta_script.sh /path/to/project/jwm_configs/<mode>.sh  (last line of file: # <server>)"
+    echo "  meta_script.sh /path/to/project/pkq_configs/<mode>.sh  (last line of file: # <server>)"
     echo "  (remote-side call is handled internally)"
     exit 1
 fi
