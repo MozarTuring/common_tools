@@ -369,24 +369,22 @@ if [[ $# -lt 3 ]]; then
     info_before_remote="${local_dir}/info_before_remote.txt"
     echo "branch: ${_git_branch} , commit_hash: ${last_commit}" >${info_before_remote}
 
-    # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
     echo "ssh start"
     ssh -o ConnectTimeout=10 -t "$server_name" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name}_${_git_branch} $server_name ${run_dir_remote} ${PKQ_RUN_START_TIME}" # >>"$nohup_log" 2>&1 &
-    _ssh_pid=$!
-    (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
-    _timer_pid=$!
-    wait "$_ssh_pid" 2>/dev/null || _ssh_rc=$?
-    kill "$_timer_pid" 2>/dev/null
-    wait "$_timer_pid" 2>/dev/null || true
-    # SSH/docker output is appended only to nohup_monitor.log (not also to stdout)
+    # _ssh_pid=$!
+    # (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
+    # _timer_pid=$!
+    # wait "$_ssh_pid" 2>/dev/null || _ssh_rc=$?
+    # kill "$_timer_pid" 2>/dev/null
+    # wait "$_timer_pid" 2>/dev/null || true
     mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps
     rsync -a "$server_name":"${run_dir_remote}/pkq_configs/remote/remote_tmps/" "./${_project_name}/pkq_configs/remote/remote_tmps/"
 
-    if [[ $_ssh_rc -ne 0 ]]; then
-        echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
-        exit $_ssh_rc
-    fi
+    # if [[ $_ssh_rc -ne 0 ]]; then
+    #     echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
+    #     exit $_ssh_rc
+    # fi
 
     if [[ -f "$_project_name/pkq_configs/local_after.sh" ]]; then
         source "$_project_name/pkq_configs/local_after.sh"
