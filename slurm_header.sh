@@ -15,7 +15,7 @@ trap early_warning SIGUSR1    # 120s before limit — your warning
 
 trap final_cleanup SIGTERM    # 0s — SLURM is killing you
 
-bash ${RUN_DIR_HOME}/project_remote_jwm/common_tools_jingwei/resource_usage.sh  >jwmlogs/${JWM_RUN_START_TIME}/resource_usage.log  &
+bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh  >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log  &
 
 
 
@@ -24,7 +24,7 @@ which python
 echo "TORCH_CUDA_ARCH_LIST ${TORCH_CUDA_ARCH_LIST}"
 
 if [[ -n ${JWM_build_flashattn} ]]; then
-    MAX_JOBS=${CPUS_PER_TASK} FLASH_ATTENTION_FORCE_BUILD=TRUE pip install ${JWM_CONDAENV}/flash_attn_src/flash_attn*.tar.gz --no-build-isolation --no-cache-dir
+    MAX_JOBS=${CPUS_PER_TASK} FLASH_ATTENTION_FORCE_BUILD=TRUE pip install ${PKQ_CONDAENV}/flash_attn_src/flash_attn*.tar.gz --no-build-isolation --no-cache-dir
     echo "flash attn build done"
     exit
 fi
