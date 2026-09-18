@@ -192,7 +192,7 @@ EOF
 
         fi
 
-        cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+        cat >pkq_configs/remote/remote_tmps/remote3.sh <<'EOF'
 if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
@@ -256,16 +256,17 @@ EOF
     #     fi
     # fi
     # touch ".submit_marker"
+    source pkq_configs/remote/remote_tmps/remote2.sh
     if [[ -f pkq_configs/remote/template.sh ]]; then
-        cat pkq_configs/remote/template.sh >>pkq_configs/remote/remote_tmps/remote2.sh
+        cat pkq_configs/remote/template.sh >>pkq_configs/remote/remote_tmps/remote3.sh
     fi
-    cat pkq_configs/common.sh >>pkq_configs/remote/remote_tmps/remote2.sh
-    if [[ -n ${PKQ_INSTALL} && ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
-        interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
-    elif [[ -n ${PKQ_INSTALL} ]]; then
-        source pkq_configs/remote/remote_tmps/remote2.sh
+    cat pkq_configs/common.sh >>pkq_configs/remote/remote_tmps/remote3.sh
+    if [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
+        if [[ -n ${PKQ_INSTALL} ]]; then
+            interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
+        fi
     else
-        echo "pass"
+        source pkq_configs/remote/remote_tmps/remote3.sh
     fi
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 

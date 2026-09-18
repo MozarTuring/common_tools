@@ -15,11 +15,14 @@ trap early_warning SIGUSR1    # 120s before limit — your warning
 
 trap final_cleanup SIGTERM    # 0s — SLURM is killing you
 
+conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
+
+which python
+
 bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh  >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log  &
 
 
 
-which python
 
 echo "TORCH_CUDA_ARCH_LIST ${TORCH_CUDA_ARCH_LIST}"
 
