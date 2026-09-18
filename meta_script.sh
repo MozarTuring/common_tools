@@ -173,7 +173,6 @@ EOF
                 export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
-                interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
                 cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
 export PKQ_ARCH="aarch64"
 export PKQ_MODULES="Miniforge"
@@ -256,6 +255,7 @@ EOF
         echo "start running template.sh"
         source pkq_configs/remote/template.sh
     fi
+    interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
     echo "start running common.sh"
     source pkq_configs/common.sh
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
