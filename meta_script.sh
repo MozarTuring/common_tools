@@ -298,22 +298,22 @@ if [[ $# -lt 3 ]]; then
 
     case "${server_name}" in
     juwels | jusuf | juwelscluster)
-        export run_dir_home=/p/project1/trustllm-eu/pkquser
+        export run_dir_home=/p/project1/trustllm-eu/mao4
         ;;
     custodian@*)
         export run_dir_home=/home/custodian
         ;;
     ferragon | greatrawr | balawar)
-        export run_dir_home=/home/pkquser
+        export run_dir_home=/home/jinma
         ;;
     alvis*)
         export run_dir_home=/cephyr/users/shuyir/Alvis
         ;;
     berzelius*)
-        export run_dir_home=/home/x_pkquser
+        export run_dir_home=/home/x_jinma
         ;;
     arrhenius)
-        export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/pkquser
+        export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/jinma63
         ;;
     *)
         echo "ERROR: unknown server '$server_name'"
