@@ -180,7 +180,7 @@ export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb GPU/buildtool-easybuild/5.2.1-hpca
 EOF
             fi
             #            module --force purge
-            cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+            cat >>pkq_configs/remote3.sh <<'EOF'
 module --force purge
 module load ${PKQ_MODULES}
 if [ -z ${PKQ_CONDAENV} ]; then
@@ -196,7 +196,7 @@ EOF
 
         fi
 
-        cat >pkq_configs/remote/remote_tmps/remote3.sh <<'EOF'
+        cat >pkq_configs/remote3.sh <<'EOF'
 if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
     conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} pip -y
 fi
@@ -257,16 +257,16 @@ EOF
     # touch ".submit_marker"
     source pkq_configs/remote/remote_tmps/remote2.sh
     if [[ -f pkq_configs/remote/template.sh ]]; then
-        cat pkq_configs/remote/template.sh >>pkq_configs/remote/remote_tmps/remote3.sh
+        cat pkq_configs/remote/template.sh >>pkq_configs/remote3.sh
     fi
-    cat pkq_configs/common.sh >>pkq_configs/remote/remote_tmps/remote3.sh
-    echo "pip list > pkq_configs/packages.txt" >>pkq_configs/remote/remote_tmps/remote3.sh
+    cat pkq_configs/common.sh >>pkq_configs/remote3.sh
+    echo "pip list > pkq_configs/packages.txt" >>pkq_configs/remote3.sh
     if [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
         if [[ -n ${PKQ_INSTALL} ]]; then
             interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
         fi
     else
-        source pkq_configs/remote/remote_tmps/remote3.sh
+        source pkq_configs/remote3.sh
     fi
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 
