@@ -175,12 +175,19 @@ EOF
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
                 cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
 export PKQ_ARCH="aarch64"
-export PKQ_MODULES="Miniforge"
+export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb GPU/buildtool-easybuild/5.2.1-hpca3ef7d197 CUDA/12.9.1 cuDNN/9.15.0.57-CUDA-12.9.1 cuSPARSELt/0.8.0.4-CUDA-12.9.1"
+
 EOF
             fi
             #            module --force purge
             cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+module --force purge
 module load ${PKQ_MODULES}
+
+for _eroot in "$EBROOTCUDA/lib64" "$EBROOTCUDNN/lib" "$EBROOTCUSPARSELT/lib"; do
+    [[ -d "$_eroot" ]] && export LD_LIBRARY_PATH="${_eroot}:${LD_LIBRARY_PATH:-}"
+done
+
 EOF
 
         fi
@@ -249,15 +256,15 @@ EOF
     #     fi
     # fi
     # touch ".submit_marker"
-
-    source pkq_configs/remote/remote_tmps/remote2.sh
     if [[ -f pkq_configs/remote/template.sh ]]; then
-        echo "start running template.sh"
-        source pkq_configs/remote/template.sh
+        cat pkq_configs/remote/template.sh >>pkq_configs/remote/remote_tmps/remote2.sh
     fi
-    interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
-    echo "start running common.sh"
-    source pkq_configs/common.sh
+    cat pkq_configs/common.sh >>pkq_configs/remote/remote_tmps/remote2.sh
+    if [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
+        interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
+    else
+        source pkq_configs/remote/remote_tmps/remote2.sh
+    fi
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 
 }
@@ -531,7 +538,7 @@ EOF
         fi
 
         echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}"
-        cat pkq_configs/remote/remote_tmps/remote.sh pkq_configs/remote/remote_tmps/remote2.sh pkq_configs/common.sh >pkq_configs/remote/remote_tmps/remote_all.sh
+        cat pkq_configs/remote/remote_tmps/remote.sh pkq_configs/remote/remote_tmps/remote2.sh >pkq_configs/remote/remote_tmps/remote_all.sh
         echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}" >>pkq_configs/remote/remote_tmps/remote_all.sh
         SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}) || {
             return 1 2>/dev/null
