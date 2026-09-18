@@ -260,13 +260,13 @@ EOF
         cat pkq_configs/remote/template.sh >>pkq_configs/remote/remote_tmps/remote3.sh
     fi
     cat pkq_configs/common.sh >>pkq_configs/remote/remote_tmps/remote3.sh
+    echo "pip list > pkq_configs/packages.txt" >>pkq_configs/remote/remote_tmps/remote3.sh
     if [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
         if [[ -n ${PKQ_INSTALL} ]]; then
             interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
         fi
     else
         source pkq_configs/remote/remote_tmps/remote3.sh
-        pip list > pkq_configs/packages.txt
     fi
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 
