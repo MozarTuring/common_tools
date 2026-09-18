@@ -180,7 +180,7 @@ export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb GPU/buildtool-easybuild/5.2.1-hpca
 EOF
             fi
             #            module --force purge
-            cat >>pkq_configs/remote3.sh <<'EOF'
+            cat >pkq_configs/remote3.sh <<'EOF'
 module --force purge
 module load ${PKQ_MODULES}
 if [ -z ${PKQ_CONDAENV} ]; then
@@ -196,7 +196,7 @@ EOF
 
         fi
 
-        cat >pkq_configs/remote3.sh <<'EOF'
+        cat >>pkq_configs/remote3.sh <<'EOF'
 if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
     conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} pip -y
 fi
