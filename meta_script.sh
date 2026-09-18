@@ -198,7 +198,7 @@ EOF
 
         cat >pkq_configs/remote/remote_tmps/remote3.sh <<'EOF'
 if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
-    conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} -y
+    conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} pip -y
 fi
 conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
 which python
@@ -266,6 +266,7 @@ EOF
         fi
     else
         source pkq_configs/remote/remote_tmps/remote3.sh
+        pip list > pkq_configs/packages.txt
     fi
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 
