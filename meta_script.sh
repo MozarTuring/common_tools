@@ -362,7 +362,7 @@ if [[ $# -lt 3 ]]; then
     # || keeps set -e from aborting so we can rsync then check $_ssh_rc below
     _ssh_rc=0
     echo "ssh start"
-    ssh -o ConnectTimeout=10 "$server_name" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name}_${_git_branch} $server_name ${run_dir_remote} ${PKQ_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
+    ssh -o ConnectTimeout=10 -t "$server_name" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name}_${_git_branch} $server_name ${run_dir_remote} ${PKQ_RUN_START_TIME}" >>"$nohup_log" 2>&1 &
     _ssh_pid=$!
     (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     _timer_pid=$!
