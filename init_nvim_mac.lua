@@ -2929,23 +2929,79 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
 		ToggleAutoRefresh()
 
-		vim.fn.jobstart({ "bash", "-c", "-l", bg_cmd }, {
-			on_exit = function(_, code)
-				vim.schedule(function()
-					if code == 0 then
-						vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
-						vim.defer_fn(function()
-							run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
-						end, 3000)
-					else
-						vim.notify(
-							string.format("Batch [%d/%d] failed (exit %d) — stopping batch", index, #batch_entries, code),
-							vim.log.levels.ERROR
-						)
-					end
-				end)
-			end,
-		})
+		-- vim.fn.jobstart({ "bash", "-c", "-l", bg_cmd }, {
+		-- 	on_exit = function(_, code)
+		-- 		vim.schedule(function()
+		-- 			if code == 0 then
+		-- 				vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
+		-- 				vim.defer_fn(function()
+		-- 					run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
+		-- 				end, 3000)
+		-- 			else
+		-- 				vim.notify(
+		-- 					string.format("Batch [%d/%d] failed (exit %d) — stopping batch", index, #batch_entries, code),
+		-- 					vim.log.levels.ERROR
+		-- 				)
+		-- 			end
+		-- 		end)
+		-- 	end,
+		-- })
+
+			local bg_mark_dir = vim.fn.fnamemodify(log_file, ":h")
+			local bg_markfile = bg_mark_dir .. "/_bg_cmd_done"
+			local bg_markfile_fail = bg_mark_dir .. "/_bg_cmd_fail"
+			vim.fn.delete(bg_markfile)
+			vim.fn.delete(bg_markfile_fail)
+
+			local terminal_bg_cmd = bg_cmd
+				.. " && touch "
+				.. vim.fn.shellescape(bg_markfile)
+				.. " || touch "
+				.. vim.fn.shellescape(bg_markfile_fail)
+			local bg_as_escaped = terminal_bg_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
+			local bg_as_fmt = bg_as_escaped:gsub("%%", "%%%%")
+			local bg_applescript = string.format(
+				[[tell application "Terminal"
+	set didRun to false
+	if (count of windows) > 0 then
+		repeat with w in windows
+			repeat with t in tabs of w
+				if busy of t is false then
+					do script "%s" in t
+					set didRun to true
+					exit repeat
+				end if
+			end repeat
+			if didRun then exit repeat
+		end repeat
+	end if
+	if not didRun then
+		do script "%s"
+	end if
+end tell]],
+				bg_as_fmt,
+				bg_as_fmt
+			)
+			vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
+
+			local bg_timer = vim.loop.new_timer()
+			bg_timer:start(2000, 2000, vim.schedule_wrap(function()
+				if vim.fn.filereadable(bg_markfile) == 1 then
+					bg_timer:stop()
+					bg_timer:close()
+					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
+					vim.defer_fn(function()
+						run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
+					end, 3000)
+				elseif vim.fn.filereadable(bg_markfile_fail) == 1 then
+					bg_timer:stop()
+					bg_timer:close()
+					vim.notify(
+						string.format("Batch [%d/%d] failed — stopping batch", index, #batch_entries),
+						vim.log.levels.ERROR
+					)
+				end
+			end))
 	end
 
 	local server_name = entry.overrides["PKQ_SERVER_NAME"]
