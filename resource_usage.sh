@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # Mode: PID-specific monitoring or machine-wide status
-if [ -z "$1" ]; then
-    MODE="machine"
-else
-    MODE="pid"
-    PID=$1
-fi
+# if [ -z "$1" ]; then
+#     MODE="machine"
+# else
+#     MODE="pid"
+#     PID=$1
+# fi
 
+MODE="machine"
 # Intervals (seconds) — switch to slower pace after count threshold
 GPU_INTERVAL=2
 GPU_SLOW_INTERVAL=2

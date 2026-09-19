@@ -57,7 +57,7 @@ fetch_new_content() {
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
-                sed -n "${new_start},${safe_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
+                LC_ALL=C sed -n "${new_start},${safe_lines}p" "${fname}" | LC_ALL=C tr '\r' '\n' | LC_ALL=C awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
                 if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
                     sed -i '' "s/^${fname} .*/${fname} ${safe_lines}/" "$_log_state_file"
                 else
@@ -66,7 +66,7 @@ fetch_new_content() {
             elif [[ "$safe_lines" == "$prev_lines" ]]; then
                 if [[ "$safe_lines" != "$_final_lines" ]]; then
                     _final_lines="$safe_lines"
-                    sed -n "${cur_lines}p" "${fname}" | tr '\r' '\n' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
+                    LC_ALL=C sed -n "${cur_lines}p" "${fname}" | LC_ALL=C tr '\r' '\n' | LC_ALL=C awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
                 fi
             fi
             break
