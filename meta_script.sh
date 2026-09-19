@@ -161,7 +161,8 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_PKQ=1
-
+    export HF_HOME=${RUN_DIR_HOME}/project_remote_pkq/hf_cache
+    export HF_DATASETS_CACHE=${RUN_DIR_HOME}/project_remote_pkq/hf_cache/datasets
     if [ -n ${PKQ_PYTHON} ]; then
         if [[ ${PKQ_MODE} == "remotenone" ]]; then
             cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
