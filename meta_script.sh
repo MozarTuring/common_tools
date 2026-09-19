@@ -500,7 +500,7 @@ EOF
                 PKQ_PARTITION="gpu"
             fi
 
-            sbatch_args="${sbatch_args} --gpus=${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A naiss2026-3-658-gpu  --partition=${PKQ_PARTITION}"
+            sbatch_args="${sbatch_args} --gres=gpu:${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A naiss2026-3-658-gpu  --partition=${PKQ_PARTITION}"
 
         elif [[ "${PKQ_SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch
