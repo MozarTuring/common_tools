@@ -264,6 +264,7 @@ EOF
     else
         source pkq_configs/remote3.sh
     fi
+    source pkq_configs/common2.sh
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
 
 }
