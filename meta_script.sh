@@ -10,7 +10,7 @@ fi
 
 if false; then
     rsync -aP berzeliusampere:/home/x_jinma63/project_remote_pkq/llm2vec_pkq/output/mntp/Meta-Llama-3.1-8B-msmarco ./
-    rsync -aP greatrawr:/home/jinma63/project_remote_pkq/remote_data/llm2vec/reranker_parts /Users/jinma63/project/tmp_data/cache/
+    rsync -aP greatrawr:/home/jinma63/project_remote_pkq/remote_data/llm2vec/output/mntp /Users/jinma63/project/tmp_data/cache/
 fi
 
 slurm_job_status() {
