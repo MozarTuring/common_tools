@@ -134,7 +134,6 @@ slurm_job_status_checked=""
 if [[ ${mode} == "remoteslurm" ]]; then
     echo "slrum job status checking"
     source "$(dirname "$0")/slurm_job_status.sh" "ssh ${host}" ${job_id}
-    node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
 fi
 
 while true; do
@@ -157,9 +156,8 @@ while true; do
     fetch_new_content
 
     if [[ -f ${jobsfile} && ${slurm_job_status_checked} == "failed" ]]; then
-        sed -i '' "s|^${tmpdirname}||g" ${jobsfile}
         echo "done"
-        exit
+        break
     fi
 
     if [[ ${PKQ_NOTEBOOK} == 1 && -z ${PKQ_NOTEBOOK_start} ]]; then
@@ -167,6 +165,7 @@ while true; do
         #
         # pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
 
+        node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
         pids=$(ps aux | grep "ssh.*-L.*:$node:18889.*$host" | grep -v grep | awk '{print $2}' || true)
         count=$(echo "$pids" | wc -w)
         if [ "$count" -gt 1 ]; then
@@ -195,10 +194,11 @@ while true; do
         sleep 10
         sync_remote || true
         fetch_new_content
-        if [[ -f ${jobsfile} ]]; then
-            sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
-        fi
         echo "DONE: Remote job finished (id: ${job_id})."
         break
     fi
 done
+
+if [[ -f ${jobsfile} ]]; then
+    sed -i '' "s|^${tmpdirname}|${tmpdirname}  finished|g" ${jobsfile}
+fi

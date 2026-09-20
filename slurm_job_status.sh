@@ -13,7 +13,7 @@ count=0
 slurm_job_status_checked=1
 while true; do
     source ${HOME}/project/common_tools/wait_for_ssh.sh
-    all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null)
+    all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null) || true
     if [[ -z "$all_states" ]]; then
         echo "Job ${job_id} no longer in queue (may have finished or failed instantly)"
         slurm_job_status_checked="failed"

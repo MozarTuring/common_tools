@@ -118,10 +118,23 @@ dockerfile_to_def() {
 }
 
 _remote_setup() {
+    echo ~
+    echo ${RUN_DIR_HOME}
+    if [[ ~ == ${RUN_DIR_HOME} ]]; then
+        echo "~ equal to run dir home"
+        exit
+    fi
     source ${RUN_DIR_HOME}/project_remote_pkq/project_nogit/common_tools/common_tokens.sh
 
     mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}/pkq_configs/remote/remote_tmps
     mkdir -p ${PKQ_DATA_DIR}
+
+    if [[ ! -L ~/.cache ]]; then
+        mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/remote_data/cache
+        rm -rf ~/.cache
+        ln -s ${RUN_DIR_HOME}/project_remote_pkq/remote_data/cache ~/.cache
+        echo "symlink created"
+    fi
 
     if [[ -d /data && ${PKQ_MODE} == "remotedocker"* ]]; then
         # failure inside the if block will just not stop, regardless of set -e
@@ -161,8 +174,6 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_PKQ=1
-    export HF_HOME=${RUN_DIR_HOME}/project_remote_pkq/remote_data/hf_cache
-    export HF_DATASETS_CACHE=${RUN_DIR_HOME}/project_remote_pkq/remote_data/hf_cache/datasets
     if [ -n ${PKQ_PYTHON} ]; then
         if [[ ${PKQ_MODE} == "remotenone" ]]; then
             cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
