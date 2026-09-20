@@ -93,8 +93,12 @@ machine_cpu_monitor() {
         df -h / 2>/dev/null
         echo ""
 
-        echo "--- Top Processes (by CPU) ---"
-        ps aux --sort=-%cpu 2>/dev/null | head -16 || ps aux -r 2>/dev/null | head -16
+        echo "--- Total CPU Usage ---"
+        if [ -f /proc/stat ]; then
+            grep 'cpu ' /proc/stat | awk '{used=$2+$3+$4+$6+$7+$8; total=used+$5; printf "Total CPU Usage: %.1f%%\n", used*100/total}'
+        else
+            top -l 1 2>/dev/null | grep 'CPU usage' || echo "(cpu usage not available)"
+        fi
         echo ""
     done
 }
