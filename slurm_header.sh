@@ -21,6 +21,8 @@ for _eroot in "$EBROOTCUDA/lib64" "$EBROOTCUDNN/lib" "$EBROOTCUSPARSELT/lib"; do
     [[ -d "$_eroot" ]] && export LD_LIBRARY_PATH="${_eroot}:${LD_LIBRARY_PATH:-}"
 done
 
+export LD_LIBRARY_PATH=${PKQ_CONDAENV}${PKQ_ARCH}/lib/${PKQ_PYTHON}/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH
+
 echo "LD_LIBRARY_PATH, ${LD_LIBRARY_PATH}"
 
 

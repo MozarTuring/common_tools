@@ -187,7 +187,6 @@ EOF
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
                 cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
 export PKQ_ARCH="aarch64"
-export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb GPU/buildtool-easybuild/5.2.1-hpca3ef7d197 CUDA/12.9.1 cuDNN/9.15.0.57-CUDA-12.9.1 cuSPARSELt/0.8.0.4-CUDA-12.9.1"
 if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
