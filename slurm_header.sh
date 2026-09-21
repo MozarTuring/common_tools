@@ -21,6 +21,8 @@ for _eroot in "$EBROOTCUDA/lib64" "$EBROOTCUDNN/lib" "$EBROOTCUSPARSELT/lib"; do
     [[ -d "$_eroot" ]] && export LD_LIBRARY_PATH="${_eroot}:${LD_LIBRARY_PATH:-}"
 done
 
+echo "LD_LIBRARY_PATH, ${LD_LIBRARY_PATH}"
+
 
 conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
 
