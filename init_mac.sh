@@ -64,9 +64,9 @@ ln -s ${HOME}/Desktop/baidu/Education/Liu ~/project/Liu
 
 # claude
 curl -fsSL https://claude.ai/install.sh | bash
-ln -s ${HOME}/project/project_nogit/claude_settings/.claude ~/.claude
-ln -s ${HOME}/project/project_nogit/claude_settings/.claude.json ~/.claude.json
-
+ln -s ${HOME}/Desktop/baidu/claude_settings/.claude ~/.claude
+ln -s ${HOME}/Desktop/baidu/claude_settings/.claude.json ~/.claude.json
+ln -s ${HOME}/Desktop/baidu/claude_settings ~/project/
 # latex
 # skim setting so that cmd+shift+click on pdf will go to correspoding line in tex file
 # Command: /Users/jinma63/project/common_tools/skim_inverse.sh

@@ -2639,9 +2639,8 @@ end tell]],
 		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 	end
 end
-
 local claude_sessions_dir = pkqMacHome
-	.. "project/project_nogit/claude_settings/.claude/projects/-Users-pkquser-project"
+	.. "/project/claude_settings/.claude/projects/-Users-jinma63-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,
@@ -2650,13 +2649,13 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 			return
 		end
 		local file = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(ev.buf), ":p")
-		local dir = vim.fn.fnamemodify(file, ":h")
-		if dir ~= claude_sessions_dir then
+		local dir = vim.uv.fs_realpath(vim.fn.fnamemodify(file, ":h"))
+		if not dir or dir ~= vim.uv.fs_realpath(claude_sessions_dir) then
 			return
 		end
 		vim.b[ev.buf]._claude_resumed = true
 		local session_id = vim.fn.fnamemodify(file, ":t:r")
-		run_in_terminal_app("claude --resume " .. session_id, "kitty")
+		run_in_terminal_app("cd " .. pkqMacHome .. "/project && claude --resume " .. session_id, "kitty")
 	end,
 })
 
