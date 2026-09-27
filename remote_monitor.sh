@@ -30,6 +30,18 @@ print_slurm_summary() {
         true
 }
 
+# Clean raw job output (stdin) for display:
+#   1. tr '\r' '\n'         - split carriage-return progress updates (tqdm etc.) into separate lines
+#   2. tr -cd '\n\t -~'     - keep only newline, tab and printable ASCII (drops ANSI ESC bytes, binary junk)
+#   3. awk                  - collapse runs of consecutive tqdm-style lines ("NN%|") into the last one,
+#                             so only the latest progress state is shown; other lines pass through unchanged
+# Filtering disabled: raw output is passed through unchanged.
+_clean_log() {
+    cat
+    # LC_ALL=C tr '\r' '\n' | LC_ALL=C tr -cd '\n\t -~' |
+    #     awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
+}
+
 fetch_new_content() {
     local tmppath="${local_dir}/pkqlogs/${PKQ_RUN_START_TIME}/"
     if [[ -d ${tmppath} ]]; then
@@ -49,7 +61,10 @@ fetch_new_content() {
             local cur_lines safe_lines
             cur_lines=$(awk 'END {print NR}' "${fname}")
             # echo "cur_lines, ${cur_lines}"
-            if [[ -n "${_job_finished}" ]]; then
+            # Only hold back the last line if it is still being written (no trailing newline).
+            # Holding back a complete line caused it to be printed twice: once via the
+            # "preview" branch below, then again when the next line arrived.
+            if [[ -n "${_job_finished}" || -z "$(tail -c1 "${fname}")" ]]; then
                 safe_lines=$cur_lines
             else
                 safe_lines=$((cur_lines > 0 ? cur_lines - 1 : 0))
@@ -57,16 +72,17 @@ fetch_new_content() {
             # [[ "$safe_lines" -lt "$prev_lines" ]] && prev_lines=0 # in case file is overwritten, wich shall never happen
             if [[ "$safe_lines" -gt "$prev_lines" ]]; then
                 local new_start=$((prev_lines + 1))
-                LC_ALL=C sed -n "${new_start},${safe_lines}p" "${fname}" | LC_ALL=C tr '\r' '\n' | LC_ALL=C tr -cd '\n\t -~' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
+                LC_ALL=C sed -n "${new_start},${safe_lines}p" "${fname}" | _clean_log
                 if grep -q "^${fname} " "$_log_state_file" 2>/dev/null; then
                     sed -i '' "s/^${fname} .*/${fname} ${safe_lines}/" "$_log_state_file"
                 else
                     echo "${fname} ${safe_lines}" >>"$_log_state_file"
                 fi
-            elif [[ "$safe_lines" == "$prev_lines" ]]; then
+            elif [[ "$safe_lines" == "$prev_lines" && "$safe_lines" != "$cur_lines" ]]; then
+                # No new complete lines: preview the unfinished last line (e.g. a progress bar) once
                 if [[ "$safe_lines" != "$_final_lines" ]]; then
                     _final_lines="$safe_lines"
-                    LC_ALL=C sed -n "${cur_lines}p" "${fname}" | LC_ALL=C tr '\r' '\n' | LC_ALL=C tr -cd '\n\t -~' | awk 'NF && /[0-9]+%\|/ { last=$0; next } { if (last) { print last; last="" } print } END { if (last) print last }'
+                    LC_ALL=C sed -n "${cur_lines}p" "${fname}" | _clean_log
                 fi
             fi
             break
@@ -193,6 +209,11 @@ while true; do
         # flushed the final error messages (e.g. OOM) by the first rsync.
         sleep 10
         sync_remote || true
+        # back up all files changed since submission to a per-run dir on remote (relative paths preserved)
+        # ssh -o ConnectTimeout=10 "$host" "cd '${remote_dir}' && mkdir -p '${remote_dir}_backup/${PKQ_RUN_START_TIME}' &&
+        #     find . -newermt '$ts' -type f | rsync -a --files-from=- ./ '${remote_dir}_backup/${PKQ_RUN_START_TIME}/'" 2>&1 ||
+        #     echo "WARNING: failed to back up changed files on remote"
+
         fetch_new_content
         echo "DONE: Remote job finished (id: ${job_id})."
         break

@@ -344,7 +344,9 @@ if [[ $# -lt 3 ]]; then
     cd $HOME/project
 
     if [[ -z ${PKQ_RUN_START_TIME} ]]; then
-        remote_ts=$(ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" 'date +"%Y-%m-%d %H:%M:%S"')
+        remote_ts=$(
+            ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
+        )
         echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
         bash common_tools/sync_and_commit_repo.sh "common_tools"
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
