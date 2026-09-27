@@ -3018,6 +3018,9 @@ end tell]],
 		.. pkqMacHome
 		.. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
+        .. " "
+        .. tmpdate
+        .. " fileupload"
 	local mark_dir = vim.fn.fnamemodify(log_file, ":h")
 	local markfile = mark_dir .. "/_cmd_done"
 	local markfile_fail = mark_dir .. "/_cmd_fail"

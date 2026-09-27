@@ -279,7 +279,7 @@ EOF
 
 }
 
-if [[ $# -lt 3 ]]; then
+if [[ "$1" == *"local.sh" ]]; then
     PKQ_RUN_START_TIME=$2
     echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
     trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
@@ -343,7 +343,7 @@ if [[ $# -lt 3 ]]; then
 
     cd $HOME/project
 
-    if [[ -z ${PKQ_RUN_START_TIME} ]]; then
+    if [[ "$3" == "fileupload" ]]; then
         remote_ts=$(
             ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
         )
