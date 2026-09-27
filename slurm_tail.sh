@@ -13,6 +13,6 @@ echo "slurm remote dir, ${remote_dir}"
 ts=$(cat "${RUN_DIR_HOME}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt")
 echo "slurm ts, ${ts}, ${PKQ_RUN_START_TIME}"
 
-mkdir -p ${remote_dir}_backup/${PKQ_RUN_START_TIME} && find . -newermt '$ts' -type f | rsync -a --files-from=- ./ ${remote_dir}_backup/${PKQ_RUN_START_TIME}/ 2>&1 || echo "WARNING: failed to back up changed files on remote"
+mkdir -p "${remote_dir}_backup/${PKQ_RUN_START_TIME}" && find . -newermt "$ts" -type f | rsync -a --files-from=- ./ "${remote_dir}_backup/${PKQ_RUN_START_TIME}/" 2>&1 || echo "WARNING: failed to back up changed files on remote"
 
 # rm ${RUN_DIR_HOME}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt
