@@ -185,18 +185,19 @@ EOF
 
         elif [[ ${PKQ_MODE} == "remoteslurm" ]]; then
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
-                export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
                 cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
 export PKQ_ARCH="aarch64"
+EOF
+            fi
+            cat >>pkq_configs/remote/remote_tmps/remote2.sh <<EOF
 if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
 EOF
-            fi
             #            module --force purge
             cat >pkq_configs/remote3.sh <<'EOF'
 module --force purge
