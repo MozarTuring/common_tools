@@ -297,6 +297,7 @@ if [[ "$1" == *"local.sh" ]]; then
     if [[ -z ${PKQ_MODE} ]]; then
         PKQ_MODE=remotenone
     fi
+    echo "server name, ${server_name}"
     case "$server_name" in
     berzeliusampere | jusuf | juwelscluster | arrhenius)
         PKQ_MODE=remoteslurm
