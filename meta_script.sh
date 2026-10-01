@@ -175,6 +175,8 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_PKQ=1
+    rm pkq_configs/remote/remote_tmps/remote2.sh
+    rm pkq_configs/remote/remote3.sh
     if [ -n ${PKQ_PYTHON} ]; then
         if [[ ${PKQ_MODE} == "remotenone" ]]; then
             cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
