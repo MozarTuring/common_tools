@@ -329,7 +329,7 @@ if [[ "$1" == *"local.sh" ]]; then
         export run_dir_home=/cephyr/users/shuyir/Alvis
         ;;
     berzelius*)
-        export run_dir_home=/home/x_jinma
+        export run_dir_home=/proj/berzelius-aiics-real/users/x_jinma
         ;;
     arrhenius)
         export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/jinma63
