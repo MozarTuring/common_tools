@@ -11,7 +11,7 @@ fi
 if false; then
     rsync -aP berzeliusampere:/home/x_jinma63/project_remote_pkq/llm2vec_pkq/output/mntp/Meta-Llama-3.1-8B-msmarco ./
     rsync -aP greatrawr:/home/jinma/project_remote_pkq/remote_data/llm2vec/output/mntp /Users/jinma63/project/tmp_data/cache/
-    rsync -aP arrhenius:/home/jinma63/project_remote_pkq/llm2vec_pikaq_backup/20260930_110509 /Users/jinma63/project/tmp_data/cache/
+    rsync -aP arrhenius:/home/jinma63/project_remote_pkq/llm2vec_pikaq_backup/20260929_065038 /Users/jinma63/project/tmp_data/cache/
 fi
 
 slurm_job_status() {
