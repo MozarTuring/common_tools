@@ -128,7 +128,6 @@ _remote_setup() {
     source ${RUN_DIR_HOME}/project_remote_pkq/project_nogit/common_tools/common_tokens.sh
 
     mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}/pkq_configs/remote/remote_tmps
-    mkdir -p ${PKQ_DATA_DIR}
 
     if [[ ! -L ~/.cache ]]; then
         mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/remote_data/cache
@@ -386,7 +385,7 @@ if [[ "$1" == *"local.sh" ]]; then
 
     _ssh_rc=0
     echo "ssh start"
-    ssh -o ConnectTimeout=10 -t "$server_name" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name}_${_git_branch} $server_name ${run_dir_remote} ${PKQ_RUN_START_TIME}" # >>"$nohup_log" 2>&1 &
+    ssh -o ConnectTimeout=10 -t "$server_name" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name} ${_git_branch} $server_name ${run_dir_remote} ${PKQ_RUN_START_TIME}" # >>"$nohup_log" 2>&1 &
     # _ssh_pid=$!
     # (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     # _timer_pid=$!
@@ -447,7 +446,9 @@ elif [[ "$1" == "remote"* ]]; then
     shift
     export PKQ_COMMIT_ID="$1"
     shift
-    export RUN_PROJ="$1"
+    export RUN_PROJ_NAME="$1"
+    shift
+    export GIT_BRANCH="$1"
     shift
     export PKQ_SERVER_NAME="${1##*@}"
     shift
@@ -455,17 +456,18 @@ elif [[ "$1" == "remote"* ]]; then
     shift
     export PKQ_RUN_START_TIME=$1
 
-    export PKQ_DATA_DIR=${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ%_*}
+    export PKQ_DATA_DIR=${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}
+    mkdir -p ${PKQ_DATA_DIR}
+    export RUN_PROJ=${RUN_PROJ_NAME}_${GIT_BRANCH}
     cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
     source pkq_configs/remote/remote_tmps/local.sh
     # the following file is init on local
     cat >pkq_configs/remote/remote_tmps/remote.sh <<EOF
 
 set -e
-# change the following vars based on your preference, and then make sure this repo is cloned to ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
-export RUN_DIR_HOME=${RUN_DIR_HOME}
-export RUN_PROJ=${RUN_PROJ}
-export PKQ_DATA_DIR=${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ%_*}
+# set following vars based on your setting, and then make sure this repo is cloned to ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
+export RUN_DIR_HOME=
+export RUN_PROJ=
 
 EOF
     echo 'cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}' >>pkq_configs/remote/remote_tmps/remote.sh
