@@ -220,7 +220,7 @@ while true; do
         #     find . -newermt '$ts' -type f | rsync -a --files-from=- ./ '${remote_dir}_backup/${PKQ_RUN_START_TIME}/'" 2>&1 ||
 
         fetch_new_content
-        rsync --remove-source-files -avz "$host":"${remote_dir}/" "$host":"${run_dir_home}/project_remote_pkq/remote_data/${_project_name}/backup/${PKQ_RUN_START_TIME}/"
+        ssh $host "rm -rf ${remote_dir}"
         echo "DONE: Remote job finished (id: ${job_id})."
         break
     fi
