@@ -14,11 +14,17 @@ host="$1"
 shift
 job_id="$1"
 shift # slurm job id, docker container id, OR remote pid
-remote_dir="$1"
+run_dir_home="$1"
+shift
+_project_name="$1"
+shift
+_git_branch="$1"
 shift
 local_dir="$1"
 shift
 PKQ_RUN_START_TIME="$1"
+
+remote_dir="${run_dir_home}/project_remote_pkq/${_project_name}_${_git_branch}"
 
 port_forward=false
 ports_before_file=""
@@ -212,9 +218,9 @@ while true; do
         # back up all files changed since submission to a per-run dir on remote (relative paths preserved)
         # ssh -o ConnectTimeout=10 "$host" "cd '${remote_dir}' && mkdir -p '${remote_dir}_backup/${PKQ_RUN_START_TIME}' &&
         #     find . -newermt '$ts' -type f | rsync -a --files-from=- ./ '${remote_dir}_backup/${PKQ_RUN_START_TIME}/'" 2>&1 ||
-        #     echo "WARNING: failed to back up changed files on remote"
 
         fetch_new_content
+        rsync --remove-source-files -avz "$host":"${remote_dir}/" "$host":"${run_dir_home}/project_remote_pkq/remote_data/${_project_name}/backup/${PKQ_RUN_START_TIME}/"
         echo "DONE: Remote job finished (id: ${job_id})."
         break
     fi

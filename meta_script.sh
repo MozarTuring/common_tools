@@ -417,7 +417,7 @@ if [[ "$1" == *"local.sh" ]]; then
     if [ -n "${remote_job_id}" ]; then
         echo "local dir: ${local_dir}"
 
-        monitor_args=(${PKQ_MODE} "$server_name" "$remote_job_id" "$run_dir_remote" "$local_dir" "${PKQ_RUN_START_TIME}")
+        monitor_args=(${PKQ_MODE} "$server_name" "$remote_job_id" "${run_dir_home}" "${_project_name}" "${_git_branch}" "$local_dir" "${PKQ_RUN_START_TIME}")
 
         echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
 
