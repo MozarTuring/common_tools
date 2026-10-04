@@ -488,7 +488,7 @@ EOF
             PKQ_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
             PKQ_SLURM_RUN_ARGS=""
         fi
-        cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}
+        cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/slurm.sh
         sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out --error=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
@@ -555,12 +555,12 @@ EOF
         fi
 
         cat pkq_configs/remote/remote_tmps/remote.sh pkq_configs/remote/remote_tmps/remote2.sh >pkq_configs/remote/remote_tmps/remote_all.sh
-        echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}" >>pkq_configs/remote/remote_tmps/remote_all.sh
+        echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/slurm.sh" >>pkq_configs/remote/remote_tmps/remote_all.sh
 
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
-                echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}"
-                SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SLURM_FILE}) || {
+                echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/slurm.sh"
+                SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/slurm.sh) || {
                     return 1 2>/dev/null
                     exit 1
                 }
