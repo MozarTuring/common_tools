@@ -185,13 +185,13 @@ EOF
         elif [[ ${PKQ_MODE} == "remoteslurm" ]]; then
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
-                cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
+                cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
 fi
 EOF
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
-                cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
+                cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb"
 fi
@@ -199,7 +199,7 @@ export PKQ_ARCH="aarch64"
 EOF
             fi
 
-            cat >>pkq_configs/remote/remote_tmps/remote2.sh <<EOF
+            cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
 
 if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
