@@ -1,9 +1,11 @@
 #!/bin/bash
-# Usage: slurm_job_status.sh <ssh_cmd> <job_id>
+# Usage: slurm_job_status.sh <ssh_cmd> <job_id> [once]
 #   ssh_cmd: 'ssh myhost' for remote, '' for local
+#   once:    check a single time and exit: 0 running, 1 gone/failed, 2 pending, 3 ssh failed
 
 ssh_cmd="$1"
 job_id="$2"
+once="$3"
 if [[ -z "$job_id" ]]; then
     echo "Usage: slurm_job_status.sh <ssh_cmd> <job_id>"
     echo "  ssh_cmd: 'ssh myhost' for remote, '' for local"
@@ -17,6 +19,7 @@ while true; do
     # 255 = ssh itself failed (connection dropped), not an answer from squeue
     if [[ $rc -eq 255 ]]; then
         echo "$(date '+%H:%M:%S') - ssh failed during squeue, retrying"
+        [[ -n "$once" ]] && exit 3
         sleep 30
         continue
     fi
@@ -25,11 +28,13 @@ while true; do
         sacct_state=$($ssh_cmd sacct -j "${job_id}" -X -n -o State 2>/dev/null | head -1 | awk '{print $1}') || true
         if [[ "$sacct_state" =~ ^(PENDING|RUNNING|CONFIGURING|REQUEUED|SUSPENDED)$ ]]; then
             echo "$(date '+%H:%M:%S') - squeue empty but sacct says ${sacct_state}, retrying"
+            [[ -n "$once" ]] && exit 2
             sleep 30
             continue
         fi
         echo "Job ${job_id} no longer in queue (may have finished or failed instantly), sacct state: ${sacct_state:-unknown}"
         slurm_job_status_checked="failed"
+        [[ -n "$once" ]] && exit 1
         break
     fi
 
@@ -42,11 +47,13 @@ while true; do
             break
         else
             echo "$(date '+%H:%M:%S') - Job partially running: $state_counts"
+            [[ -n "$once" ]] && exit 0
         fi
     else
         if ((count % 10 == 0)); then
             echo "$(date '+%H:%M:%S') - $state_counts"
         fi
+        [[ -n "$once" ]] && exit 2
     fi
     sleep 10
     ((count++))

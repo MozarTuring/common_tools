@@ -185,12 +185,22 @@ EOF
         elif [[ ${PKQ_MODE} == "remoteslurm" ]]; then
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
+                cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
+if [[ -z ${PKQ_MODULES} ]]; then
+export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
+fi
+EOF
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
                 cat >pkq_configs/remote/remote_tmps/remote2.sh <<EOF
+if [[ -z ${PKQ_MODULES} ]]; then
+export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb"
+fi
 export PKQ_ARCH="aarch64"
 EOF
             fi
+
             cat >>pkq_configs/remote/remote_tmps/remote2.sh <<EOF
+
 if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
@@ -413,7 +423,44 @@ if [[ "$1" == *"local.sh" ]]; then
 
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
+    echo ${remote_job_id} >> ${local_dir}/../remote_job_id.txt
+
     echo "Remote job ID: $remote_job_id"
+    if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && "$3" == "lastrun" ]]; then
+        jobs_file="${local_dir}/../remote_job_id.txt"
+        run_server=""
+        run_job=""
+        while [[ -z "${run_job}" ]]; do
+            _alive=0
+            while IFS=, read -r _srv _jid <&3; do
+                [[ -z "${_jid}" ]] && continue
+                echo "check ${_srv},${_jid}"
+                slurm_job_status "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
+                if [[ ${_st} -eq 0 ]]; then
+                    run_server=${_srv}
+                    run_job=${_jid}
+                    break
+                elif [[ ${_st} -ne 1 ]]; then
+                    _alive=1
+                fi
+            done 3<"${jobs_file}"
+            if [[ -z "${run_job}" ]]; then
+                if [[ ${_alive} -eq 0 ]]; then
+                    echo "ERROR: no job in ${jobs_file} is pending or running"
+                    exit 1
+                fi
+                sleep 30
+            fi
+        done
+        echo "${run_server},${run_job} is RUNNING, cancelling the others"
+        while IFS=, read -r _srv _jid <&3; do
+            [[ -z "${_jid}" || ("${_srv}" == "${run_server}" && "${_jid}" == "${run_job}") ]] && continue
+            echo "scancel ${_srv},${_jid}"
+            ssh -o ConnectTimeout=10 "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed"
+        done 3<"${jobs_file}"
+        server_name=${run_server}
+        remote_job_id=${run_job}
+    fi
     if [ -n "${remote_job_id}" ]; then
         echo "local dir: ${local_dir}"
 
@@ -565,7 +612,7 @@ EOF
                     exit 1
                 }
                 PKQ_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-                echo "$PKQ_JOB_ID" >"remote_job_id.txt"
+                echo "${PKQ_SERVER_NAME},$PKQ_JOB_ID" >"remote_job_id.txt"
                 break
             fi
             sleep 2

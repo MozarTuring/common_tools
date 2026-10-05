@@ -503,6 +503,8 @@ require("lazy").setup({
 						"-synctex=1",
 						"-interaction=nonstopmode",
 						"-cd",
+						"-e",
+						"'$bibtex_use=2'", -- always run bibtex, so a missing .bib fails the compile
 					},
 				}
 
@@ -510,10 +512,16 @@ require("lazy").setup({
 					pattern = "VimtexEventInitPre",
 					callback = function()
 						local out_dir = get_latex_out_dir()
+						-- Drop the stale .bbl before any compile so it must be regenerated from the .bib
+						-- (deleting it after each compile instead makes latexmk -pvc rebuild forever)
+						os.remove(out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".bbl")
+						-- Drop both PDFs (build folder and the copy next to the tex file), so only a successful compile brings them back
+						os.remove(out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".pdf")
+						os.remove(vim.fn.expand("%:p:r") .. ".pdf")
 						local cfg = {
 							aux_dir = out_dir,
 							out_dir = out_dir,
-							options = { "-synctex=1", "-interaction=nonstopmode", "-cd" },
+							options = { "-synctex=1", "-interaction=nonstopmode", "-cd", "-e", "'$bibtex_use=2'" },
 						}
 						vim.g.vimtex_compiler_latexmk = cfg
 						vim.b.vimtex_compiler_latexmk = cfg
@@ -570,6 +578,7 @@ require("lazy").setup({
 							end
 							handle:close()
 						end
+
 
 						vim.defer_fn(function()
 							vim.cmd("echo ''")
@@ -2916,10 +2925,12 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. " "
 		.. tmpdate
 	-- here shellescape is to correct interpret path with space
+	local last_run_flag = (index == #batch_entries) and " lastrun" or ""
+	cmd = cmd .. last_run_flag
 	vim.fn.writefile({ cmd }, log_file)
 
 	local bg_cmd = cmd --.. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
-	local full_cmd = cmd_base .. tmpdate
+	local full_cmd = cmd_base .. tmpdate .. last_run_flag
 	vim.fn.setreg("+", full_cmd)
 
 	local function start_run()
