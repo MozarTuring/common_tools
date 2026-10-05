@@ -2925,12 +2925,18 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. " "
 		.. tmpdate
 	-- here shellescape is to correct interpret path with space
-	local last_run_flag = (index == #batch_entries) and " lastrun" or ""
-	cmd = cmd .. last_run_flag
+	local run_flags = ""
+	if index == 1 then
+		run_flags = run_flags .. " firstrun"
+	end
+	if index == #batch_entries then
+		run_flags = run_flags .. " lastrun"
+	end
+	cmd = cmd .. run_flags
 	vim.fn.writefile({ cmd }, log_file)
 
 	local bg_cmd = cmd --.. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
-	local full_cmd = cmd_base .. tmpdate .. last_run_flag
+	local full_cmd = cmd_base .. tmpdate .. run_flags
 	vim.fn.setreg("+", full_cmd)
 
 	local function start_run()

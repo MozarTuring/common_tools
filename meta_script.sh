@@ -423,7 +423,12 @@ if [[ "$1" == *"local.sh" ]]; then
 
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
-    echo ${remote_job_id} >> ${local_dir}/../remote_job_id.txt
+    # server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME
+    if [[ $3 == "firstrun" ]]; then
+        echo "first run, remove "
+        rm ${local_dir}/../remote_job_id.txt
+    fi
+    [[ -n "${remote_job_id}" ]] && echo "${remote_job_id},${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>${local_dir}/../remote_job_id.txt
 
     echo "Remote job ID: $remote_job_id"
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && "$3" == "lastrun" ]]; then
@@ -432,13 +437,17 @@ if [[ "$1" == *"local.sh" ]]; then
         run_job=""
         while [[ -z "${run_job}" ]]; do
             _alive=0
-            while IFS=, read -r _srv _jid <&3; do
+            while IFS=, read -r _srv _jid _rdh _br _ldir _stime <&3; do
                 [[ -z "${_jid}" ]] && continue
                 echo "check ${_srv},${_jid}"
                 slurm_job_status "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
                 if [[ ${_st} -eq 0 ]]; then
                     run_server=${_srv}
                     run_job=${_jid}
+                    run_dir_home=${_rdh}
+                    _git_branch=${_br}
+                    local_dir=${_ldir}
+                    PKQ_RUN_START_TIME=${_stime}
                     break
                 elif [[ ${_st} -ne 1 ]]; then
                     _alive=1
@@ -453,15 +462,15 @@ if [[ "$1" == *"local.sh" ]]; then
             fi
         done
         echo "${run_server},${run_job} is RUNNING, cancelling the others"
-        while IFS=, read -r _srv _jid <&3; do
+        while IFS=, read -r _srv _jid _rest <&3; do
             [[ -z "${_jid}" || ("${_srv}" == "${run_server}" && "${_jid}" == "${run_job}") ]] && continue
             echo "scancel ${_srv},${_jid}"
             ssh -o ConnectTimeout=10 "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed"
         done 3<"${jobs_file}"
         server_name=${run_server}
         remote_job_id=${run_job}
-    fi
-    if [ -n "${remote_job_id}" ]; then
+        nohup_log="${local_dir}/nohup_monitor.log"
+
         echo "local dir: ${local_dir}"
 
         monitor_args=(${PKQ_MODE} "$server_name" "$remote_job_id" "${run_dir_home}" "${_project_name}" "${_git_branch}" "$local_dir" "${PKQ_RUN_START_TIME}")
@@ -483,7 +492,7 @@ if [[ "$1" == *"local.sh" ]]; then
         # kill "$tail_pid" 2>/dev/null
         # wait "$tail_pid" 2>/dev/null || true
         # echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
-    else
+    elif [ -z "${remote_job_id}" ]; then
         echo "FAILED: remote setup on $server_name failed."
     fi
 elif [[ "$1" == "remote"* ]]; then
