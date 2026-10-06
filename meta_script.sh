@@ -9,9 +9,12 @@ if false; then
 fi
 
 if false; then
-    rsync -aP berzeliusampere:/home/x_jinma63/project_remote_pkq/llm2vec_pkq/output/mntp/Meta-Llama-3.1-8B-msmarco ./
-    rsync -aP greatrawr:/home/jinma/project_remote_pkq/remote_data/llm2vec/output/mntp /Users/jinma63/project/tmp_data/cache/
-    rsync -aP arrhenius:/home/jinma63/project_remote_pkq/llm2vec_pikaq_backup/20260929_065038 /Users/jinma63/project/tmp_data/cache/
+    for dir in berzeliusampere arrhenius; do
+        rsync -aP "berzeliusampere:/home/x_jinma/project_remote_pkq/remote_data/llm2vec/backup/${dir}/" "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}/"
+    done
+    for dir in berzeliusampere arrhenius; do
+        rsync -aP "arrhenius:/home/jinma63/project_remote_pkq/remote_data/llm2vec/backup/${dir}/" "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}/"
+    done
 fi
 
 slurm_job_status() {
@@ -365,6 +368,12 @@ if [[ "$1" == *"local.sh" ]]; then
         bash common_tools/sync_and_commit_repo.sh "common_tools"
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
+        for dir in berzeliusampere arrhenius; do
+            if [[ ${dir} != ${server_name} ]]; then
+                rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}/" "${server_name}:/home/x_jinma/project_remote_pkq/remote_data/llm2vec/backup/${dir}/"
+            fi
+        done
+
         tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
         rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$server_name":${tmp_path}/
         [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
@@ -432,57 +441,8 @@ if [[ "$1" == *"local.sh" ]]; then
 
     echo "Remote job ID: $remote_job_id"
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && "$3" == "lastrun" ]]; then
-        jobs_file="${local_dir}/../remote_job_id.txt"
-        run_server=""
-        run_job=""
-        while [[ -z "${run_job}" ]]; do
-            _alive=0
-            while IFS=, read -r _srv _jid _rdh _br _ldir _stime <&3; do
-                [[ -z "${_jid}" ]] && continue
-                echo "check ${_srv},${_jid}"
-                slurm_job_status "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
-                if [[ ${_st} -eq 0 ]]; then
-                    run_server=${_srv}
-                    run_job=${_jid}
-                    run_dir_home=${_rdh}
-                    _git_branch=${_br}
-                    local_dir=${_ldir}
-                    PKQ_RUN_START_TIME=${_stime}
-                    break
-                elif [[ ${_st} -ne 1 ]]; then
-                    _alive=1
-                fi
-            done 3<"${jobs_file}"
-            if [[ -z "${run_job}" ]]; then
-                if [[ ${_alive} -eq 0 ]]; then
-                    echo "ERROR: no job in ${jobs_file} is pending or running"
-                    exit 1
-                fi
-                sleep 30
-            fi
-        done
-        echo "${run_server},${run_job} is RUNNING, cancelling the others"
-        while IFS=, read -r _srv _jid _rest <&3; do
-            [[ -z "${_jid}" || ("${_srv}" == "${run_server}" && "${_jid}" == "${run_job}") ]] && continue
-            echo "scancel ${_srv},${_jid}"
-            ssh -o ConnectTimeout=10 "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed"
-        done 3<"${jobs_file}"
-        server_name=${run_server}
-        remote_job_id=${run_job}
-        nohup_log="${local_dir}/nohup_monitor.log"
-
-        echo "local dir: ${local_dir}"
-
-        monitor_args=(${PKQ_MODE} "$server_name" "$remote_job_id" "${run_dir_home}" "${_project_name}" "${_git_branch}" "$local_dir" "${PKQ_RUN_START_TIME}")
-
-        echo """nohup bash ~/project/common_tools/remote_monitor.sh ${monitor_args[@]} >> $nohup_log 2>&1 &""" >>$nohup_log
-
-        nohup bash ~/project/common_tools/remote_monitor.sh "${monitor_args[@]}" >>"$nohup_log" 2>&1 &
-        monitor_pid=$!
-        echo "Background monitor PID:
-        ps -ef |grep $monitor_pid"
-
-        echo "see logs at ${local_dir}"
+        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir}/../remote_job_id.txt ${PKQ_MODE} 2>&1 | tee ${local_dir}/select_running_job.nohup &"
+        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir}/../remote_job_id.txt" "${PKQ_MODE}" 2>&1 | tee ${local_dir}/select_running_job.nohup &
 
         # tail -f "$nohup_log" &
         # tail_pid=$!

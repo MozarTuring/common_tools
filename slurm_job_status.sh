@@ -5,7 +5,9 @@
 
 ssh_cmd="$1"
 job_id="$2"
-once="$3"
+once="${3:-}"
+# wait_for_ssh.sh uses $host
+[[ -n "$ssh_cmd" ]] && host="${ssh_cmd##* }"
 if [[ -z "$job_id" ]]; then
     echo "Usage: slurm_job_status.sh <ssh_cmd> <job_id>"
     echo "  ssh_cmd: 'ssh myhost' for remote, '' for local"
