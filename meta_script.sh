@@ -304,7 +304,7 @@ if [[ "$1" == *"local.sh" ]]; then
 
     echo "project_dir, ${_project_dir}"
     _project_name=$(basename "$_project_dir")
-    echo "project_name, $_project_name"
+    echo "_project_name, $_project_name"
 
     export server_name=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
 
@@ -441,8 +441,8 @@ if [[ "$1" == *"local.sh" ]]; then
 
     echo "Remote job ID: $remote_job_id"
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" ]] && [[ "$3" == "lastrun" || "$4" == "lastrun" ]]; then
-        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} 2>&1 > ${local_dir}/select_running_job.nohup &"
-        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" 2>&1 > ${local_dir}/select_running_job.nohup &
+        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} 2>&1 > ${run_dir_home}/project/${_project_name}/pkq_configs/select_running_job.nohup &"
+        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" 2>&1 > ${run_dir_home}/project/${_project_name}/pkq_configs/select_running_job.nohup &
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
