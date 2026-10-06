@@ -770,11 +770,38 @@ iron.setup({
 })
 
 -- Use snacks.picker (replaces telescope in modern LazyVim)
+-- ff: live search, fd reruns on each input (substring match on the full path).
+-- Empty input shows nothing; results are shown only when there are <= ff_max_items.
+local ff_max_items = 1000
 vim.keymap.set("n", "ff", function()
 	Snacks.picker.files({
 		hidden = true,
 		ignored = true,
+		follow = true, -- descend into symlinked dirs (e.g. zzzpkqoutput)
 		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
+		args = { "--full-path", "--fixed-strings" },
+		live = true,
+		finder = function(opts, ctx)
+			if ctx.filter.search == "" then
+				return function() end
+			end
+			local files = require("snacks.picker.source.files").files(opts, ctx)
+			return function(cb)
+				local items, n = {}, 0
+				files(function(item)
+					n = n + 1
+					if n <= ff_max_items then
+						items[n] = item
+					end
+				end)
+				if n > ff_max_items then
+					return
+				end
+				for _, item in ipairs(items) do
+					cb(item)
+				end
+			end
+		end,
 	})
 end, { desc = "Find files" })
 vim.keymap.set("n", "fg", function()
@@ -1145,7 +1172,7 @@ end
 function CopyFilePathToClipboard()
 	local file_path = vim.fn.expand("%:p") -- Gets the full path of the current file
 	vim.fn.setreg("+", file_path) -- Copies the path to the clipboard register (+)
-	-- print("Copied to clipboard: " .. file_path) -- Optional: prints a confirmation message
+	vim.notify("Copied: " .. file_path) -- snacks notifier popup
 end
 
 function CopyRelativePathToClipboard()

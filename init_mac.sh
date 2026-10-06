@@ -1,6 +1,7 @@
 # install kitty, brew, cursor 
 # brew install pngpaste
 brew install texlive
+brew install fd
 # zsh
 # rm ~/.zshrc
 # ln -s ${HOME}/project/common_tools/zshrc ~/.zshrc
