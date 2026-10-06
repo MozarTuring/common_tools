@@ -2963,6 +2963,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	if index == #batch_entries then
 		run_flags = run_flags .. " lastrun"
 		local select_log_file = log_dir .. "/" .. tmpdate .. "/select_running_job.nohup"
+		vim.fn.writefile({ "" }, select_log_file)
 		vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
 		ToggleAutoRefresh()
 	end

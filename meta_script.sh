@@ -441,8 +441,8 @@ if [[ "$1" == *"local.sh" ]]; then
 
     echo "Remote job ID: $remote_job_id"
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" ]] && [[ "$3" == "lastrun" || "$4" == "lastrun" ]]; then
-        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} 2>&1 | tee ${local_dir}/select_running_job.nohup &"
-        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" 2>&1 | tee ${local_dir}/select_running_job.nohup &
+        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} 2>&1 > ${local_dir}/select_running_job.nohup &"
+        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" 2>&1 > ${local_dir}/select_running_job.nohup &
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
