@@ -770,8 +770,8 @@ iron.setup({
 })
 
 -- Use snacks.picker (replaces telescope in modern LazyVim)
--- ff: live search, fd reruns on each input (substring match on the full path).
--- Empty input shows nothing; results are shown only when there are <= ff_max_items.
+-- ff: fuzzy search. Empty input shows nothing; otherwise only the top ff_max_items
+-- matches (by fuzzy score) are kept. Snacks ranks exactly the top 1000 via its topk heap.
 local ff_max_items = 1000
 vim.keymap.set("n", "ff", function()
 	Snacks.picker.files({
@@ -779,28 +779,32 @@ vim.keymap.set("n", "ff", function()
 		ignored = true,
 		follow = true, -- descend into symlinked dirs (e.g. zzzpkqoutput)
 		exclude = { "__pycache__/", ".git", ".hg", "zzzresources" },
-		args = { "--full-path", "--fixed-strings" },
-		live = true,
-		finder = function(opts, ctx)
-			if ctx.filter.search == "" then
-				return function() end
-			end
-			local files = require("snacks.picker.source.files").files(opts, ctx)
-			return function(cb)
-				local items, n = {}, 0
-				files(function(item)
-					n = n + 1
-					if n <= ff_max_items then
-						items[n] = item
-					end
-				end)
-				if n > ff_max_items then
+		on_show = function(picker)
+			local m = picker.matcher
+			local run, on_done = m.run, m.on_done
+			m.run = function(self, p)
+				if self:empty() then
+					self.task:abort()
+					p.list:clear()
+					p:update({ force = true })
 					return
 				end
-				for _, item in ipairs(items) do
-					cb(item)
-				end
+				return run(self, p)
 			end
+			m.on_done = function(self, p)
+				local list = p.list
+				if not self:empty() and #list.items > ff_max_items then
+					local top = {}
+					for i = 1, ff_max_items do
+						top[i] = list:get(i)
+					end
+					list.topk:clear()
+					list.items = top
+					p:update({ force = true })
+				end
+				return on_done(self, p)
+			end
+			m:run(picker) -- clear the list shown before the hook was installed
 		end,
 	})
 end, { desc = "Find files" })

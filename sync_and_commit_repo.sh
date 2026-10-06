@@ -25,15 +25,15 @@ if [[ -n "$server_name" ]]; then
     _remote_proj="${repo_path}_${_git_branch}"
     export run_dir_remote="${run_dir_home}/project_remote_pkq/${_remote_proj}"
     echo "remote dir: ${run_dir_remote}"
-    rsync -rlt --no-links --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
+    rsync -rlt --no-links --delete --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
     tmppath="/Users/jinma63/Desktop/baidu/project_nogit/${repo_path}"
     if [[ ! -d ${tmppath} ]]; then
         mkdir -p ${tmppath}
     fi
-    rsync -av --safe-links ${tmppath}/ "$server_name":${run_dir_remote}/pkq_configs/docs/
     if [[ ! -L "./pkq_configs/docs" ]]; then
         ln -sfn ${tmppath} ./pkq_configs/docs
     fi
+    rsync -av --safe-links ${tmppath} "$server_name":${run_dir_remote}/../project_nogit/
 else
     echo "no server name"
     exit
