@@ -373,7 +373,9 @@ require("lazy").setup({
 								vim.uv.fs_unlink(path)
 							else
 								local shell = os.getenv("SHELL") or "bash"
-								vim.fn.system(shell .. " -lic " .. vim.fn.shellescape("rm " .. vim.fn.shellescape(path)))
+								vim.fn.system(
+									shell .. " -lic " .. vim.fn.shellescape("rm " .. vim.fn.shellescape(path))
+								)
 							end
 							if vim.v.shell_error ~= 0 then
 								vim.notify("rm failed (exit " .. vim.v.shell_error .. ")", vim.log.levels.ERROR)
@@ -578,7 +580,6 @@ require("lazy").setup({
 							end
 							handle:close()
 						end
-
 
 						vim.defer_fn(function()
 							vim.cmd("echo ''")
@@ -2679,8 +2680,7 @@ end tell]],
 		vim.fn.jobstart({ "osascript", "-e", script }, { detach = true })
 	end
 end
-local claude_sessions_dir = pkqMacHome
-	.. "/project/claude_settings/.claude/projects/-Users-jinma63-project"
+local claude_sessions_dir = pkqMacHome .. "/project/claude_settings/.claude/projects/-Users-jinma63-project"
 vim.api.nvim_create_autocmd("BufReadPost", {
 	pattern = "*.jsonl",
 	once = false,
@@ -2962,6 +2962,9 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end
 	if index == #batch_entries then
 		run_flags = run_flags .. " lastrun"
+		local select_log_file = log_dir .. "/" .. tmpdate .. "/select_running_job.nohup"
+		vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
+		ToggleAutoRefresh()
 	end
 	cmd = cmd .. run_flags
 	vim.fn.writefile({ cmd }, log_file)
@@ -2973,8 +2976,8 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local function start_run()
 		vim.notify(string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw), vim.log.levels.INFO)
 
-		vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-		ToggleAutoRefresh()
+		-- vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
+		-- ToggleAutoRefresh()
 
 		-- vim.fn.jobstart({ "bash", "-c", "-l", bg_cmd }, {
 		-- 	on_exit = function(_, code)
@@ -2994,21 +2997,21 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		-- 	end,
 		-- })
 
-			local bg_mark_dir = vim.fn.fnamemodify(log_file, ":h")
-			local bg_markfile = bg_mark_dir .. "/_bg_cmd_done"
-			local bg_markfile_fail = bg_mark_dir .. "/_bg_cmd_fail"
-			vim.fn.delete(bg_markfile)
-			vim.fn.delete(bg_markfile_fail)
+		local bg_mark_dir = vim.fn.fnamemodify(log_file, ":h")
+		local bg_markfile = bg_mark_dir .. "/_bg_cmd_done"
+		local bg_markfile_fail = bg_mark_dir .. "/_bg_cmd_fail"
+		vim.fn.delete(bg_markfile)
+		vim.fn.delete(bg_markfile_fail)
 
-			local terminal_bg_cmd = bg_cmd
-				.. " && touch "
-				.. vim.fn.shellescape(bg_markfile)
-				.. " || touch "
-				.. vim.fn.shellescape(bg_markfile_fail)
-			local bg_as_escaped = terminal_bg_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
-			local bg_as_fmt = bg_as_escaped:gsub("%%", "%%%%")
-			local bg_applescript = string.format(
-				[[tell application "Terminal"
+		local terminal_bg_cmd = bg_cmd
+			.. " && touch "
+			.. vim.fn.shellescape(bg_markfile)
+			.. " || touch "
+			.. vim.fn.shellescape(bg_markfile_fail)
+		local bg_as_escaped = terminal_bg_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
+		local bg_as_fmt = bg_as_escaped:gsub("%%", "%%%%")
+		local bg_applescript = string.format(
+			[[tell application "Terminal"
 	set didRun to false
 	if (count of windows) > 0 then
 		repeat with w in windows
@@ -3026,19 +3029,29 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		do script "%s"
 	end if
 end tell]],
-				bg_as_fmt,
-				bg_as_fmt
-			)
-			vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
+			bg_as_fmt,
+			bg_as_fmt
+		)
+		vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
 
-			local bg_timer = vim.loop.new_timer()
-			bg_timer:start(2000, 2000, vim.schedule_wrap(function()
+		local bg_timer = vim.loop.new_timer()
+		bg_timer:start(
+			2000,
+			2000,
+			vim.schedule_wrap(function()
 				if vim.fn.filereadable(bg_markfile) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
 					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
 					vim.defer_fn(function()
-						run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
+						run_batch_sequence(
+							template_path,
+							output_path,
+							batch_entries,
+							index + 1,
+							keys_order,
+							seen_servers
+						)
 					end, 3000)
 				elseif vim.fn.filereadable(bg_markfile_fail) == 1 then
 					bg_timer:stop()
@@ -3048,7 +3061,8 @@ end tell]],
 						vim.log.levels.ERROR
 					)
 				end
-			end))
+			end)
+		)
 	end
 
 	local server_name = entry.overrides["PKQ_SERVER_NAME"]
@@ -3066,9 +3080,9 @@ end tell]],
 		.. pkqMacHome
 		.. "/project/common_tools/meta_script.sh "
 		.. vim.fn.shellescape(output_path)
-        .. " "
-        .. tmpdate
-        .. " fileupload"
+		.. " "
+		.. tmpdate
+		.. " fileupload"
 	local mark_dir = vim.fn.fnamemodify(log_file, ":h")
 	local markfile = mark_dir .. "/_cmd_done"
 	local markfile_fail = mark_dir .. "/_cmd_fail"
@@ -3204,7 +3218,6 @@ vim.keymap.set("n", "fr", function()
 	template_path = dir .. "/template.sh"
 	output_path = dir .. "/remote_tmps/local.sh"
 	batch_file = filepath
-
 
 	vim.fn.mkdir(vim.fn.fnamemodify(output_path, ":h"), "p")
 
