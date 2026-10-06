@@ -384,7 +384,7 @@ if [[ "$1" == *"local.sh" ]]; then
         echo "rsync done"
         exit
     fi
-    local_dir="$HOME/project/zzzpkqoutput/${_project_name}"
+    local_dir_pre="$HOME/project/zzzpkqoutput/${_project_name}"
     { [[ -f "$_project_name/pkq_configs/local_pre.sh" ]] && source "$_project_name/pkq_configs/local_pre.sh" || true; }
     cd ${_project_name}
     _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
@@ -392,7 +392,7 @@ if [[ "$1" == *"local.sh" ]]; then
     cd -
 
     run_dir_remote="${run_dir_home}/project_remote_pkq/${_project_name}_${_git_branch}"
-    local_dir="${local_dir}/${PKQ_RUN_START_TIME}"
+    local_dir="${local_dir_pre}/${PKQ_RUN_START_TIME}"
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
@@ -435,14 +435,16 @@ if [[ "$1" == *"local.sh" ]]; then
     # server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME
     if [[ $3 == "firstrun" ]]; then
         echo "first run, remove "
-        rm ${local_dir}/../remote_job_id.txt
+        if [[ -f "${local_dir_pre}/remote_job_id.txt" ]]; then
+            rm ${local_dir_pre}/remote_job_id.txt
+        fi
     fi
-    [[ -n "${remote_job_id}" ]] && echo "${remote_job_id},${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>${local_dir}/../remote_job_id.txt
+    [[ -n "${remote_job_id}" ]] && echo "${remote_job_id},${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>${local_dir_pre}/remote_job_id.txt
 
     echo "Remote job ID: $remote_job_id"
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && "$3" == "lastrun" ]]; then
-        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir}/../remote_job_id.txt ${PKQ_MODE} 2>&1 | tee ${local_dir}/select_running_job.nohup &"
-        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir}/../remote_job_id.txt" "${PKQ_MODE}" 2>&1 | tee ${local_dir}/select_running_job.nohup &
+        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} 2>&1 | tee ${local_dir}/select_running_job.nohup &"
+        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" 2>&1 | tee ${local_dir}/select_running_job.nohup &
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
