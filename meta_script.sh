@@ -369,9 +369,7 @@ if [[ "$1" == *"local.sh" ]]; then
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
         for dir in berzeliusampere arrhenius; do
-            if [[ ${dir} != ${server_name} ]]; then
-                rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${server_name}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
-            fi
+            rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${server_name}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
         done
 
         tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
