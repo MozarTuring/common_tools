@@ -2962,7 +2962,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end
 	if index == #batch_entries then
 		run_flags = run_flags .. " lastrun"
-		local select_log_file = prefix .. dir_name .. "pkq_configs/select_running_job.nohup"
+		local select_log_file = prefix .. dir_name .. "/pkq_configs/select_running_job.nohup"
 		vim.fn.writefile({ "" }, select_log_file)
 		vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
 		ToggleAutoRefresh()

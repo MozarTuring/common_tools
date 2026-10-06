@@ -70,4 +70,6 @@ monitor_pid=$!
 echo "Background monitor PID:
 ps -ef |grep $monitor_pid"
 
-echo "see logs at ${local_dir}"
+echo "see logs at
+${local_dir}
+${PKQ_RUN_START_TIME}"
