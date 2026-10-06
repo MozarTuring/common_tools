@@ -370,7 +370,7 @@ if [[ "$1" == *"local.sh" ]]; then
 
         for dir in berzeliusampere arrhenius; do
             if [[ ${dir} != ${server_name} ]]; then
-                rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}/" "${server_name}:/home/x_jinma/project_remote_pkq/remote_data/llm2vec/backup/${dir}/"
+                rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${server_name}:/home/x_jinma/project_remote_pkq/remote_data/llm2vec/backup/"
             fi
         done
 
