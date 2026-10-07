@@ -130,7 +130,7 @@ _remote_setup() {
     fi
     source ${RUN_DIR_HOME}/project_remote_pkq/project_nogit/common_tools/common_tokens.sh
 
-    mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}/pkq_configs/remote/remote_tmps
+    mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
 
     if [[ ! -L ~/.cache ]]; then
         mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/remote_data/cache
@@ -159,10 +159,10 @@ _remote_setup() {
         fi
     fi
     mkdir -p pkqlogs/${PKQ_RUN_START_TIME}
-    mkdir -p pkq_configs/remote/remote_tmps
+    mkdir -p pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
     sleep 1
-    # echo "" > pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh # init in nvim
-    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh <<'EOF'
+    # echo "" > pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh # init in nvim
+    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<'EOF'
     #
     # require_env() {
     # for var in "$@"; do
@@ -177,24 +177,24 @@ _remote_setup() {
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_PKQ=1
-    rm pkq_configs/remote/remote_tmps/remote2.sh || echo "no remote2.sh"
+    rm pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh || echo "no remote2.sh"
     rm pkq_configs/remote/remote3.sh || echo "no remote3.sh"
     if [ -n ${PKQ_PYTHON} ]; then
         if [[ ${PKQ_MODE} == "remotenone" ]]; then
-            cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+            cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
 EOF
 
         elif [[ ${PKQ_MODE} == "remoteslurm" ]]; then
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
-                cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+                cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
 fi
 EOF
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
-                cat >pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+                cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb"
 fi
@@ -202,7 +202,7 @@ export PKQ_ARCH="aarch64"
 EOF
             fi
 
-            cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+            cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 
 if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
@@ -230,7 +230,7 @@ which pip
 EOF
     fi
     # no '' around EOF, it will expand vars
-    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh <<EOF
+    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<EOF
     # # change the following based on your running preference
     # export RUN_DIR_HOME="${RUN_DIR_HOME}"
     # export RUN_PROJ="${RUN_PROJ}"
@@ -244,7 +244,7 @@ EOF
     # fi
 
     if [[ ${PKQ_MODE} == "remotedocker" ]]; then
-        cat >>pkq_configs/remote/remote_tmps/remote.sh <<'EOF'
+        cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<'EOF'
 export PKQ_CACHE_DIR=${RUN_DIR_HOME}/.cache
 EOF
     fi
@@ -252,7 +252,7 @@ EOF
     # ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
     if [[ ${PKQ_MODE} == "remotenone" ]]; then
 
-        cat >>pkq_configs/remote/remote_tmps/remote2.sh <<'EOF'
+        cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 if [ ! -d ${RUN_DIR_HOME}/pkqcondaenv/shared_cuda ]; then
     conda create -y -p ${RUN_DIR_HOME}/pkqcondaenv/shared_cuda -c nvidia cuda-toolkit
 fi
@@ -265,7 +265,7 @@ EOF
     fi
 
     # if [[ ${PKQ_MODE} == "remotedocker" ]]; then
-    #     eval "$(grep '^PKQ_CONTAINERS=' "pkq_configs/${PKQ_MODE}/remote_tmps/${batch_file}" | tail -1)"
+    #     eval "$(grep '^PKQ_CONTAINERS=' "pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/${batch_file}" | tail -1)"
     #     clearflag=0
     #     for _ctn in "${PKQ_CONTAINERS[@]}"; do
     #         echo "removing ${_ctn}"
@@ -278,7 +278,7 @@ EOF
     #     fi
     # fi
     # touch ".submit_marker"
-    source pkq_configs/remote/remote_tmps/remote2.sh
+    source pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
     if [[ -f pkq_configs/remote/template.sh ]]; then
         cat pkq_configs/remote/template.sh >>pkq_configs/remote3.sh
     fi
@@ -291,7 +291,7 @@ EOF
     else
         source pkq_configs/remote3.sh
     fi
-    # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/remote.sh
+    # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
 
 }
 
@@ -306,14 +306,14 @@ if [[ "$1" == *"local.sh" ]]; then
     _project_name=$(basename "$_project_dir")
     echo "_project_name, $_project_name"
 
-    export server_name=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
+    export PKQ_SERVER_NAME=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
 
     PKQ_MODE=$(sed -n 's/^export PKQ_MODE=//p' "$1" | tail -1)
     if [[ -z ${PKQ_MODE} ]]; then
         PKQ_MODE=remotenone
     fi
-    echo "server name, ${server_name}"
-    case "$server_name" in
+    echo "server name, ${PKQ_SERVER_NAME}"
+    case "$PKQ_SERVER_NAME" in
     berzeliusampere | jusuf | juwelscluster | arrhenius)
         PKQ_MODE=remoteslurm
         ;;
@@ -331,7 +331,7 @@ if [[ "$1" == *"local.sh" ]]; then
         ;;
     esac
 
-    case "${server_name}" in
+    case "${PKQ_SERVER_NAME}" in
     juwels | jusuf | juwelscluster)
         export run_dir_home=/p/project1/trustllm-eu/mao4
         ;;
@@ -351,7 +351,7 @@ if [[ "$1" == *"local.sh" ]]; then
         export run_dir_home=/nobackup/proj/disk/naiss2026-3-658/personal/jinma63
         ;;
     *)
-        echo "ERROR: unknown server '$server_name'"
+        echo "ERROR: unknown server '$PKQ_SERVER_NAME'"
         exit 1
         ;;
     esac
@@ -362,22 +362,22 @@ if [[ "$1" == *"local.sh" ]]; then
 
     if [[ "$3" == "fileupload" ]]; then
         remote_ts=$(
-            ssh -o ConnectTimeout=10 -o BatchMode=yes "$server_name" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
+            ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
         )
         echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
         bash common_tools/sync_and_commit_repo.sh "common_tools"
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
         for dir in berzeliusampere arrhenius; do
-            rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${server_name}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
+            rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
         done
 
         tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
-        rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$server_name":${tmp_path}/
+        rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
         [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
 
         tmp_path=${run_dir_home}/project_remote_pkq/project_nogit/common_tools/
-        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$server_name":${tmp_path}/
+        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$PKQ_SERVER_NAME":${tmp_path}/
 
         echo "rsync done"
         exit
@@ -394,7 +394,7 @@ if [[ "$1" == *"local.sh" ]]; then
 
     mkdir -p "$local_dir"
     nohup_log="${local_dir}/nohup_monitor.log"
-    #     ssh "$server_name" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
+    #     ssh "$PKQ_SERVER_NAME" "ss -tlnp 2>/dev/null" | grep -oE '0\.0\.0\.0:[0-9]+' | awk -F: '{print $2}' | sort -un >"$ports_before" || true
     # fi
 
     info_before_remote="${local_dir}/info_before_remote.txt"
@@ -402,18 +402,18 @@ if [[ "$1" == *"local.sh" ]]; then
 
     _ssh_rc=0
     echo "ssh start"
-    ssh -o ConnectTimeout=10 -t "$server_name" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name} ${_git_branch} $server_name ${run_dir_remote} ${PKQ_RUN_START_TIME}" # >>"$nohup_log" 2>&1 &
+    ssh -o ConnectTimeout=10 -t "$PKQ_SERVER_NAME" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name} ${_git_branch} $PKQ_SERVER_NAME ${run_dir_remote} ${PKQ_RUN_START_TIME}" # >>"$nohup_log" 2>&1 &
     # _ssh_pid=$!
     # (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     # _timer_pid=$!
     # wait "$_ssh_pid" 2>/dev/null || _ssh_rc=$?
     # kill "$_timer_pid" 2>/dev/null
     # wait "$_timer_pid" 2>/dev/null || true
-    mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps
-    rsync -a "$server_name":"${run_dir_remote}/pkq_configs/remote/remote_tmps/" "./${_project_name}/pkq_configs/remote/remote_tmps/"
+    mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
+    rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/" "./${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/"
 
     # if [[ $_ssh_rc -ne 0 ]]; then
-    #     echo "ERROR: remote setup on $server_name failed (exit code $_ssh_rc)"
+    #     echo "ERROR: remote setup on $PKQ_SERVER_NAME failed (exit code $_ssh_rc)"
     #     exit $_ssh_rc
     # fi
 
@@ -426,7 +426,7 @@ if [[ "$1" == *"local.sh" ]]; then
         exit 0
     fi
 
-    rsync -a --remove-source-files "$server_name":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
+    rsync -a --remove-source-files "$PKQ_SERVER_NAME":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
 
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
@@ -453,7 +453,7 @@ if [[ "$1" == *"local.sh" ]]; then
         # wait "$tail_pid" 2>/dev/null || true
         # echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
     elif [ -z "${remote_job_id}" ]; then
-        echo "FAILED: remote setup on $server_name failed."
+        echo "FAILED: remote setup on $PKQ_SERVER_NAME failed."
     fi
 elif [[ "$1" == "remote"* ]]; then
     export PKQ_MODE=$1
@@ -478,7 +478,7 @@ elif [[ "$1" == "remote"* ]]; then
     cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
     source pkq_configs/remote/remote_tmps/local.sh
     # the following file is init on local
-    cat >pkq_configs/remote/remote_tmps/remote.sh <<EOF
+    cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<EOF
 
 set -e
 # set following vars based on your setting, and then make sure this repo is cloned to ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
@@ -486,8 +486,8 @@ export RUN_DIR_HOME=
 export RUN_PROJ=
 
 EOF
-    echo 'cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}' >>pkq_configs/remote/remote_tmps/remote.sh
-    cat pkq_configs/remote/remote_tmps/local.sh >>pkq_configs/remote/remote_tmps/remote.sh
+    echo 'cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}' >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
+    cat pkq_configs/remote/remote_tmps/local.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
     echo "PKQ_PYTHON, ${PKQ_PYTHON}"
     _remote_setup
     if [[ "${PKQ_MODE}" == "remoteslurm" ]]; then
@@ -504,7 +504,7 @@ EOF
             PKQ_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
             PKQ_SLURM_RUN_ARGS=""
         fi
-        cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/slurm.sh
+        cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh
         sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out --error=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
@@ -570,13 +570,13 @@ EOF
 
         fi
 
-        cat pkq_configs/remote/remote_tmps/remote.sh pkq_configs/remote/remote_tmps/remote2.sh >pkq_configs/remote/remote_tmps/remote_all.sh
-        echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/slurm.sh" >>pkq_configs/remote/remote_tmps/remote_all.sh
+        cat pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh pkq_configs/remote3.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote_all.sh
+        echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh" >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote_all.sh
 
         while true; do
             if [[ ! -f "remote_job_id.txt" ]]; then
-                echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/slurm.sh"
-                SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/slurm.sh) || {
+                echo "cd ${PWD} && sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh"
+                SBATCH_OUT=$(sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh) || {
                     return 1 2>/dev/null
                     exit 1
                 }
@@ -595,7 +595,7 @@ EOF
 
         # sbatch -A berzelius-2026-50 --partition=berzelius-cpu --cpus-per-task=1 --dependency=afterany:${PKQ_JOB_ID} -t 5 -o /dev/null -e /dev/null --wrap="rm -f ${PKQ_JOB_ID}.txt"
     elif [[ "${PKQ_MODE}" == "remotedockercompose" ]]; then
-        cat >>pkq_configs/remote/remote_tmps/remote.sh <<'EOF'
+        cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<'EOF'
 docker compose ${DOCKER_ARGS} up --force-recreate -d 2>&1
 EOF
         # Without -d, the docker compose up process would stay in the foreground, streaming container logs until you hit Ctrl+C or the containers stop.
@@ -736,7 +736,7 @@ EOF
         fi
 
     elif [[ "${PKQ_MODE}" == "remotedocker" ]]; then
-        cat >>pkq_configs/remote/remote_tmps/remote.sh <<'EOF'
+        cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<'EOF'
 if [[ ${PKQ_NOTEBOOK} == 1 ]]; then
     echo "ARGS_AFTER_ENTRY:"
     echo "${ARGS_AFTER_ENTRY[@]}"

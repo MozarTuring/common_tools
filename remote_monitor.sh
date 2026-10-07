@@ -129,10 +129,6 @@ sync_remote() {
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
     #     rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    ssh -o ConnectTimeout=10 "$host" "cd '${remote_dir}' && find . -newermt '$ts' -size -1024k -type f" 2>/dev/null |
-        rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
-
-    # delete only stale ipynb files from local
     rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/pkq_configs/" "$local_dir/pkq_configs/"
 
     rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/pkqlogs/${PKQ_RUN_START_TIME}" "$local_dir/pkqlogs/"
