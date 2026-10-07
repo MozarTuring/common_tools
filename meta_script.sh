@@ -410,7 +410,7 @@ if [[ "$1" == *"local.sh" ]]; then
     # kill "$_timer_pid" 2>/dev/null
     # wait "$_timer_pid" 2>/dev/null || true
     mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
-    rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/" "./${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/"
+    rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}" "./${_project_name}/pkq_configs/remote/remote_tmps/"
 
     # if [[ $_ssh_rc -ne 0 ]]; then
     #     echo "ERROR: remote setup on $PKQ_SERVER_NAME failed (exit code $_ssh_rc)"
@@ -478,6 +478,7 @@ elif [[ "$1" == "remote"* ]]; then
     cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
     source pkq_configs/remote/remote_tmps/local.sh
     # the following file is init on local
+    mkdir -p pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
     cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<EOF
 
 set -e
