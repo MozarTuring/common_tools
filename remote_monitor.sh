@@ -180,6 +180,11 @@ while true; do
 "
 
     is_job_running && run_flag=0 || run_flag=$?
+    # 255 = ssh itself failed (network drop), not an answer from squeue/kill/docker: wait for ssh again
+    if [[ ${run_flag} -eq 255 ]]; then
+        echo "$(date '+%H:%M:%S') - ssh failed while checking job state, waiting for ssh"
+        continue
+    fi
 
     sleep ${_interval}
 
