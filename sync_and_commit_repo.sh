@@ -21,11 +21,11 @@ git add -A >/dev/null
 )
 export last_commit=$(git rev-parse HEAD)
 export _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
-if [[ -n "$server_name" ]]; then
+if [[ -n "$PKQ_SERVER_NAME" ]]; then
     _remote_proj="${repo_path}_${_git_branch}"
     export run_dir_remote="${run_dir_home}/project_remote_pkq/${_remote_proj}"
     echo "remote dir: ${run_dir_remote}"
-    rsync -rlt --no-links --delete --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$server_name":${run_dir_remote}/
+    rsync -rlt --no-links --delete --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$PKQ_SERVER_NAME":${run_dir_remote}/
     tmppath="/Users/jinma63/Desktop/baidu/project_nogit/${repo_path}"
     if [[ ! -d ${tmppath} ]]; then
         mkdir -p ${tmppath}
@@ -33,7 +33,7 @@ if [[ -n "$server_name" ]]; then
     if [[ ! -L "./pkq_configs/docs" ]]; then
         ln -sfn ${tmppath} ./pkq_configs/docs
     fi
-    rsync -av --safe-links ${tmppath} "$server_name":${run_dir_remote}/../project_nogit/
+    rsync -av --safe-links ${tmppath} "$PKQ_SERVER_NAME":${run_dir_remote}/../project_nogit/
 else
     echo "no server name"
     exit
