@@ -284,12 +284,8 @@ EOF
     fi
     cat pkq_configs/common.sh >>pkq_configs/remote3.sh
     echo "pip list > pkq_configs/packages.txt" >>pkq_configs/remote3.sh
-    if [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
-        if [[ -n ${PKQ_INTERACTIVE} ]]; then
-            interactive -A naiss2026-3-658-gpu --partition gpu --gpus 1
-        fi
-    else
-        source pkq_configs/remote3.sh
+    if [[ -n ${PKQ_INTERACTIVE} ]]; then
+        interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
     fi
     # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
 
@@ -442,7 +438,7 @@ if [[ "$1" == *"local.sh" ]]; then
     echo "Remote job ID: $remote_job_id"
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" ]] && [[ "$3" == "lastrun" || "$4" == "lastrun" ]]; then
         echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} > ~/project/${_project_name}/pkq_configs/select_running_job.nohup 2>&1 &"
-        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" > ~/project/${_project_name}/pkq_configs/select_running_job.nohup 2>&1 &
+        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" >~/project/${_project_name}/pkq_configs/select_running_job.nohup 2>&1 &
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
@@ -523,7 +519,8 @@ EOF
                 export TORCH_CUDA_ARCH_LIST="9.0"
             fi
 
-            sbatch_args="${sbatch_args} --gpus=${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A berzelius-2026-243  --partition=${PKQ_PARTITION}"
+            PKQ_SLURM_PROJ="berzelius-2026-243"
+            sbatch_args="${sbatch_args} --gpus=${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A ${PKQ_SLURM_PROJ} --partition=${PKQ_PARTITION}"
 
         elif [[ "${PKQ_SERVER_NAME}" == "arrhenius" ]]; then
 
@@ -536,8 +533,9 @@ EOF
                 export TORCH_CUDA_ARCH_LIST="9.0"
                 PKQ_PARTITION="gpu"
             fi
+            PKQ_SLURM_PROJ="naiss2026-3-658-gpu"
 
-            sbatch_args="${sbatch_args} --gres=gpu:${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A naiss2026-3-658-gpu  --partition=${PKQ_PARTITION}"
+            sbatch_args="${sbatch_args} --gres=gpu:${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A ${PKQ_SLURM_PROJ} --partition=${PKQ_PARTITION}"
 
         elif [[ "${PKQ_SERVER_NAME}" == "jusuf" ]]; then
             sinfo -o "%P %m %c %l %N" -p batch

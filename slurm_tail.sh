@@ -10,9 +10,10 @@ wait $!
 
 remote_dir=${PWD}
 echo "slurm remote dir, ${remote_dir}"
-ts=$(cat "${RUN_DIR_HOME}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt")
-echo "slurm ts, ${ts}, ${PKQ_RUN_START_TIME}"
 
-# mkdir -p "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}" && rsync -a ./  "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}/" 2>&1 || echo "WARNING: failed to back up changed files on remote"
+# ts=$(cat "${RUN_DIR_HOME}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt")
+# echo "slurm ts, ${ts}, ${PKQ_RUN_START_TIME}"
+
+# mkdir -p "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}" && rsync -a ./  "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}/" 2>&1
 
 # rm ${RUN_DIR_HOME}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt
