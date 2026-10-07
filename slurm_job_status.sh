@@ -8,6 +8,8 @@ job_id="$2"
 once="${3:-}"
 # wait_for_ssh.sh uses $host
 [[ -n "$ssh_cmd" ]] && host="${ssh_cmd##* }"
+# BatchMode: fail (rc 255) instead of prompting for a 2FA code when no ControlMaster connection is alive
+ssh_cmd="${ssh_cmd/#ssh /ssh -o BatchMode=yes }"
 if [[ -z "$job_id" ]]; then
     echo "Usage: slurm_job_status.sh <ssh_cmd> <job_id>"
     echo "  ssh_cmd: 'ssh myhost' for remote, '' for local"
