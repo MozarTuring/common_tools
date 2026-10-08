@@ -193,6 +193,19 @@ if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
 fi
 EOF
+                if (("${PKQ_GPU_NUM}" == "0")); then
+                    PKQ_PARTITION="berzelius-cpu"
+                    export CPUS_PER_TASK=32
+                    export MEM_PER_TASK="128G"
+
+                else
+                    export CPUS_PER_TASK=$((8 * PKQ_GPU_NUM))
+                    export MEM_PER_TASK="$((24 * PKQ_GPU_NUM))G"
+                    PKQ_PARTITION="berzelius"
+                    export TORCH_CUDA_ARCH_LIST="9.0"
+                fi
+
+                PKQ_SLURM_PROJ="berzelius-2026-243"
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
                 cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
@@ -200,6 +213,16 @@ export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb"
 fi
 export PKQ_ARCH="aarch64"
 EOF
+                if (("${PKQ_GPU_NUM}" == "0")); then
+                    PKQ_PARTITION="cpu"
+                    export CPUS_PER_TASK=32
+                    export MEM_PER_TASK="128G"
+
+                else
+                    export TORCH_CUDA_ARCH_LIST="9.0"
+                    PKQ_PARTITION="gpu"
+                fi
+                PKQ_SLURM_PROJ="naiss2026-3-658-gpu"
             fi
 
             cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
@@ -409,7 +432,6 @@ if [[ "$1" == *"local.sh" ]]; then
         exit
     fi
 
-
     { [[ -f "$_project_name/pkq_configs/local_pre.sh" ]] && source "$_project_name/pkq_configs/local_pre.sh" || true; }
     cd ${_project_name}
     _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
@@ -535,34 +557,9 @@ EOF
         # berzelius-2026-50
         # berzelius-2026-243
         if [[ "${PKQ_SERVER_NAME}" == "berzeliusampere" ]]; then
-            if (("${PKQ_GPU_NUM}" == "0")); then
-                PKQ_PARTITION="berzelius-cpu"
-                export CPUS_PER_TASK=32
-                export MEM_PER_TASK="128G"
-
-            else
-                export CPUS_PER_TASK=$((8 * PKQ_GPU_NUM))
-                export MEM_PER_TASK="$((24 * PKQ_GPU_NUM))G"
-                PKQ_PARTITION="berzelius"
-                export TORCH_CUDA_ARCH_LIST="9.0"
-            fi
-
-            PKQ_SLURM_PROJ="berzelius-2026-243"
             sbatch_args="${sbatch_args} --gpus=${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A ${PKQ_SLURM_PROJ} --partition=${PKQ_PARTITION}"
 
         elif [[ "${PKQ_SERVER_NAME}" == "arrhenius" ]]; then
-
-            if (("${PKQ_GPU_NUM}" == "0")); then
-                PKQ_PARTITION="cpu"
-                export CPUS_PER_TASK=32
-                export MEM_PER_TASK="128G"
-
-            else
-                export TORCH_CUDA_ARCH_LIST="9.0"
-                PKQ_PARTITION="gpu"
-            fi
-            PKQ_SLURM_PROJ="naiss2026-3-658-gpu"
-
             sbatch_args="${sbatch_args} --gres=gpu:${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A ${PKQ_SLURM_PROJ} --partition=${PKQ_PARTITION}"
 
         elif [[ "${PKQ_SERVER_NAME}" == "jusuf" ]]; then
