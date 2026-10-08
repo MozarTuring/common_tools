@@ -178,7 +178,7 @@ _remote_setup() {
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_PKQ=1
     rm pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh || echo "no remote2.sh"
-    rm pkq_configs/remote/remote3.sh || echo "no remote3.sh"
+    rm remotepkq3.sh || echo "no remotepkq3.sh"
     if [ -n ${PKQ_PYTHON} ]; then
         if [[ ${PKQ_MODE} == "remotenone" ]]; then
             cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
@@ -234,7 +234,7 @@ fi
 echo "condaenv path ${PKQ_CONDAENV}"
 EOF
             #            module --force purge
-            cat >pkq_configs/remote3.sh <<'EOF'
+            cat >remotepkq3.sh <<'EOF'
 module --force purge
 module load ${PKQ_MODULES}
 
@@ -242,7 +242,7 @@ EOF
 
         fi
 
-        cat >>pkq_configs/remote3.sh <<'EOF'
+        cat >> remotepkq3.sh <<'EOF'
 if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
     conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} pip -y
 fi
@@ -303,10 +303,10 @@ EOF
     # touch ".submit_marker"
     source pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
     if [[ -f pkq_configs/remote/template.sh ]]; then
-        cat pkq_configs/remote/template.sh >>pkq_configs/remote3.sh
+        cat pkq_configs/remote/template.sh >>remotepkq3.sh
     fi
-    cat pkq_configs/common.sh >>pkq_configs/remote3.sh
-    echo "pip list > pkq_configs/packages.txt" >>pkq_configs/remote3.sh
+    cat pkq_configs/common.sh >> remotepkq3.sh
+    echo "pip list > pkq_configs/packages.txt" >> remotepkq3.sh
     if [[ -n ${PKQ_INTERACTIVE} ]]; then
         interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
     fi
@@ -594,7 +594,7 @@ EOF
 
         fi
 
-        cat pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh pkq_configs/remote3.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote_all.sh
+        cat pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh remotepkq3.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote_all.sh
         echo "sbatch ${sbatch_args} pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh" >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote_all.sh
 
         while true; do
