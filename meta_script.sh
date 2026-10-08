@@ -294,13 +294,30 @@ EOF
 if [[ "$1" == *"local.sh" ]]; then
     PKQ_RUN_START_TIME=$2
     echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
-    trap 'echo "ERROR: command failed at line $LINENO (exit code $?)" >&2' ERR
+    # on any error, scancel every job recorded in ${local_dir_pre}/remote_job_id.txt
+    # lines: server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME (non-slurm lines have no numeric job_id, skipped)
+    _cancel_recorded_jobs() {
+        local _rc=$1 _line=$2
+        trap - ERR
+        echo "ERROR: command failed at line ${_line} (exit code ${_rc})" >&2
+        local _jobs_file="${local_dir_pre}/remote_job_id.txt"
+        if [[ -n "${local_dir_pre}" && -s "${_jobs_file}" ]]; then
+            while IFS=, read -r _srv _jid _rest <&3; do
+                [[ "${_jid}" =~ ^[0-9]+$ ]] || continue
+                echo "scancel ${_srv},${_jid}" >&2
+                ssh -o ConnectTimeout=10 "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed" >&2
+            done 3<"${_jobs_file}"
+        fi
+        exit "${_rc}"
+    }
+    trap '_cancel_recorded_jobs $? $LINENO' ERR
     echo "abspath, $1"
     _project_dir=$(cd "$(dirname "$1")"/../../../ && pwd)
 
     echo "project_dir, ${_project_dir}"
     _project_name=$(basename "$_project_dir")
     echo "_project_name, $_project_name"
+    local_dir_pre="$HOME/project/zzzpkqoutput/${_project_name}"
 
     export PKQ_SERVER_NAME=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
 
@@ -378,7 +395,6 @@ if [[ "$1" == *"local.sh" ]]; then
         echo "rsync done"
         exit
     fi
-    local_dir_pre="$HOME/project/zzzpkqoutput/${_project_name}"
     { [[ -f "$_project_name/pkq_configs/local_pre.sh" ]] && source "$_project_name/pkq_configs/local_pre.sh" || true; }
     cd ${_project_name}
     _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
