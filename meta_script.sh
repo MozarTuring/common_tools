@@ -234,11 +234,12 @@ fi
 echo "condaenv path ${PKQ_CONDAENV}"
 module --force purge
 module load ${PKQ_MODULES}
-if [[ ! -d ${RUN_DIR_HOME}/pkqcondaenv/base ]]; then
-    conda create -p ${RUN_DIR_HOME}/pkqcondaenv/base pip -y
+PKQTMP=${RUN_DIR_HOME}/pkqcondaenv/pkqbase
+if [[ ! -d ${PKQTMP} ]]; then
+    conda create -p ${PKQTMP} pip -y
     pip install -q huggingface_hub
 fi
-conda activate ${RUN_DIR_HOME}/pkqcondaenv/base
+conda activate ${PKQTMP}
 which python
 python --version
 which pip
