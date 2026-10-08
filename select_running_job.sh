@@ -23,10 +23,17 @@ PKQ_MODE="$2"
 _project_name=$(basename "$(dirname "${jobs_file}")")
 _tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# snapshot the jobs file once, so later modifications of it don't affect the selection loop
+_job_lines=()
+while IFS= read -r _line || [[ -n "${_line}" ]]; do
+    _job_lines+=("${_line}")
+done <"${jobs_file}"
+
 run_server=""
 run_job=""
 while [[ -z "${run_job}" ]]; do
-    while IFS=, read -r _srv _jid _rdh _br _ldir _stime <&3; do
+    for _line in "${_job_lines[@]}"; do
+        IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_line}"
         [[ -z "${_jid}" ]] && continue
         echo "check ${_srv},${_jid}"
         bash "${_tools_dir}/slurm_job_status.sh" "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
@@ -41,7 +48,7 @@ while [[ -z "${run_job}" ]]; do
             run_status=$([[ ${_st} -eq 0 ]] && echo "RUNNING" || echo "no longer in queue")
             break
         fi
-    done 3<"${jobs_file}"
+    done
     [[ -z "${run_job}" ]] && sleep 30
 done
 echo "${run_server},${run_job} is ${run_status}, cancelling the others"

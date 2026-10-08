@@ -467,8 +467,8 @@ if [[ "$1" == *"local.sh" ]]; then
 
     echo "Remote job ID: $remote_job_id"
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" ]] && [[ "$3" == "lastrun" || "$4" == "lastrun" ]]; then
-        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} > ~/project/${_project_name}/pkq_configs/select_running_job.nohup 2>&1 &"
-        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" >~/project/${_project_name}/pkq_configs/select_running_job.nohup 2>&1 &
+        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} > ~/project/zzzpkqoutput/${_project_name}/select_running_job/${PKQ_RUN_START_TIME} 2>&1 &"
+        nohup bash ~/project/common_tools/select_running_job.sh "${local_dir_pre}/remote_job_id.txt" "${PKQ_MODE}" > ~/project/zzzpkqoutput/${_project_name}/select_running_job/${PKQ_RUN_START_TIME} 2>&1 &
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
