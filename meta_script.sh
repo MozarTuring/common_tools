@@ -237,12 +237,12 @@ module load ${PKQ_MODULES}
 PKQTMP=${RUN_DIR_HOME}/pkqcondaenv/pkqbase
 if [[ ! -d ${PKQTMP} ]]; then
     conda create -p ${PKQTMP} pip -y
-    pip install -q huggingface_hub
 fi
 conda activate ${PKQTMP}
 which python
 python --version
 which pip
+pip install -q huggingface_hub
 EOF
             cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
 
