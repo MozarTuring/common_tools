@@ -422,6 +422,7 @@ if [[ "$1" == *"local.sh" ]]; then
     # kill "$_timer_pid" 2>/dev/null
     # wait "$_timer_pid" 2>/dev/null || true
     mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
+    run_dir_remote="${run_dir_home}/project_remote_runs/${PKQ_RUN_START_TIME}"
     rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}" "./${_project_name}/pkq_configs/remote/remote_tmps/"
 
     # if [[ $_ssh_rc -ne 0 ]]; then
