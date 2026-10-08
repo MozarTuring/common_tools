@@ -35,7 +35,7 @@ local_dir="$1"
 shift
 PKQ_RUN_START_TIME="$1"
 
-remote_dir="${run_dir_home}/project_remote_pkq/${_project_name}_${_git_branch}"
+remote_dir="${run_dir_home}/project_remote_runs/${PKQ_RUN_START_TIME}"
 
 port_forward=false
 ports_before_file=""

@@ -517,6 +517,9 @@ EOF
             PKQ_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
             PKQ_SLURM_RUN_ARGS=""
         fi
+        mkdir -p ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
+        rsync -a ./ ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}/
+        cd ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
         cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh
         sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out --error=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
