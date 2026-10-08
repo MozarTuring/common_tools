@@ -2959,6 +2959,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local run_flags = ""
 	if index == 1 then
 		run_flags = run_flags .. " firstrun"
+		vim.fn.delete(log_dir .. "/remote_job_id.txt")
 	end
 	if index == #batch_entries then
 		run_flags = run_flags .. " lastrun"
