@@ -232,7 +232,20 @@ if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
+module --force purge
+module load ${PKQ_MODULES}
+if [[ ! -d ${RUN_DIR_HOME}/pkqcondaenv/base ]]; then
+    conda create -p ${RUN_DIR_HOME}/pkqcondaenv/base pip -y
+    pip install -q huggingface_hub
+fi
+conda activate ${RUN_DIR_HOME}/pkqcondaenv/base
+which python
+python --version
+which pip
 EOF
+            cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
+
+
             #            module --force purge
             cat >remotepkq3.sh <<'EOF'
 module --force purge
