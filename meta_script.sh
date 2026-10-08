@@ -192,6 +192,7 @@ EOF
 if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
 fi
+export PKQ_LOGIN_MODULES=${PKQ_MODULES}
 EOF
                 if (("${PKQ_GPU_NUM}" == "0")); then
                     PKQ_PARTITION="berzelius-cpu"
@@ -211,6 +212,7 @@ EOF
 if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb"
 fi
+export PKQ_LOGIN_MODULES="Miniforge/26.3.2-2-eb"
 export PKQ_ARCH="aarch64"
 EOF
                 if (("${PKQ_GPU_NUM}" == "0")); then
@@ -233,7 +235,7 @@ if [ -z ${PKQ_CONDAENV} ]; then
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
 module --force purge
-module load ${PKQ_MODULES}
+module load ${PKQ_LOGIN_MODULES}
 PKQTMP=${RUN_DIR_HOME}/pkqcondaenv/pkqbase
 if [[ ! -d ${PKQTMP} ]]; then
     conda create -p ${PKQTMP} pip -y
