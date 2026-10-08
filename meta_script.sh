@@ -294,6 +294,19 @@ EOF
 if [[ "$1" == *"local.sh" ]]; then
     PKQ_RUN_START_TIME=$2
     echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
+    # _retry_ssh <host> <cmd...>: run an ssh/rsync command; on exit code 255 (ssh connection failed)
+    # wait for the connection via wait_for_ssh.sh and retry, so connection errors never reach the ERR trap
+    _retry_ssh() {
+        local _host=$1 _rc
+        shift
+        while true; do
+            "$@" && return 0 || _rc=$?
+            [[ ${_rc} -eq 255 ]] || return ${_rc}
+            echo "ssh connection to ${_host} failed (exit code 255), waiting for ssh" >&2
+            host=${_host}
+            source "$(dirname "${BASH_SOURCE[0]}")/wait_for_ssh.sh" >&2
+        done
+    }
     # on any error, scancel every job recorded in ${local_dir_pre}/remote_job_id.txt
     # lines: server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME (non-slurm lines have no numeric job_id, skipped)
     _cancel_recorded_jobs() {
@@ -305,7 +318,7 @@ if [[ "$1" == *"local.sh" ]]; then
             while IFS=, read -r _srv _jid _rest <&3; do
                 [[ "${_jid}" =~ ^[0-9]+$ ]] || continue
                 echo "scancel ${_srv},${_jid}" >&2
-                ssh -o ConnectTimeout=10 "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed" >&2
+                _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed" >&2
             done 3<"${_jobs_file}"
         fi
         exit "${_rc}"
@@ -375,22 +388,22 @@ if [[ "$1" == *"local.sh" ]]; then
 
     if [[ "$3" == "fileupload" ]]; then
         remote_ts=$(
-            ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
+            _retry_ssh "$PKQ_SERVER_NAME" ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
         )
         echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
         bash common_tools/sync_and_commit_repo.sh "common_tools"
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
         for dir in berzeliusampere arrhenius; do
-            rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
+            _retry_ssh "$PKQ_SERVER_NAME" rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
         done
 
         tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
-        rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
+        _retry_ssh "$PKQ_SERVER_NAME" rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
         [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
 
         tmp_path=${run_dir_home}/project_remote_pkq/project_nogit/common_tools/
-        rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$PKQ_SERVER_NAME":${tmp_path}/
+        _retry_ssh "$PKQ_SERVER_NAME" rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$PKQ_SERVER_NAME":${tmp_path}/
 
         echo "rsync done"
         exit
@@ -423,7 +436,7 @@ if [[ "$1" == *"local.sh" ]]; then
     # wait "$_timer_pid" 2>/dev/null || true
     mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
     run_dir_remote="${run_dir_home}/project_remote_runs/${PKQ_RUN_START_TIME}"
-    rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}" "./${_project_name}/pkq_configs/remote/remote_tmps/"
+    _retry_ssh "$PKQ_SERVER_NAME" rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}" "./${_project_name}/pkq_configs/remote/remote_tmps/"
 
     # if [[ $_ssh_rc -ne 0 ]]; then
     #     echo "ERROR: remote setup on $PKQ_SERVER_NAME failed (exit code $_ssh_rc)"
@@ -439,7 +452,7 @@ if [[ "$1" == *"local.sh" ]]; then
         exit 0
     fi
 
-    rsync -a --remove-source-files "$PKQ_SERVER_NAME":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
+    _retry_ssh "$PKQ_SERVER_NAME" rsync -a --remove-source-files "$PKQ_SERVER_NAME":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
 
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage: select_running_job.sh <jobs_file> <pkq_mode>
 #   jobs_file: one line per job: server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME
-# Waits until one job is running, scancels the others and starts remote_monitor on the running one.
+# Waits until one job is running or no longer in queue, scancels the others and starts remote_monitor on it.
 
 set -e
 
@@ -26,32 +26,25 @@ _tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 run_server=""
 run_job=""
 while [[ -z "${run_job}" ]]; do
-    _alive=0
     while IFS=, read -r _srv _jid _rdh _br _ldir _stime <&3; do
         [[ -z "${_jid}" ]] && continue
         echo "check ${_srv},${_jid}"
         bash "${_tools_dir}/slurm_job_status.sh" "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
-        if [[ ${_st} -eq 0 ]]; then
+        # 0 running, 1 no longer in queue (finished/failed): monitor this one
+        if [[ ${_st} -eq 0 || ${_st} -eq 1 ]]; then
             run_server=${_srv}
             run_job=${_jid}
             run_dir_home=${_rdh}
             _git_branch=${_br}
             local_dir=${_ldir}
             PKQ_RUN_START_TIME=${_stime}
+            run_status=$([[ ${_st} -eq 0 ]] && echo "RUNNING" || echo "no longer in queue")
             break
-        elif [[ ${_st} -ne 1 ]]; then
-            _alive=1
         fi
     done 3<"${jobs_file}"
-    if [[ -z "${run_job}" ]]; then
-        if [[ ${_alive} -eq 0 ]]; then
-            echo "ERROR: no job in ${jobs_file} is pending or running"
-            exit 1
-        fi
-        sleep 30
-    fi
+    [[ -z "${run_job}" ]] && sleep 30
 done
-echo "${run_server},${run_job} is RUNNING, cancelling the others"
+echo "${run_server},${run_job} is ${run_status}, cancelling the others"
 while IFS=, read -r _srv _jid _rest <&3; do
     [[ -z "${_jid}" || ("${_srv}" == "${run_server}" && "${_jid}" == "${run_job}") ]] && continue
     echo "scancel ${_srv},${_jid}"
