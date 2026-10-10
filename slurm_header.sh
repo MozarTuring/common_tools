@@ -29,7 +29,8 @@ echo "LD_LIBRARY_PATH, ${LD_LIBRARY_PATH}"
 conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
 
 which python
-python -m  pip list >pkq_configs/packages.txt
+mkdir -p pkq_configs/packages
+python -m pip list > pkq_configs/packages/${PKQ_SERVER_NAME}.txt
 
 bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log &
 
