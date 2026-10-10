@@ -186,6 +186,14 @@ eval "$(${RUN_DIR_HOME}/miniconda3/bin/conda shell.bash hook)"
 EOF
 
         elif [[ ${PKQ_MODE} == "remoteslurm" ]]; then
+            sinfo # show partitions
+            sinfo -a -o "%N %G %f %m"
+            # Show all QOS policies and their limits
+            sacctmgr show qos format=Name,MaxWall
+            # Show your specific QOS association
+            sacctmgr show assoc where user=$USER format=User,Account,QOS
+            # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
+            sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
                 cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
@@ -203,6 +211,26 @@ EOF
                     export CPUS_PER_TASK=$((8 * PKQ_GPU_NUM))
                     export MEM_PER_TASK="$((24 * PKQ_GPU_NUM))G"
                     PKQ_PARTITION="berzelius"
+                    export TORCH_CUDA_ARCH_LIST="9.0"
+                fi
+
+                PKQ_SLURM_PROJ="berzelius-2026-243"
+            elif [[ ${PKQ_SERVER_NAME} == "berzeliushopper" ]]; then
+                cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
+if [[ -z ${PKQ_MODULES} ]]; then
+export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
+fi
+export PKQ_LOGIN_MODULES=${PKQ_MODULES}
+EOF
+                if (("${PKQ_GPU_NUM}" == "0")); then
+                    PKQ_PARTITION="berzelius-hopper-cpu"
+                    export CPUS_PER_TASK=32
+                    export MEM_PER_TASK="128G"
+
+                else
+                    export CPUS_PER_TASK=$((8 * PKQ_GPU_NUM))
+                    export MEM_PER_TASK="$((24 * PKQ_GPU_NUM))G"
+                    PKQ_PARTITION="berzelius-hopper"
                     export TORCH_CUDA_ARCH_LIST="9.0"
                 fi
 
@@ -228,12 +256,6 @@ EOF
             fi
 
             cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
-
-if [ -z ${PKQ_CONDAENV} ]; then
-    export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
-    export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
-fi
-echo "condaenv path ${PKQ_CONDAENV}"
 module --force purge
 module load ${PKQ_LOGIN_MODULES}
 PKQTMP=${RUN_DIR_HOME}/pkqcondaenv/pkqbase
@@ -248,7 +270,6 @@ pip install -q huggingface_hub
 EOF
             cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
 
-
             #            module --force purge
             cat >remotepkq3.sh <<'EOF'
 module --force purge
@@ -258,7 +279,12 @@ EOF
 
         fi
 
-        cat >> remotepkq3.sh <<'EOF'
+        cat >>remotepkq3.sh <<'EOF'
+if [ -z ${PKQ_CONDAENV} ]; then
+    export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
+    export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
+fi
+echo "condaenv path ${PKQ_CONDAENV}"
 if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
     conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} pip -y
 fi
@@ -321,8 +347,8 @@ EOF
     if [[ -f pkq_configs/remote/template.sh ]]; then
         cat pkq_configs/remote/template.sh >>remotepkq3.sh
     fi
-    cat pkq_configs/common.sh >> remotepkq3.sh
-    echo "pip list > pkq_configs/packages.txt" >> remotepkq3.sh
+    cat pkq_configs/common.sh >>remotepkq3.sh
+    echo "pip list > pkq_configs/packages.txt" >>remotepkq3.sh
     if [[ -n ${PKQ_INTERACTIVE} ]]; then
         interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
     fi
@@ -433,9 +459,7 @@ if [[ "$1" == *"local.sh" ]]; then
         bash common_tools/sync_and_commit_repo.sh "common_tools"
         bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
-        for dir in berzeliusampere arrhenius; do
-            _retry_ssh "$PKQ_SERVER_NAME" rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/${dir}" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
-        done
+        _retry_ssh "$PKQ_SERVER_NAME" rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
 
         tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
         _retry_ssh "$PKQ_SERVER_NAME" rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
@@ -551,14 +575,6 @@ EOF
     echo "PKQ_PYTHON, ${PKQ_PYTHON}"
     _remote_setup
     if [[ "${PKQ_MODE}" == "remoteslurm" ]]; then
-        sinfo # show partitions
-        sinfo -a -o "%N %G %f %m"
-        # Show all QOS policies and their limits
-        sacctmgr show qos format=Name,MaxWall
-        # Show your specific QOS association
-        sacctmgr show assoc where user=$USER format=User,Account,QOS
-        # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
-        sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
 
         if [[ ${PKQ_NOTEBOOK} == 1 ]]; then
             PKQ_RUN_COMMAND="jupyter lab --MappingKernelManager.cull_idle_timeout=3600 --MappingKernelManager.cull_interval=360 --MappingKernelManager.cull_connected=True --ip=0.0.0.0 --port=18889 --no-browser --allow-root --NotebookApp.token=''"
