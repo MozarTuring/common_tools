@@ -404,7 +404,7 @@ if [[ "$1" == *"local.sh" ]]; then
     fi
     echo "server name, ${PKQ_SERVER_NAME}"
     case "$PKQ_SERVER_NAME" in
-    berzeliusampere | jusuf | juwelscluster | arrhenius)
+    berzelius* | jusuf | juwelscluster | arrhenius)
         PKQ_MODE=remoteslurm
         ;;
     *)
