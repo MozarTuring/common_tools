@@ -218,7 +218,7 @@ EOF
             elif [[ ${PKQ_SERVER_NAME} == "berzeliushopper" ]]; then
                 cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
-export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
+export PKQ_MODULES="Miniforge3"
 fi
 export PKQ_LOGIN_MODULES=${PKQ_MODULES}
 EOF
