@@ -588,7 +588,7 @@ EOF
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
         # berzelius-2026-243
-        if [[ "${PKQ_SERVER_NAME}" == "berzeliusampere" ]]; then
+        if [[ "${PKQ_SERVER_NAME}" == "berzelius"* ]]; then
             sbatch_args="${sbatch_args} --gpus=${PKQ_GPU_NUM} --cpus-per-task=${CPUS_PER_TASK} --mem=${MEM_PER_TASK}  -A ${PKQ_SLURM_PROJ} --partition=${PKQ_PARTITION}"
 
         elif [[ "${PKQ_SERVER_NAME}" == "arrhenius" ]]; then
