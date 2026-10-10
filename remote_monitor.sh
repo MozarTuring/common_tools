@@ -232,8 +232,11 @@ while true; do
         #     find . -newermt '$ts' -type f | rsync -a --files-from=- ./ '${remote_dir}_backup/${PKQ_RUN_START_TIME}/'" 2>&1 ||
 
         fetch_new_content
-        mkdir -p "$local_dir/../backup/${host}/${PKQ_RUN_START_TIME}"
-        rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/" "$local_dir/../backup/${host}/${PKQ_RUN_START_TIME}/" && echo "backup done" && ssh $host "rm -rf ${remote_dir}" && echo "remote delete done"
+        ssh -q "$host" "[[ -f \"${remote_dir}/pkq_run_succeed.flag\" ]]" && file_exists=true || file_exists=false
+        if [[ ${file_exists} == true ]]; then
+            mkdir -p "$local_dir/../backup/${host}/${PKQ_RUN_START_TIME}"
+            rsync -a --timeout=60 --remove-source-files -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/" "$local_dir/../backup/${host}/${PKQ_RUN_START_TIME}/" && echo "backup"
+        fi
         echo "DONE: Remote job finished (id: ${job_id})."
         break
     fi

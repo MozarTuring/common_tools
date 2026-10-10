@@ -1872,6 +1872,7 @@ vim.keymap.set("n", ",t", function()
 
 	local curfile = vim.fn.expand("%:p")
 	local project_name = curfile:match(pkqMacHome .. "/project/([^/]+)/pkq_configs")
+		or curfile:match(pkqMacHome .. "/project/zzzpkqoutput/([^/]+)/select_running_job")
 	if project_name then
 		local word = vim.fn.expand("<cword>")
 		if word and word ~= "" then
