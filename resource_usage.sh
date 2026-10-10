@@ -16,6 +16,8 @@ GPU_SLOW_INTERVAL=5
 GPU_SLOW_AFTER=200
 # Once GPU memory is first seen above 0, sample fast and restart the count
 GPU_ACTIVE_INTERVAL=0.2
+# Checks in a row without a new max before switching to fast sampling
+GPU_ACTIVE_AFTER=10
 
 get_descendants() {
     local children
@@ -54,7 +56,10 @@ gpu_sample() {
     current_gpu_mem=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | awk '{if($1>m) m=$1} END {printf "%d", m}')
     if [ "$current_gpu_mem" -gt "$max_gpu_mem" ] 2>/dev/null; then
         max_gpu_mem=$current_gpu_mem
+        no_new_max_count=0
         echo ">>> NEW MAX GPU MEM: ${max_gpu_mem} MiB <<<"
+    else
+        ((no_new_max_count++))
     fi
     echo ""
 }
@@ -70,6 +75,7 @@ if [ "$MODE" = "machine" ]; then
 fi
 
 max_gpu_mem=0
+no_new_max_count=0
 count=0
 interval=$GPU_INTERVAL
 gpu_active=0
@@ -81,8 +87,8 @@ while keep_running; do
     fi
     gpu_sample
 
-    # First time GPU memory is in use: switch to fast sampling, restart count
-    if [ "$gpu_active" -eq 0 ] && [ "$max_gpu_mem" -gt 0 ]; then
+    # Max not surpassed in GPU_ACTIVE_AFTER checks: switch to fast sampling, restart count
+    if [ "$gpu_active" -eq 0 ] && [ "$no_new_max_count" -ge "$GPU_ACTIVE_AFTER" ]; then
         gpu_active=1
         interval=$GPU_ACTIVE_INTERVAL
         count=0

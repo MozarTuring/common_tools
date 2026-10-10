@@ -273,6 +273,7 @@ if [ -z ${PKQ_CONDAENV} ]; then
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
 EOF
+#PKQ_CONDAENV is used in slurm_header.sh
             cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
 
             cat >remotepkq3.sh <<'EOF'
