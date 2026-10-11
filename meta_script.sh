@@ -273,7 +273,7 @@ if [ -z ${PKQ_CONDAENV} ]; then
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
 EOF
-#PKQ_CONDAENV is used in slurm_header.sh
+            #PKQ_CONDAENV is used in slurm_header.sh
             cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
 
             cat >remotepkq3.sh <<'EOF'
@@ -451,26 +451,38 @@ if [[ "$1" == *"local.sh" ]]; then
     cd $HOME/project
     # server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME
     trap '_cancel_recorded_jobs $? $LINENO' ERR
-    if [[ "$3" == "fileupload" ]]; then
-        remote_ts=$(
-            _retry_ssh "$PKQ_SERVER_NAME" ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
-        )
-        echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
-        bash common_tools/sync_and_commit_repo.sh "common_tools"
-        bash common_tools/sync_and_commit_repo.sh "$_project_name"
+    # if [[ "$3" == "fileupload" ]]; then
+    remote_ts=$(
+        _retry_ssh "$PKQ_SERVER_NAME" ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
+    )
+    echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
+    bash common_tools/sync_and_commit_repo.sh "common_tools"
+    bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
-        _retry_ssh "$PKQ_SERVER_NAME" rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
+    _retry_ssh "$PKQ_SERVER_NAME" rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
 
-        tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
-        _retry_ssh "$PKQ_SERVER_NAME" rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
-        [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
+    tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
+    _retry_ssh "$PKQ_SERVER_NAME" rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
+    [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
 
-        tmp_path=${run_dir_home}/project_remote_pkq/project_nogit/common_tools/
-        _retry_ssh "$PKQ_SERVER_NAME" rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$PKQ_SERVER_NAME":${tmp_path}/
+    tmp_path=${run_dir_home}/project_remote_pkq/project_nogit/common_tools/
+    _retry_ssh "$PKQ_SERVER_NAME" rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$PKQ_SERVER_NAME":${tmp_path}/
 
-        echo "rsync done"
-        exit
+    echo "rsync done"
+
+    read -p "Press [Enter] to continue, or any other key to cancel..." -r -s -n 1 input
+
+    echo ""
+
+    if [[ -z "$input" ]]; then
+        echo "Continuing..."
+        # Place your main task commands here
+    else
+        echo "Canceled."
+        exit 1
     fi
+    # exit
+    # fi
 
     { [[ -f "$_project_name/pkq_configs/local_pre.sh" ]] && source "$_project_name/pkq_configs/local_pre.sh" || true; }
     cd ${_project_name}

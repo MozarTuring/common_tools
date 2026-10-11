@@ -234,8 +234,8 @@ while true; do
         fetch_new_content
         ssh -q "$host" "[[ -f \"${remote_dir}/pkq_run_succeed.flag\" ]]" && file_exists=true || file_exists=false
         if [[ ${file_exists} == true ]]; then
-            mkdir -p "$local_dir/../backup/${host}/${PKQ_RUN_START_TIME}"
-            rsync -a --timeout=60 --remove-source-files -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/" "$local_dir/../backup/${host}/${PKQ_RUN_START_TIME}/" && echo "backup"
+            mkdir -p "$local_dir/../backup/${PKQ_RUN_START_TIME}"
+            rsync -a --timeout=60 --remove-source-files -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/" "$local_dir/../backup/${PKQ_RUN_START_TIME}/" && echo "backup done"
         fi
         echo "DONE: Remote job finished (id: ${job_id})."
         break

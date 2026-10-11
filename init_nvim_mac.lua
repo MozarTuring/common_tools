@@ -2452,13 +2452,13 @@ vim.defer_fn(function()
 	-- After yank in visual mode, move cursor to end of selection
 	vim.keymap.set("x", "y", "ygv<Esc>", { noremap = true, silent = true, desc = "Yank and go to end" })
 	-- Remap gt/gy for buffer cycling (override LazyVim's gy = Goto Type Definition)
-	vim.keymap.set(
-		"n",
-		"gt",
-		"<cmd>BufferLineCyclePrev<CR>",
-		{ noremap = true, silent = true, desc = "Previous buffer" }
-	)
-	vim.keymap.set("n", "gy", "<cmd>BufferLineCycleNext<CR>", { noremap = true, silent = true, desc = "Next buffer" })
+	-- vim.keymap.set(
+	-- 	"n",
+	-- 	"gt",
+	-- 	"<cmd>BufferLineCyclePrev<CR>",
+	-- 	{ noremap = true, silent = true, desc = "Previous buffer" }
+	-- )
+	-- vim.keymap.set("n", "gy", "<cmd>BufferLineCycleNext<CR>", { noremap = true, silent = true, desc = "Next buffer" })
 	vim.keymap.set(
 		"v",
 		"<leader>s",
@@ -2937,6 +2937,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	-- 	return
 	-- end
 
+    -- tmpdate recreated whenever run_batch_sequence()
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	local prefix = pkqMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
@@ -2979,28 +2980,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 
 	local function start_run()
 		vim.notify(string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw), vim.log.levels.INFO)
-
-		-- vim.cmd("tabnew " .. vim.fn.fnameescape(log_file))
-		-- ToggleAutoRefresh()
-
-		-- vim.fn.jobstart({ "bash", "-c", "-l", bg_cmd }, {
-		-- 	on_exit = function(_, code)
-		-- 		vim.schedule(function()
-		-- 			if code == 0 then
-		-- 				vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
-		-- 				vim.defer_fn(function()
-		-- 					run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
-		-- 				end, 3000)
-		-- 			else
-		-- 				vim.notify(
-		-- 					string.format("Batch [%d/%d] failed (exit %d) — stopping batch", index, #batch_entries, code),
-		-- 					vim.log.levels.ERROR
-		-- 				)
-		-- 			end
-		-- 		end)
-		-- 	end,
-		-- })
-
 		local bg_mark_dir = vim.fn.fnamemodify(log_file, ":h")
 		local bg_markfile = bg_mark_dir .. "/_bg_cmd_done"
 		local bg_markfile_fail = bg_mark_dir .. "/_bg_cmd_fail"
@@ -3039,6 +3018,8 @@ end tell]],
 		vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
 
 		local bg_timer = vim.loop.new_timer()
+		-- following are inside start_run()
+		-- the schedule is started 2 seconds after timer start, and is run every 2 seconds
 		bg_timer:start(
 			2000,
 			2000,
@@ -3075,133 +3056,134 @@ end tell]],
 		seen_servers[server_name] = true
 	end
 
-	if not is_first_server then
-		start_run()
-		return
-	end
+    start_run()
+	-- if not is_first_server then
+	-- 	start_run()
+	-- 	return
+	-- end
 
-	local cmd_no_date = "bash "
-		.. pkqMacHome
-		.. "/project/common_tools/meta_script.sh "
-		.. vim.fn.shellescape(output_path)
-		.. " "
-		.. tmpdate
-		.. " fileupload"
-	local mark_dir = vim.fn.fnamemodify(log_file, ":h")
-	local markfile = mark_dir .. "/_cmd_done"
-	local markfile_fail = mark_dir .. "/_cmd_fail"
-	local terminal_cmd = cmd_no_date
-		.. " && touch "
-		.. vim.fn.shellescape(markfile)
-		.. " || touch "
-		.. vim.fn.shellescape(markfile_fail)
-	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
-	local as_fmt = as_escaped:gsub("%%", "%%%%")
-	local applescript = string.format(
-		[[tell application "Terminal"
-	set didRun to false
-	if (count of windows) > 0 then
-		repeat with w in windows
-			repeat with t in tabs of w
-				if busy of t is false then
-					do script "%s" in t
-					set didRun to true
-					exit repeat
-				end if
-			end repeat
-			if didRun then exit repeat
-		end repeat
-	end if
-	if not didRun then
-		do script "%s"
-	end if
-end tell]],
-		as_fmt,
-		as_fmt
-	)
-	vim.fn.jobstart({ "osascript", "-e", applescript }, { detach = true })
-
-	local show_prompt = function()
-		local prompt_lines = {
-			"",
-			string.format("  Batch [%d/%d]", index, #batch_entries),
-			"",
-			"  " .. entry.raw,
-			"",
-			"  Command: " .. full_cmd,
-			"",
-			"  Enter = run,  Esc = cancel",
-		}
-
-		local pbuf = vim.api.nvim_create_buf(false, true)
-		vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, prompt_lines)
-		vim.api.nvim_set_option_value("modifiable", false, { buf = pbuf })
-		vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = pbuf })
-
-		local width = 0
-		for _, l in ipairs(prompt_lines) do
-			if #l > width then
-				width = #l
-			end
-		end
-		width = math.min(math.max(width + 4, 40), vim.o.columns - 4)
-		local height = math.min(#prompt_lines, vim.o.lines - 6)
-
-		local pwin = vim.api.nvim_open_win(pbuf, true, {
-			relative = "editor",
-			row = math.floor((vim.o.lines - height) / 2),
-			col = math.floor((vim.o.columns - width) / 2),
-			width = width,
-			height = height,
-			style = "minimal",
-			border = "rounded",
-			title = string.format(" Batch [%d/%d] ", index, #batch_entries),
-			title_pos = "center",
-		})
-
-		local cancelled = false
-
-		local function close_prompt()
-			if not cancelled then
-				cancelled = true
-				if vim.api.nvim_win_is_valid(pwin) then
-					vim.api.nvim_win_close(pwin, true)
-				end
-			end
-		end
-
-		vim.keymap.set("n", "<CR>", function()
-			close_prompt()
-			start_run()
-		end, { buffer = pbuf, nowait = true })
-
-		vim.keymap.set("n", "<Esc>", function()
-			close_prompt()
-			vim.notify("Batch cancelled")
-		end, { buffer = pbuf, nowait = true })
-	end
-
-	local poll_timer = vim.uv.new_timer()
-	poll_timer:start(
-		500,
-		500,
-		vim.schedule_wrap(function()
-			if vim.fn.filereadable(markfile) == 1 then
-				poll_timer:stop()
-				poll_timer:close()
-				os.remove(markfile)
-				show_prompt()
-			elseif vim.fn.filereadable(markfile_fail) == 1 then
-				poll_timer:stop()
-				poll_timer:close()
-				os.remove(markfile_fail)
-				vim.notify(
-					string.format("meta_script.sh failed for batch [%d/%d], aborting", index, #batch_entries),
-					vim.log.levels.ERROR
-				)
-			end
-		end)
-	)
+	-- 	local cmd_no_date = "bash "
+	-- 		.. pkqMacHome
+	-- 		.. "/project/common_tools/meta_script.sh "
+	-- 		.. vim.fn.shellescape(output_path)
+	-- 		.. " "
+	-- 		.. tmpdate
+	-- 		.. " fileupload"
+	-- 	local mark_dir = vim.fn.fnamemodify(log_file, ":h")
+	-- 	local markfile = mark_dir .. "/_cmd_done"
+	-- 	local markfile_fail = mark_dir .. "/_cmd_fail"
+	-- 	local terminal_cmd = cmd_no_date
+	-- 		.. " && touch "
+	-- 		.. vim.fn.shellescape(markfile)
+	-- 		.. " || touch "
+	-- 		.. vim.fn.shellescape(markfile_fail)
+	-- 	local as_escaped = terminal_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
+	-- 	local as_fmt = as_escaped:gsub("%%", "%%%%")
+	-- 	local applescript = string.format(
+	-- 		[[tell application "Terminal"
+	-- 	set didRun to false
+	-- 	if (count of windows) > 0 then
+	-- 		repeat with w in windows
+	-- 			repeat with t in tabs of w
+	-- 				if busy of t is false then
+	-- 					do script "%s" in t
+	-- 					set didRun to true
+	-- 					exit repeat
+	-- 				end if
+	-- 			end repeat
+	-- 			if didRun then exit repeat
+	-- 		end repeat
+	-- 	end if
+	-- 	if not didRun then
+	-- 		do script "%s"
+	-- 	end if
+	-- end tell]],
+	-- 		as_fmt,
+	-- 		as_fmt
+	-- 	)
+	-- 	vim.fn.jobstart({ "osascript", "-e", applescript }, { detach = true })
+	--
+	-- 	local show_prompt = function()
+	-- 		local prompt_lines = {
+	-- 			"",
+	-- 			string.format("  Batch [%d/%d]", index, #batch_entries),
+	-- 			"",
+	-- 			"  " .. entry.raw,
+	-- 			"",
+	-- 			"  Command: " .. full_cmd,
+	-- 			"",
+	-- 			"  Enter = run,  Esc = cancel",
+	-- 		}
+	--
+	-- 		local pbuf = vim.api.nvim_create_buf(false, true)
+	-- 		vim.api.nvim_buf_set_lines(pbuf, 0, -1, false, prompt_lines)
+	-- 		vim.api.nvim_set_option_value("modifiable", false, { buf = pbuf })
+	-- 		vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = pbuf })
+	--
+	-- 		local width = 0
+	-- 		for _, l in ipairs(prompt_lines) do
+	-- 			if #l > width then
+	-- 				width = #l
+	-- 			end
+	-- 		end
+	-- 		width = math.min(math.max(width + 4, 40), vim.o.columns - 4)
+	-- 		local height = math.min(#prompt_lines, vim.o.lines - 6)
+	--
+	-- 		local pwin = vim.api.nvim_open_win(pbuf, true, {
+	-- 			relative = "editor",
+	-- 			row = math.floor((vim.o.lines - height) / 2),
+	-- 			col = math.floor((vim.o.columns - width) / 2),
+	-- 			width = width,
+	-- 			height = height,
+	-- 			style = "minimal",
+	-- 			border = "rounded",
+	-- 			title = string.format(" Batch [%d/%d] ", index, #batch_entries),
+	-- 			title_pos = "center",
+	-- 		})
+	--
+	-- 		local cancelled = false
+	--
+	-- 		local function close_prompt()
+	-- 			if not cancelled then
+	-- 				cancelled = true
+	-- 				if vim.api.nvim_win_is_valid(pwin) then
+	-- 					vim.api.nvim_win_close(pwin, true)
+	-- 				end
+	-- 			end
+	-- 		end
+	--
+	-- 		vim.keymap.set("n", "<CR>", function()
+	-- 			close_prompt()
+	-- 			start_run()
+	-- 		end, { buffer = pbuf, nowait = true })
+	--
+	-- 		vim.keymap.set("n", "<Esc>", function()
+	-- 			close_prompt()
+	-- 			vim.notify("Batch cancelled")
+	-- 		end, { buffer = pbuf, nowait = true })
+	-- 	end
+	--
+	-- 	local poll_timer = vim.uv.new_timer()
+	-- 	poll_timer:start(
+	-- 		500,
+	-- 		500,
+	-- 		vim.schedule_wrap(function()
+	-- 			if vim.fn.filereadable(markfile) == 1 then
+	-- 				poll_timer:stop()
+	-- 				poll_timer:close()
+	-- 				os.remove(markfile)
+	-- 				show_prompt()
+	-- 			elseif vim.fn.filereadable(markfile_fail) == 1 then
+	-- 				poll_timer:stop()
+	-- 				poll_timer:close()
+	-- 				os.remove(markfile_fail)
+	-- 				vim.notify(
+	-- 					string.format("meta_script.sh failed for batch [%d/%d], aborting", index, #batch_entries),
+	-- 					vim.log.levels.ERROR
+	-- 				)
+	-- 			end
+	-- 		end)
+	-- 	)
 end
 
 vim.keymap.set("n", "fr", function()

@@ -54,11 +54,20 @@ gpu_sample() {
     # Track max GPU memory (max across all GPUs)
     local current_gpu_mem
     current_gpu_mem=$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | awk '{if($1>m) m=$1} END {printf "%d", m}')
+    # Max GPU utilization (%) across all GPUs in this sample
+    local current_gpu_util
+    current_gpu_util=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | awk '{if($1>m) m=$1} END {printf "%d", m}')
     if [ "$current_gpu_mem" -gt "$max_gpu_mem" ] 2>/dev/null; then
         max_gpu_mem=$current_gpu_mem
         no_new_max_count=0
+        # Count checks without a new max only from a new max seen at 100% utilization
+        if [ "$current_gpu_util" -ge 100 ] 2>/dev/null; then
+            no_new_max_counting=1
+        else
+            no_new_max_counting=0
+        fi
         echo ">>> NEW MAX GPU MEM: ${max_gpu_mem} MiB <<<"
-    else
+    elif [ "$no_new_max_counting" -eq 1 ]; then
         ((no_new_max_count++))
     fi
     echo ""
@@ -76,6 +85,7 @@ fi
 
 max_gpu_mem=0
 no_new_max_count=0
+no_new_max_counting=0
 count=0
 interval=$GPU_INTERVAL
 gpu_active=0
