@@ -3001,6 +3001,8 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 			repeat with t in tabs of w
 				if busy of t is false then
 					do script "%s" in t
+					set selected tab of w to t
+					set index of w to 1
 					set didRun to true
 					exit repeat
 				end if
@@ -3011,6 +3013,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	if not didRun then
 		do script "%s"
 	end if
+	activate
 end tell]],
 			bg_as_fmt,
 			bg_as_fmt
