@@ -2807,6 +2807,10 @@ local function parse_batch_file(batch_file)
 						keys_values[key] = {}
 						keys_order[#keys_order + 1] = key
 					end
+					-- PKQ_GPU_NUM is a single setting: the later occurrence overrides earlier ones
+					if key == "PKQ_GPU_NUM" then
+						keys_values[key] = {}
+					end
 					for _, existing in ipairs(keys_values[key]) do
 						if existing == value then
 							f:close()
@@ -2937,7 +2941,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	-- 	return
 	-- end
 
-    -- tmpdate recreated whenever run_batch_sequence()
+	-- tmpdate recreated whenever run_batch_sequence()
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	local prefix = pkqMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
@@ -3058,8 +3062,10 @@ end tell]],
 	if server_name then
 		seen_servers[server_name] = true
 	end
+	vim.defer_fn(function()
+        start_run()
+	end, 1000)
 
-    start_run()
 	-- if not is_first_server then
 	-- 	start_run()
 	-- 	return
