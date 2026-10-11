@@ -158,7 +158,7 @@ _remote_setup() {
             systemctl --user stop docker && rootlesskit rm -rf ~/.local/share/docker && ln -s /data/docker ${tmpcache} && systemctl --user restart docker && echo "hard remove, check"
         fi
     fi
-    mkdir -p pkqlogs/${PKQ_RUN_START_TIME}
+    mkdir -p pkq_configs/logs_${PKQ_RUN_START_TIME}
     mkdir -p pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
     sleep 1
     # echo "" > pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh # init in nvim
@@ -452,10 +452,10 @@ if [[ "$1" == *"local.sh" ]]; then
     # server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME
     trap '_cancel_recorded_jobs $? $LINENO' ERR
     # if [[ "$3" == "fileupload" ]]; then
-    remote_ts=$(
-        _retry_ssh "$PKQ_SERVER_NAME" ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
-    )
-    echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
+    # remote_ts=$(
+    #     _retry_ssh "$PKQ_SERVER_NAME" ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
+    # )
+    # echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
     bash common_tools/sync_and_commit_repo.sh "common_tools"
     bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
@@ -596,7 +596,7 @@ EOF
         rsync -a ./ ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}/
         cd ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
         cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh
-        sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out --error=pkqlogs/${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
+        sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out --error=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
         # berzelius-2026-50
         # berzelius-2026-243
@@ -836,7 +836,7 @@ EOF
 
         # echo "1" >"${PKQ_RUN_START_TIME}".pkq
 
-        nohup bash -c "cd pkqlogs/${PKQ_RUN_START_TIME}/ && docker logs -f $PKQ_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp " >/dev/null 2>&1 &
+        nohup bash -c "cd pkq_configs/logs_${PKQ_RUN_START_TIME}/ && docker logs -f $PKQ_JOB_ID >job_out.log.raw 2>&1 & _lp=\$!; while kill -0 \$_lp 2>/dev/null; do tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; sleep 10; done; wait \$_lp; tr '\r' '\n' <job_out.log.raw >job_out.log.tmp && mv -f job_out.log.tmp job_out.log; docker ps >> job_out.log; rm -f job_out.log.raw job_out.log.tmp " >/dev/null 2>&1 &
         disown
         echo "docker_container_started"
 
@@ -853,7 +853,7 @@ EOF
 
         echo "PKQ_RUN_COMMAND, ${PKQ_RUN_COMMAND}"
 
-        CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}" nohup ${PKQ_RUN_COMMAND} >pkqlogs/${PKQ_RUN_START_TIME}/job_out.log 2>&1 &
+        CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES}" nohup ${PKQ_RUN_COMMAND} >pkq_configs/logs_${PKQ_RUN_START_TIME}/job_out.log 2>&1 &
         export PKQ_JOB_ID=$!
         disown ${PKQ_JOB_ID}
         cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
@@ -868,7 +868,7 @@ EOF
         done
         # echo "1" >"${PKQ_RUN_START_TIME}".pkq
 
-        nohup bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh ${PKQ_JOB_ID} >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log 2>&1 &
+        nohup bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh ${PKQ_JOB_ID} >pkq_configs/logs_${PKQ_RUN_START_TIME}/resource_usage.log 2>&1 &
         disown
         echo "ps -ef|grep ${PKQ_JOB_ID}"
         echo "pkill -TERM -P ${PKQ_JOB_ID}"

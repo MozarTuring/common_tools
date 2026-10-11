@@ -39,7 +39,7 @@ remote_dir="${run_dir_home}/project_remote_runs/${PKQ_RUN_START_TIME}"
 
 port_forward=false
 ports_before_file=""
-mkdir -p "$local_dir/pkqlogs"
+mkdir -p "$local_dir/pkq_configs/logs_${PKQ_RUN_START_TIME}"
 
 print_slurm_summary() {
     ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" |
@@ -60,9 +60,9 @@ _clean_log() {
 }
 
 fetch_new_content() {
-    local tmppath="${local_dir}/pkqlogs/${PKQ_RUN_START_TIME}/"
+    local tmppath="${local_dir}/pkq_configs/logs_${PKQ_RUN_START_TIME}/"
     if [[ -d ${tmppath} ]]; then
-        cd "${local_dir}/pkqlogs/${PKQ_RUN_START_TIME}/"
+        cd "${local_dir}/pkq_configs/logs_${PKQ_RUN_START_TIME}/"
     else
         echo "no log yet"
         return 0
@@ -120,24 +120,20 @@ is_job_running() {
 }
 
 _project_name=$(basename "$(dirname "$local_dir")")
-saved_ts="$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
-ts=$(cat "$saved_ts")
-echo "remote time ${ts}"
+# saved_ts="$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
+# ts=$(cat "$saved_ts")
+# echo "remote time ${ts}"
 
 sync_remote() {
     local _rsync_out _rsync_rc=0
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
     #     rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/pkq_configs/" "$local_dir/pkq_configs/"
+    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/pkq_configs/" "$HOME/project/${_project_name}/pkq_configs/"
 
-    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/pkqlogs/${PKQ_RUN_START_TIME}" "$local_dir/pkqlogs/"
+    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/pkq_configs/" "$local_dir/pkq_configs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
-    tmppath="$local_dir/pkq_configs"
-    if [[ -d ${tmppath} ]]; then
-        rsync -a --delete --include='*.ipynb' --exclude='*' ${tmppath}/ "$HOME/project/${_project_name}/pkq_configs/"
-    fi
 }
 
 tmpdirname=$(basename "$local_dir")

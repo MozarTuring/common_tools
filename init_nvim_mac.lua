@@ -3064,7 +3064,7 @@ end tell]],
 	end
 	vim.defer_fn(function()
         start_run()
-	end, 1000)
+	end, 3000)
 
 	-- if not is_first_server then
 	-- 	start_run()

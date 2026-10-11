@@ -30,9 +30,10 @@ conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
 
 which python
 mkdir -p pkq_configs/packages
+mkdir -p pkq_configs/logs_${PKQ_RUN_START_TIME}
 python -m pip list > pkq_configs/packages/${PKQ_SERVER_NAME}.txt
 
-bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh >pkqlogs/${PKQ_RUN_START_TIME}/resource_usage.log &
+bash ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/resource_usage.sh >pkq_configs/logs_${PKQ_RUN_START_TIME}/resource_usage.log &
 
 echo "TORCH_CUDA_ARCH_LIST ${TORCH_CUDA_ARCH_LIST}"
 
