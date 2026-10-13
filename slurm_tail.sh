@@ -9,12 +9,15 @@ srun --ntasks=1 ${PKQ_RUN_COMMAND} &
 
 wait $!
 
+exit_code=$?
 remote_dir=${PWD}
 echo "slurm remote dir, ${remote_dir}"
 
-# ts=$(cat "${RUN_DIR_HOME}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt")
-# echo "slurm ts, ${ts}, ${PKQ_RUN_START_TIME}"
+if [ $exit_code -eq 0 ]; then
+    echo "Command succeeded."
+    mkdir -p "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}" && rsync -a ./ "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}/" 2>&1 && touch ./pkq_run_succeed.flag
 
-mkdir -p "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}" && rsync -a ./  "${RUN_DIR_HOME}/project_remote_pkq/remote_data/${RUN_PROJ_NAME}/backup/${PKQ_RUN_START_TIME}/" 2>&1 && touch ./pkq_run_succeed.flag
+else
+    echo "Command failed with exit code $exit_code."
+fi
 
-# rm ${RUN_DIR_HOME}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt
