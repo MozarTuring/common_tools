@@ -1880,6 +1880,7 @@ vim.keymap.set("n", ",t", function()
 			if directory_exists(output_dir) then
 				local log_path = output_dir .. "/nohup_monitor.log"
 				OpenOrSwitchToFile(log_path)
+				ToggleAutoRefresh()
 				return
 			end
 		end
@@ -1893,6 +1894,7 @@ vim.keymap.set("n", ",t", function()
 				Snacks.explorer({ cwd = expanded })
 			else
 				OpenOrSwitchToFile(expanded)
+				ToggleAutoRefresh()
 			end
 			return
 		end
@@ -3063,7 +3065,7 @@ end tell]],
 		seen_servers[server_name] = true
 	end
 	vim.defer_fn(function()
-        start_run()
+		start_run()
 	end, 3000)
 
 	-- if not is_first_server then
