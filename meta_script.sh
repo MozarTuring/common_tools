@@ -128,7 +128,7 @@ _remote_setup() {
         echo "~ equal to run dir home"
         exit
     fi
-    source ${RUN_DIR_HOME}/project_remote_pkq/project_nogit/common_tools/common_tokens.sh
+    source ${RUN_DIR_HOME}/project_remote_pkq/project_nogit/common_tools/useful_on_remote/common_tokens.sh
 
     mkdir -p ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
 
