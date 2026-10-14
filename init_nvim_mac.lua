@@ -2698,7 +2698,7 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 		end
 		vim.b[ev.buf]._claude_resumed = true
 		local session_id = vim.fn.fnamemodify(file, ":t:r")
-		run_in_terminal_app("cd " .. pkqMacHome .. "/project && claude --resume " .. session_id, "kitty")
+		run_in_terminal_app("cd " .. pkqMacHome .. "/project && claude --resume " .. session_id, "terminal")
 	end,
 })
 
