@@ -3002,8 +3002,6 @@ end tell]],
 							.. dir_name
 							.. "/select_running_job/"
 							.. tmpdate
-						vim.fn.mkdir(vim.fn.fnamemodify(select_log_file, ":h"), "p")
-						vim.fn.writefile({ "" }, select_log_file)
 						vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
 						-- keep the buffer handle so it can be closed once the monitor log opens
 						local select_buf = vim.api.nvim_get_current_buf()
