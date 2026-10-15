@@ -447,14 +447,14 @@ if [[ "$1" == *"local.sh" ]]; then
     bash common_tools/sync_and_commit_repo.sh "common_tools"
     bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
-    _retry_ssh "$PKQ_SERVER_NAME" rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
+    rsync -aP "/Users/jinma63/project/zzzpkqoutput/llm2vec/backup/" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/llm2vec/backup/"
 
     tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
-    _retry_ssh "$PKQ_SERVER_NAME" rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
+    rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
     [ -n "$(ls -A ./tmp_data/cache/)" ] && mv ./tmp_data/cache/* ./tmp_data/
 
     tmp_path=${run_dir_home}/project_remote_pkq/project_nogit/common_tools/
-    _retry_ssh "$PKQ_SERVER_NAME" rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$PKQ_SERVER_NAME":${tmp_path}/
+    rsync -a --rsync-path="mkdir -p ${tmp_path} && rsync" /Users/jinma63/Desktop/baidu/project_nogit/common_tools/ "$PKQ_SERVER_NAME":${tmp_path}/
 
     echo "rsync done"
 
@@ -500,7 +500,7 @@ if [[ "$1" == *"local.sh" ]]; then
     # wait "$_timer_pid" 2>/dev/null || true
     mkdir -p ./${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
     run_dir_remote="${run_dir_home}/project_remote_runs/${PKQ_RUN_START_TIME}"
-    _retry_ssh "$PKQ_SERVER_NAME" rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}" "./${_project_name}/pkq_configs/remote/remote_tmps/"
+    rsync -a "$PKQ_SERVER_NAME":"${run_dir_remote}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}" "./${_project_name}/pkq_configs/remote/remote_tmps/"
 
     # if [[ $_ssh_rc -ne 0 ]]; then
     #     echo "ERROR: remote setup on $PKQ_SERVER_NAME failed (exit code $_ssh_rc)"
@@ -516,7 +516,7 @@ if [[ "$1" == *"local.sh" ]]; then
         exit 0
     fi
 
-    _retry_ssh "$PKQ_SERVER_NAME" rsync -a --remove-source-files "$PKQ_SERVER_NAME":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
+    rsync -a --remove-source-files "$PKQ_SERVER_NAME":"${run_dir_remote}/remote_job_id.txt" "${local_dir}/"
 
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
@@ -582,7 +582,7 @@ EOF
         fi
         mkdir -p ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
         echo "596, PWD, ${PWD}"
-        rsync -av ./ ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}/
+        rsync -a ./ ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}/
         cd ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
         cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh
         sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out --error=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
