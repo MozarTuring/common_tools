@@ -481,11 +481,12 @@ require("lazy").setup({
 		{
 			"lervag/vimtex",
 			init = function()
-				vim.fn.serverstart("/tmp/nvim_vimtex")
+				-- pcall: a second nvim fails here (socket taken) and would skip all hooks below
+				pcall(vim.fn.serverstart, "/tmp/nvim_vimtex")
 				vim.g.vimtex_quickfix_mode = 0
 				vim.g.vimtex_view_method = "skim"
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
-				vim.g.vimtex_view_skim_activate = 0 -- don't steal focus from Neovim
+				vim.g.vimtex_view_skim_activate = 1 -- bring Skim to the front on VimtexView
 				vim.g.vimtex_compiler_method = "latexmk"
 				local base_latex_out = pkqMacHome .. "/project/zzzpkqoutput/latex_compilation"
 				vim.fn.mkdir(base_latex_out, "p")
@@ -501,6 +502,7 @@ require("lazy").setup({
 				vim.g.vimtex_compiler_latexmk = {
 					aux_dir = base_latex_out,
 					out_dir = base_latex_out,
+					continuous = 0, -- no file watching: edits outside nvim don't trigger a compile
 					options = {
 						"-synctex=1",
 						"-interaction=nonstopmode",
@@ -523,6 +525,7 @@ require("lazy").setup({
 						local cfg = {
 							aux_dir = out_dir,
 							out_dir = out_dir,
+							continuous = 0,
 							options = { "-synctex=1", "-interaction=nonstopmode", "-cd", "-e", "'$bibtex_use=2'" },
 						}
 						vim.g.vimtex_compiler_latexmk = cfg
@@ -555,12 +558,6 @@ require("lazy").setup({
 							}, "\n"),
 						})
 
-						vim.fn.system({
-							"osascript",
-							"-e",
-							'tell application "kitty" to activate',
-						})
-
 						-- Copy the built PDF to the same directory as the tex file
 						local vimtex_info = vim.b.vimtex
 						if vimtex_info and vimtex_info.tex then
@@ -587,79 +584,35 @@ require("lazy").setup({
 					end,
 				})
 
-				-- Close Skim when quitting Neovim
-				vim.api.nvim_create_autocmd("VimLeavePre", {
-					callback = function()
-						vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
-					end,
-				})
-
-				-- Reload buffer when tex file is modified on disk (e.g. by external editor).
-				-- latexmk continuous mode (\ll) watches the file on disk and recompiles
-				-- automatically; we only need checktime so neovim picks up the new content.
-				local _tex_watchers = {}
-
-				local function stop_tex_watcher(path)
-					local w = _tex_watchers[path]
-					if w then
-						pcall(function()
-							w:stop()
-						end)
-						pcall(function()
-							w:close()
-						end)
-						_tex_watchers[path] = nil
-					end
-				end
-
-				local function start_tex_watcher(buf, path)
-					if _tex_watchers[path] then
-						return
-					end
-					local w = vim.uv.new_fs_event()
-					if not w then
-						return
-					end
-					_tex_watchers[path] = w
-					w:start(
-						path,
-						{},
-						vim.schedule_wrap(function(err, _, events)
-							if err then
-								stop_tex_watcher(path)
-								return
-							end
-							if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
-								vim.api.nvim_buf_call(buf, function()
-									vim.cmd("checktime")
-								end)
-							end
-							if events and events.rename then
-								vim.defer_fn(function()
-									stop_tex_watcher(path)
-									if vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
-										start_tex_watcher(buf, path)
-									end
-								end, 300)
-							end
-						end)
-					)
-				end
-
-				vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
+				-- Compile once on every save from nvim (continuous mode is off)
+				vim.api.nvim_create_autocmd("BufWritePost", {
 					pattern = "*.tex",
-					callback = function(ev)
-						local path = vim.api.nvim_buf_get_name(ev.buf)
-						if path ~= "" then
-							start_tex_watcher(ev.buf, path)
+					callback = function()
+						if vim.b.vimtex and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
+							vim.fn["vimtex#compiler#start"]()
 						end
 					end,
 				})
 
-				vim.api.nvim_create_autocmd("BufDelete", {
-					pattern = "*.tex",
-					callback = function(ev)
-						stop_tex_watcher(vim.api.nvim_buf_get_name(ev.buf))
+				-- Compile once (same as \ll) when a tex file is opened
+				vim.api.nvim_create_autocmd("User", {
+					pattern = "VimtexEventInitPost",
+					callback = function()
+						if vim.bo.buftype ~= "" or vim.fn.filereadable(vim.fn.expand("%:p")) == 0 then
+							return
+						end
+						-- start (not toggle), and skip if this project's compiler is already running
+						-- is_running() returns v:false (Lua false), so compare in Vimscript
+						if vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
+							vim.fn["vimtex#compiler#start"]()
+						end
+					end,
+				})
+
+				-- Close Skim when quitting Neovim
+				vim.api.nvim_create_autocmd("VimLeavePre", {
+					callback = function()
+						vim.fn.system({ "osascript", "-e", 'tell application "Skim" to quit' })
 					end,
 				})
 			end,
@@ -3036,6 +2989,11 @@ end tell]],
 				if vim.fn.filereadable(bg_markfile) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
+					vim.fn.jobstart({
+						"osascript",
+						"-e",
+						'tell application "kitty" to activate',
+					}, { detach = true })
 					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
 					vim.defer_fn(function()
 						run_batch_sequence(

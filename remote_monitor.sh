@@ -41,8 +41,10 @@ port_forward=false
 ports_before_file=""
 mkdir -p "$local_dir/pkq_configs/logs_${PKQ_RUN_START_TIME}"
 
+source "$(dirname "$0")/retry_ssh.sh"
+
 print_slurm_summary() {
-    ssh "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" |
+    ssh -o BatchMode=yes "$host" "squeue --job=${job_id} -h -o '%T' 2>/dev/null" |
         sort | uniq -c | awk '{printf "  %s=%s", $2, $1} END {print ""}' ||
         true
 }
@@ -129,9 +131,9 @@ sync_remote() {
     # ssh "$host" "cd '${remote_dir}' && find . -newer .submit_marker -type f -size -10M" 2>/dev/null |
     #     rsync -a --files-from=- "$host":"${remote_dir}/" "$local_dir/" 2>&1
 
-    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/pkq_configs/" "$HOME/project/${_project_name}/pkq_configs/"
+    _retry_ssh "$host" rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10 -o BatchMode=yes' --delete --include='*.ipynb' --exclude='*' "$host":"${remote_dir}/pkq_configs/" "$HOME/project/${_project_name}/pkq_configs/"
 
-    rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/pkq_configs/" "$local_dir/pkq_configs/"
+    _retry_ssh "$host" rsync -a --timeout=60 -e 'ssh -o ConnectTimeout=10 -o BatchMode=yes' "$host":"${remote_dir}/pkq_configs/" "$local_dir/pkq_configs/"
 
     # using $() will produce a child process, which will show the same commnd as parent in ps -ef output
 }
@@ -211,7 +213,7 @@ while true; do
         else
             FREE_PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
             echo "create new forward on port ${FREE_PORT}"
-            ssh -o ConnectTimeout=5 -o ExitOnForwardFailure=yes -f -N -L ${FREE_PORT}:$node:18889 $host sleep 108000
+            _retry_ssh "$host" ssh -o ConnectTimeout=5 -o BatchMode=yes -o ExitOnForwardFailure=yes -f -N -L ${FREE_PORT}:$node:18889 $host sleep 108000
         fi
         # pgrep -fl 'ssh.*node.*berzeliusampere'
         PKQ_NOTEBOOK_start=1
@@ -228,12 +230,14 @@ while true; do
         #     find . -newermt '$ts' -type f | rsync -a --files-from=- ./ '${remote_dir}_backup/${PKQ_RUN_START_TIME}/'" 2>&1 ||
 
         fetch_new_content
-        ssh -q "$host" "[[ -f \"${remote_dir}/pkq_run_succeed.flag\" ]]" && file_exists=true || file_exists=false
+        _retry_ssh "$host" ssh -q -o ConnectTimeout=10 -o BatchMode=yes "$host" "[[ -f \"${remote_dir}/pkq_run_succeed.flag\" ]]" && file_exists=true || file_exists=false
         if [[ ${file_exists} == true ]]; then
             mkdir -p "$local_dir/../backup/${PKQ_RUN_START_TIME}"
-            rsync -a --timeout=60 --remove-source-files -e 'ssh -o ConnectTimeout=10' "$host":"${remote_dir}/" "$local_dir/../backup/${PKQ_RUN_START_TIME}/" && echo "backup done"
+            _retry_ssh "$host" rsync -a --timeout=60 --remove-source-files -e 'ssh -o ConnectTimeout=10 -o BatchMode=yes' "$host":"${remote_dir}/" "$local_dir/../backup/${PKQ_RUN_START_TIME}/" && echo "backup done"
         fi
         echo "DONE: Remote job finished (id: ${job_id})."
+        # bring focus back to kitty
+        osascript -e 'tell application "kitty" to activate' || true
         break
     fi
 done
