@@ -3011,7 +3011,7 @@ end tell]],
 						local select_done_file = log_dir .. "/select_running_job/" .. tmpdate .. "_done"
 						local done_timer = vim.loop.new_timer()
 						done_timer:start(
-							2000,
+							5000,
 							2000,
 							vim.schedule_wrap(function()
 								if vim.fn.filereadable(select_done_file) ~= 1 then
