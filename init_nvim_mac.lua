@@ -2723,6 +2723,11 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 	end,
 })
 
+-- reload files modified outside nvim before editing them (autoread reloads unmodified buffers silently)
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "InsertEnter" }, {
+	command = "silent! checktime",
+})
+
 -- vim.keymap.set("n", "fj", function()
 -- 	local log = vim.fn.expand("~/hammerspoon_cmd.log")
 -- 	OpenOrSwitchToFile(log)
@@ -2924,11 +2929,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	end
 	if index == #batch_entries then
 		run_flags = run_flags .. " lastrun"
-		local select_log_file = prefix .. "zzzpkqoutput/" .. dir_name .. "/select_running_job/" .. tmpdate
-		vim.fn.mkdir(vim.fn.fnamemodify(select_log_file, ":h"), "p")
-		vim.fn.writefile({ "" }, select_log_file)
-		vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
-		ToggleAutoRefresh()
 	end
 	cmd = cmd .. run_flags
 	vim.fn.writefile({ cmd }, log_file)
@@ -2997,6 +2997,17 @@ end tell]],
 					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
 					if index == #batch_entries then
 						-- lastrun: wait for select_running_job to write <tmpdate>_done, then open its monitor log
+						local select_log_file = prefix
+							.. "zzzpkqoutput/"
+							.. dir_name
+							.. "/select_running_job/"
+							.. tmpdate
+						vim.fn.mkdir(vim.fn.fnamemodify(select_log_file, ":h"), "p")
+						vim.fn.writefile({ "" }, select_log_file)
+						vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
+						-- keep the buffer handle so it can be closed once the monitor log opens
+						local select_buf = vim.api.nvim_get_current_buf()
+						ToggleAutoRefresh()
 						local select_done_file = log_dir .. "/select_running_job/" .. tmpdate .. "_done"
 						local done_timer = vim.loop.new_timer()
 						done_timer:start(
@@ -3022,24 +3033,11 @@ end tell]],
 								done_timer:close()
 								local monitor_log = log_dir .. "/" .. extract_line .. "/nohup_monitor.log"
 								vim.cmd("tabnew " .. vim.fn.fnameescape(monitor_log))
-                                ToggleAutoRefresh()
+								ToggleAutoRefresh()
 								-- close the select_running_job tab opened at lastrun
-								local select_bufnr = vim.fn.bufnr(log_dir .. "/select_running_job/" .. tmpdate)
-								if select_bufnr ~= -1 then
-									local select_tabs = {}
-									for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
-										for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
-											if vim.api.nvim_win_get_buf(win) == select_bufnr then
-												table.insert(select_tabs, tab)
-												break
-											end
-										end
-									end
-									for _, tab in ipairs(select_tabs) do
-										if vim.api.nvim_tabpage_is_valid(tab) then
-											vim.cmd("tabclose " .. vim.api.nvim_tabpage_get_number(tab))
-										end
-									end
+								-- deleting the buffer closes its windows (and so its tab), and stops its auto-refresh
+								if vim.api.nvim_buf_is_valid(select_buf) then
+									vim.api.nvim_buf_delete(select_buf, { force = true })
 								end
 							end)
 						)
