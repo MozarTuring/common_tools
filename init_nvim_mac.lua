@@ -2989,11 +2989,6 @@ end tell]],
 				if vim.fn.filereadable(bg_markfile) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
-					vim.fn.jobstart({
-						"osascript",
-						"-e",
-						'tell application "kitty" to activate',
-					}, { detach = true })
 					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
 					if index == #batch_entries then
 						-- lastrun: wait for select_running_job to write <tmpdate>_done, then open its monitor log
