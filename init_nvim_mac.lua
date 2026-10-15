@@ -2995,6 +2995,36 @@ end tell]],
 						'tell application "kitty" to activate',
 					}, { detach = true })
 					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
+					if index == #batch_entries then
+						-- lastrun: wait for select_running_job to write <tmpdate>_done, then open its monitor log
+						local select_done_file = log_dir .. "/select_running_job/" .. tmpdate .. "_done"
+						local done_timer = vim.loop.new_timer()
+						done_timer:start(
+							2000,
+							2000,
+							vim.schedule_wrap(function()
+								if vim.fn.filereadable(select_done_file) ~= 1 then
+									return
+								end
+								local extract_line = nil
+								for _, l in ipairs(vim.fn.readfile(select_done_file)) do
+									l = vim.trim(l)
+									if l ~= "" then
+										extract_line = l
+										break
+									end
+								end
+								-- file may be created before its content is written, retry next tick
+								if not extract_line then
+									return
+								end
+								done_timer:stop()
+								done_timer:close()
+								local monitor_log = log_dir .. "/" .. extract_line .. "/nohup_monitor.log"
+								vim.cmd("tabnew " .. vim.fn.fnameescape(monitor_log))
+							end)
+						)
+					end
 					vim.defer_fn(function()
 						run_batch_sequence(
 							template_path,

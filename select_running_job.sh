@@ -1,7 +1,4 @@
 #!/bin/bash
-# Usage: select_running_job.sh <jobs_file> <pkq_mode>
-#   jobs_file: one line per job: server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME
-# Waits until one job is running or no longer in queue, scancels the others and starts remote_monitor on it.
 
 set -e
 
@@ -20,6 +17,7 @@ fi
 # resolve "..", the project name is taken from the parent dir
 jobs_file="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 PKQ_MODE="$2"
+last_time=$3
 _project_name=$(basename "$(dirname "${jobs_file}")")
 _tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -73,3 +71,5 @@ ps -ef |grep $monitor_pid"
 echo "see logs at
 ${local_dir}
 ${PKQ_RUN_START_TIME}"
+
+echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/llm2vec/select_running_job/${last_time}_done
