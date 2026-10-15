@@ -3022,6 +3022,25 @@ end tell]],
 								done_timer:close()
 								local monitor_log = log_dir .. "/" .. extract_line .. "/nohup_monitor.log"
 								vim.cmd("tabnew " .. vim.fn.fnameescape(monitor_log))
+                                ToggleAutoRefresh()
+								-- close the select_running_job tab opened at lastrun
+								local select_bufnr = vim.fn.bufnr(log_dir .. "/select_running_job/" .. tmpdate)
+								if select_bufnr ~= -1 then
+									local select_tabs = {}
+									for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+										for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+											if vim.api.nvim_win_get_buf(win) == select_bufnr then
+												table.insert(select_tabs, tab)
+												break
+											end
+										end
+									end
+									for _, tab in ipairs(select_tabs) do
+										if vim.api.nvim_tabpage_is_valid(tab) then
+											vim.cmd("tabclose " .. vim.api.nvim_tabpage_get_number(tab))
+										end
+									end
+								end
 							end)
 						)
 					end
