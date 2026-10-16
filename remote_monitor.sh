@@ -111,11 +111,11 @@ fetch_new_content() {
 
 is_job_running() {
     if [[ "$mode" == "remotenone" ]]; then
-        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
+        _retry_ssh "$host" ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "kill -0 ${job_id} 2>/dev/null" 2>/dev/null
     elif [[ "$mode" == "remoteslurm" ]]; then
-        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue -j ${job_id} -h -o '%T' 2>/dev/null | grep -qiE 'PENDING|CONFIGURING|RUNNING|COMPLETING|REQUEUED|SUSPENDED'" 2>/dev/null
+        _retry_ssh "$host" ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "squeue -j ${job_id} -h -o '%T' 2>/dev/null | grep -qiE 'PENDING|CONFIGURING|RUNNING|COMPLETING|REQUEUED|SUSPENDED'" 2>/dev/null
     elif [[ "$mode" == "remotedocker" ]]; then
-        ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "docker inspect -f '{{.State.Running}}' ${job_id} 2>/dev/null | grep -q true" 2>/dev/null
+        _retry_ssh "$host" ssh -o ConnectTimeout=10 -o BatchMode=yes "$host" "docker inspect -f '{{.State.Running}}' ${job_id} 2>/dev/null | grep -q true" 2>/dev/null
     else
         return 0
     fi
@@ -164,8 +164,6 @@ if [[ ${mode} == "remoteslurm" ]]; then
 fi
 
 while true; do
-    source ${HOME}/project/common_tools/wait_for_ssh.sh
-
     _check_count=$((_check_count + 1))
     _capped=$((_check_count < 24 ? _check_count : 23))
     _interval=$((((_capped - 1) / 5 + 1) * 5))
@@ -173,12 +171,8 @@ while true; do
 === $(date '+%Y-%m-%d %H:%M:%S') - checking job (check #${_check_count}, next in ${_interval}s) ===
 "
 
+    # ssh connection failures (255) are retried inside is_job_running via _retry_ssh
     is_job_running && run_flag=0 || run_flag=$?
-    # 255 = ssh itself failed (network drop), not an answer from squeue/kill/docker: wait for ssh again
-    if [[ ${run_flag} -eq 255 ]]; then
-        echo "$(date '+%H:%M:%S') - ssh failed while checking job state, waiting for ssh"
-        continue
-    fi
 
     sleep ${_interval}
 
@@ -187,17 +181,12 @@ while true; do
     [[ ${run_flag} -ne 0 ]] && _job_finished=1
     fetch_new_content
 
-    if [[ -f ${jobsfile} && ${slurm_job_status_checked} == "failed" ]]; then
-        echo "done"
-        break
-    fi
-
     if [[ ${PKQ_NOTEBOOK} == 1 && -z ${PKQ_NOTEBOOK_start} ]]; then
         # pre_node=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{for(i=1;i<=NF;i++) if($i=="-L") {split($(i+1),a,":"); print a[2]}}')
         #
         # pre_host=$(ps -eo args | grep '\-L 18889:' | grep -v grep | awk '{print $NF}')
 
-        node=$(ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
+        node=$(_retry_ssh "$host" ssh -o ConnectTimeout=10 -o BatchMode=yes ${host} squeue -j ${job_id} -o "%N" --noheader) || true
         pids=$(ps aux | grep "ssh.*-L.*:$node:18889.*$host" | grep -v grep | awk '{print $2}' || true)
         count=$(echo "$pids" | wc -w)
         if [ "$count" -gt 1 ]; then
@@ -220,7 +209,7 @@ while true; do
     fi
 
     # echo "run_flag, ${run_flag}"
-    if [[ ${run_flag} -ne 0 ]]; then
+    if [[ ${run_flag} -ne 0 || ${slurm_job_status_checked} == "failed" ]]; then
         # Second sync after a delay — HPC parallel filesystems may not have
         # flushed the final error messages (e.g. OOM) by the first rsync.
         sleep 10

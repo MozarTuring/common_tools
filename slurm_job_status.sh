@@ -6,7 +6,7 @@
 ssh_cmd="$1"
 job_id="$2"
 once="${3:-}"
-# wait_for_ssh.sh uses $host
+# _wait_for_ssh (retry_ssh.sh) uses $host
 [[ -n "$ssh_cmd" ]] && host="${ssh_cmd##* }"
 # BatchMode: fail (rc 255) instead of prompting for a 2FA code when no ControlMaster connection is alive
 ssh_cmd="${ssh_cmd/#ssh /ssh -o BatchMode=yes }"
@@ -15,10 +15,11 @@ if [[ -z "$job_id" ]]; then
     echo "  ssh_cmd: 'ssh myhost' for remote, '' for local"
     exit 1
 fi
+source ${HOME}/project/common_tools/retry_ssh.sh
 count=0
 slurm_job_status_checked=1
 while true; do
-    source ${HOME}/project/common_tools/wait_for_ssh.sh
+    _wait_for_ssh "$host"
     all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null) && rc=0 || rc=$?
     # 255 = ssh itself failed (connection dropped), not an answer from squeue
     if [[ $rc -eq 255 ]]; then
