@@ -194,6 +194,7 @@ EOF
             sacctmgr show assoc where user=$USER format=User,Account,QOS
             # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
             sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
+            PKQ_SLURM_NODES=""
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
                 cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
