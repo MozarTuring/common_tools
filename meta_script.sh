@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -eo pipefail
 
 if false; then
     sudo chmod -R a+rwX /data/huggingface_cache
@@ -392,7 +392,8 @@ if [[ "$1" == *"local.sh" ]]; then
     # jobs of this group, read by select_running_job.sh at the group's end
     _jobs_file="${local_dir_pre}/remote_job_id${_group}.txt"
 
-    export PKQ_SERVER_NAME=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
+    PKQ_SERVER_NAME=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
+    export PKQ_SERVER_NAME
 
     PKQ_MODE=$(sed -n 's/^export PKQ_MODE=//p' "$1" | tail -1)
     if [[ -z ${PKQ_MODE} ]]; then

@@ -1,3 +1,4 @@
+set -eo pipefail
 cd $HOME/project/
 repo_path="$1"
 cd "$repo_path"
@@ -19,8 +20,10 @@ git add -A >/dev/null
         fi
     fi
 )
-export last_commit=$(git rev-parse HEAD)
-export _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
+last_commit=$(git rev-parse HEAD)
+export last_commit
+_git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
+export _git_branch
 if [[ -n "$PKQ_SERVER_NAME" ]]; then
     _remote_proj="${repo_path}_${_git_branch}"
     export run_dir_remote="${run_dir_home}/project_remote_pkq/${_remote_proj}"
