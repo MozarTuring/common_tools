@@ -2900,6 +2900,23 @@ local function generate_from_template(template_path, output_path, overrides, key
 	return true, nil
 end
 
+-- batch state for the fr mapping: ;a refuses to quit while running, and caffeinate keeps the Mac
+-- awake (sleep drops the ssh connections a running meta_script.sh needs)
+function pkq_batch_start()
+	pkq_batch_stop()
+	_G.pkq_batch_running = true
+	-- -w: caffeinate also exits if nvim dies
+	_G.pkq_caffeinate_job = vim.fn.jobstart({ "caffeinate", "-i", "-w", tostring(vim.fn.getpid()) })
+end
+
+function pkq_batch_stop()
+	_G.pkq_batch_running = false
+	if _G.pkq_caffeinate_job and _G.pkq_caffeinate_job > 0 then
+		vim.fn.jobstop(_G.pkq_caffeinate_job)
+	end
+	_G.pkq_caffeinate_job = nil
+end
+
 local function run_batch_sequence(template_path, output_path, batch_entries, index, keys_order, seen_servers)
 	seen_servers = seen_servers or {}
 	if index > #batch_entries then
@@ -2914,7 +2931,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local f_out = io.open(output_path, "w")
 	if not f_out then
 		vim.notify("Cannot write file: " .. output_path, vim.log.levels.ERROR)
-		_G.pkq_batch_running = false
+		pkq_batch_stop()
 		return
 	end
 	for _, key in ipairs(keys_order) do
@@ -2937,7 +2954,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local dir_name = rel:match("^([^/]+)")
 	if not dir_name then
 		vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
-		_G.pkq_batch_running = false
+		pkq_batch_stop()
 		return
 	end
 	local log_dir = prefix .. "zzzpkqoutput/" .. dir_name
@@ -3085,7 +3102,7 @@ end tell]],
 								end
 								-- the last group's monitor log is the batch's final step
 								if index == #batch_entries then
-									_G.pkq_batch_running = false
+									pkq_batch_stop()
 								end
 							end)
 						)
@@ -3104,7 +3121,7 @@ end tell]],
 				elseif vim.fn.filereadable(bg_markfile_fail) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
-					_G.pkq_batch_running = false
+					pkq_batch_stop()
 					vim.notify(
 						string.format("Batch [%d/%d] failed — stopping batch", index, #batch_entries),
 						vim.log.levels.ERROR
@@ -3284,8 +3301,8 @@ vim.keymap.set("n", "fr", function()
 		return
 	end
 
-	-- set until a run fails or the last group's monitor log opens; ;a refuses to quit meanwhile
-	_G.pkq_batch_running = true
+	-- running until a run fails or the last group's monitor log opens
+	pkq_batch_start()
 	run_batch_sequence(template_path, output_path, entries, 1, keys_order)
 end, { noremap = true, silent = true, desc = "Run meta_script from template + .batch file" })
 
