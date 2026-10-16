@@ -456,7 +456,9 @@ if [[ "$1" == *"local.sh" ]]; then
     bash common_tools/sync_and_commit_repo.sh "common_tools"
     bash common_tools/sync_and_commit_repo.sh "$_project_name"
 
-    rsync -aP "/Users/jinma63/project/zzzpkqoutput/${_project_name}/backup/" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/${_project_name}/backup/"
+    if [[ -d /Users/jinma63/project/zzzpkqoutput/${_project_name}/backup ]]; then
+        rsync -aP "/Users/jinma63/project/zzzpkqoutput/${_project_name}/backup/" "${PKQ_SERVER_NAME}:${run_dir_home}/project_remote_pkq/remote_data/${_project_name}/backup/"
+    fi
 
     tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}
     rsync -av --rsync-path="mkdir -p ${tmp_path} && rsync" ./tmp_data/cache/ "$PKQ_SERVER_NAME":${tmp_path}/
