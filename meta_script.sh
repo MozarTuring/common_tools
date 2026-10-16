@@ -538,6 +538,7 @@ if [[ "$1" == *"local.sh" ]]; then
     # the last run of a group (flag "end") selects one running job among the group's jobs
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && -n "${_group_end}" ]]; then
         # select_running_job.sh writes ${_group}_done when it has picked a job; drop the one from a previous batch
+        mkdir -p ~/project/zzzpkqoutput/${_project_name}/select_running_job
         rm -f ~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group}_done
         echo "nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group}> ~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &"
         nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group} >~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &
