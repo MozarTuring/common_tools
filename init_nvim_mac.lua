@@ -3116,7 +3116,7 @@ end tell]],
 							keys_order,
 							seen_servers
 						)
-					end, 3000)
+					end, 1000)
 				elseif vim.fn.filereadable(bg_markfile_fail) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
