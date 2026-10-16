@@ -1616,11 +1616,11 @@ function _G._pkq_comment_visual()
 	_pkq_comment(vim.fn.line("'<"), vim.fn.line("'>"))
 end
 
-vim.keymap.set("v", "?", ":<C-u>lua _pkq_comment_visual()<CR>", { silent = true, noremap = true })
-vim.keymap.set("n", "?", function()
-	local line = vim.fn.line(".")
-	_pkq_comment(line, line)
-end, { silent = true, noremap = true })
+-- vim.keymap.set("v", "?", ":<C-u>lua _pkq_comment_visual()<CR>", { silent = true, noremap = true })
+-- vim.keymap.set("n", "?", function()
+-- 	local line = vim.fn.line(".")
+-- 	_pkq_comment(line, line)
+-- end, { silent = true, noremap = true })
 
 -- MyReplace (visual mode) --
 -- Uses \V (very nomagic) so every character is matched literally.
@@ -1841,7 +1841,7 @@ vim.keymap.set("n", ",t", function()
 			if directory_exists(output_dir) then
 				local log_path = output_dir .. "/nohup_monitor.log"
 				OpenOrSwitchToFile(log_path)
-				ToggleAutoRefresh()
+				-- ToggleAutoRefresh()
 				return
 			end
 		end
@@ -1855,7 +1855,7 @@ vim.keymap.set("n", ",t", function()
 				Snacks.explorer({ cwd = expanded })
 			else
 				OpenOrSwitchToFile(expanded)
-				ToggleAutoRefresh()
+				-- ToggleAutoRefresh()
 			end
 			return
 		end
@@ -2444,7 +2444,17 @@ vim.defer_fn(function()
 			vim.cmd("bd")
 		end
 	end, { noremap = true, silent = true, desc = "Close current buffer" })
-	vim.keymap.set("n", ";a", ":qall<CR>", { noremap = true, silent = true, desc = "Quit all" })
+	vim.keymap.set("n", ";a", function()
+		-- batch timers live in this nvim: quitting would stop the remaining runs and the log tabs
+		if _G.pkq_batch_running then
+			vim.notify(
+				"Batch still running or waiting for select_running_job, not quitting (use :qa to force)",
+				vim.log.levels.WARN
+			)
+			return
+		end
+		vim.cmd("qall")
+	end, { noremap = true, silent = true, desc = "Quit all" })
 	vim.keymap.set(
 		"n",
 		";e",
@@ -2904,6 +2914,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local f_out = io.open(output_path, "w")
 	if not f_out then
 		vim.notify("Cannot write file: " .. output_path, vim.log.levels.ERROR)
+		_G.pkq_batch_running = false
 		return
 	end
 	for _, key in ipairs(keys_order) do
@@ -2926,6 +2937,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local dir_name = rel:match("^([^/]+)")
 	if not dir_name then
 		vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
+		_G.pkq_batch_running = false
 		return
 	end
 	local log_dir = prefix .. "zzzpkqoutput/" .. dir_name
@@ -3012,7 +3024,6 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	if not didRun then
 		do script "%s"
 	end if
-	activate
 end tell]],
 			bg_as_fmt,
 			bg_as_fmt
@@ -3072,6 +3083,10 @@ end tell]],
 								if vim.api.nvim_buf_is_valid(select_buf) then
 									vim.api.nvim_buf_delete(select_buf, { force = true })
 								end
+								-- the last group's monitor log is the batch's final step
+								if index == #batch_entries then
+									_G.pkq_batch_running = false
+								end
 							end)
 						)
 					end
@@ -3088,6 +3103,7 @@ end tell]],
 				elseif vim.fn.filereadable(bg_markfile_fail) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
+					_G.pkq_batch_running = false
 					vim.notify(
 						string.format("Batch [%d/%d] failed — stopping batch", index, #batch_entries),
 						vim.log.levels.ERROR
@@ -3267,6 +3283,8 @@ vim.keymap.set("n", "fr", function()
 		return
 	end
 
+	-- set until a run fails or the last group's monitor log opens; ;a refuses to quit meanwhile
+	_G.pkq_batch_running = true
 	run_batch_sequence(template_path, output_path, entries, 1, keys_order)
 end, { noremap = true, silent = true, desc = "Run meta_script from template + .batch file" })
 
