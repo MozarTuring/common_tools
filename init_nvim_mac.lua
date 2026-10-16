@@ -3090,6 +3090,7 @@ end tell]],
 							end)
 						)
 					end
+                    --the above timer run in background
 					vim.defer_fn(function()
 						run_batch_sequence(
 							template_path,
