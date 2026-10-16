@@ -1120,6 +1120,10 @@ local function mygg(args)
 end
 vim.keymap.set("n", "gg", function()
 	mygg(vim.v.count)
+	-- auto-refresh keeps jumping to the last line, so turn it off when going to the top
+	if IsAutoRefreshOn() then
+		ToggleAutoRefresh()
+	end
 end, { silent = true, noremap = true })
 
 function is_in_inp_dir(current_file, inp_dir)
@@ -1409,6 +1413,10 @@ local function find_buf_for_path(abspath)
 		end
 	end
 	return nil
+end
+
+function IsAutoRefreshOn()
+	return _pkq_auto_refresh_timers[vim.api.nvim_buf_get_name(0)] ~= nil
 end
 
 function ToggleAutoRefresh()
