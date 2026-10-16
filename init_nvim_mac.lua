@@ -2792,10 +2792,20 @@ local function parse_batch_file(batch_file)
 	end
 	f:close()
 
-	-- Cartesian product of all key values
+	-- Cartesian product of all key values: the last key in combo_order varies fastest.
+	-- PKQ_SERVER_NAME is moved to the end so consecutive runs cycle through servers first
+	local combo_order = {}
+	for _, k in ipairs(keys_order) do
+		if k ~= "PKQ_SERVER_NAME" then
+			combo_order[#combo_order + 1] = k
+		end
+	end
+	if keys_values["PKQ_SERVER_NAME"] then
+		combo_order[#combo_order + 1] = "PKQ_SERVER_NAME"
+	end
 	local entries = {}
 	local function build_combo(idx, current)
-		if idx > #keys_order then
+		if idx > #combo_order then
 			local raw_parts = {}
 			for _, k in ipairs(keys_order) do
 				raw_parts[#raw_parts + 1] = k .. "=" .. current[k]
@@ -2803,7 +2813,7 @@ local function parse_batch_file(batch_file)
 			entries[#entries + 1] = { overrides = vim.deepcopy(current), raw = table.concat(raw_parts, " ") }
 			return
 		end
-		local key = keys_order[idx]
+		local key = combo_order[idx]
 		for _, val in ipairs(keys_values[key]) do
 			current[key] = val
 			build_combo(idx + 1, current)
@@ -2931,12 +2941,34 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 		.. tmpdate
 	-- here shellescape is to correct interpret path with space
 	local run_flags = ""
-	if index == 1 then
-		run_flags = run_flags .. " firstrun"
-		vim.fn.delete(log_dir .. "/remote_job_id.txt")
+	-- a group is a run of consecutive entries that differ only in PKQ_SERVER_NAME
+	-- (parse_batch_file varies PKQ_SERVER_NAME fastest); flag its first and last entry
+	local function group_key(i)
+		local parts = {}
+		for _, key in ipairs(keys_order) do
+			if key ~= "PKQ_SERVER_NAME" then
+				parts[#parts + 1] = key .. "=" .. tostring(batch_entries[i].overrides[key])
+			end
+		end
+		return table.concat(parts, "\n")
 	end
-	if index == #batch_entries then
-		run_flags = run_flags .. " lastrun"
+	local group_num = 1
+	for i = 2, index do
+		if group_key(i) ~= group_key(i - 1) then
+			group_num = group_num + 1
+		end
+	end
+	local is_group_end = index == #batch_entries or group_key(index) ~= group_key(index + 1)
+	-- every run carries its group, so meta_script.sh records its job in remote_job_idgroup<N>.txt
+	if index == 1 then
+		-- drop job lists left over from previous batches
+		for _, old in ipairs(vim.fn.glob(log_dir .. "/remote_job_id*.txt", false, true)) do
+			vim.fn.delete(old)
+		end
+	end
+	run_flags = run_flags .. " group" .. group_num
+	if is_group_end then
+		run_flags = run_flags .. " end"
 	end
 	cmd = cmd .. run_flags
 	vim.fn.writefile({ cmd }, log_file)
@@ -2998,18 +3030,18 @@ end tell]],
 					bg_timer:stop()
 					bg_timer:close()
 					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
-					if index == #batch_entries then
-						-- lastrun: wait for select_running_job to write <tmpdate>_done, then open its monitor log
+					if is_group_end then
+						-- group end: wait for select_running_job to write group<N>_done, then open its monitor log
 						local select_log_file = prefix
 							.. "zzzpkqoutput/"
 							.. dir_name
-							.. "/select_running_job/"
-							.. tmpdate
+							.. "/select_running_job/group"
+							.. group_num
 						vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
 						-- keep the buffer handle so it can be closed once the monitor log opens
 						local select_buf = vim.api.nvim_get_current_buf()
 						ToggleAutoRefresh()
-						local select_done_file = log_dir .. "/select_running_job/" .. tmpdate .. "_done"
+						local select_done_file = log_dir .. "/select_running_job/group" .. group_num .. "_done"
 						local done_timer = vim.loop.new_timer()
 						done_timer:start(
 							5000,

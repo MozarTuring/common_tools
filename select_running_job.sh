@@ -17,9 +17,10 @@ fi
 # resolve "..", the project name is taken from the parent dir
 jobs_file="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 PKQ_MODE="$2"
-last_time=$3
+whichgroup=$3
 _project_name=$(basename "$(dirname "${jobs_file}")")
 _tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${_tools_dir}/retry_ssh.sh"
 
 # snapshot the jobs file once, so later modifications of it don't affect the selection loop
 _job_lines=()
@@ -30,13 +31,14 @@ done <"${jobs_file}"
 run_server=""
 run_job=""
 while [[ -z "${run_job}" ]]; do
-    for _line in "${_job_lines[@]}"; do
-        IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_line}"
+    for _i in "${!_job_lines[@]}"; do
+        IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
         [[ -z "${_jid}" ]] && continue
         echo "check ${_srv},${_jid}"
         bash "${_tools_dir}/slurm_job_status.sh" "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
         # 0 running, 1 no longer in queue (finished/failed): monitor this one
         if [[ ${_st} -eq 0 || ${_st} -eq 1 ]]; then
+            run_idx=${_i}
             run_server=${_srv}
             run_job=${_jid}
             run_dir_home=${_rdh}
@@ -47,14 +49,24 @@ while [[ -z "${run_job}" ]]; do
             break
         fi
     done
-    [[ -z "${run_job}" ]] && sleep 30
+    sleep 15
 done
 echo "${run_server},${run_job} is ${run_status}, cancelling the others"
-while IFS=, read -r _srv _jid _rest <&3; do
-    [[ -z "${_jid}" || ("${_srv}" == "${run_server}" && "${_jid}" == "${run_job}") ]] && continue
+for _i in "${!_job_lines[@]}"; do
+    [[ ${_i} -eq ${run_idx} ]] && continue
+    IFS=, read -r _srv _jid _rdh _br _ldir _rest <<<"${_job_lines[_i]}"
+    [[ -z "${_jid}" ]] && continue
     echo "scancel ${_srv},${_jid}"
-    ssh -o ConnectTimeout=10 "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed"
-done 3<"${jobs_file}"
+    if _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null; then
+        # the cancelled job's local output dir is no longer needed
+        if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
+            echo "rm -rf ${_ldir}"
+            rm -rf "${_ldir}"
+        fi
+    else
+        echo "WARNING: scancel ${_srv},${_jid} failed, keeping ${_ldir}"
+    fi
+done
 
 nohup_log="${local_dir}/nohup_monitor.log"
 echo "local dir: ${local_dir}"
@@ -72,4 +84,4 @@ echo "see logs at
 ${local_dir}
 ${PKQ_RUN_START_TIME}"
 
-echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/llm2vec/select_running_job/${last_time}_done
+echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/llm2vec/select_running_job/${whichgroup}_done

@@ -360,13 +360,12 @@ if [[ "$1" == *"local.sh" ]]; then
     PKQ_RUN_START_TIME=$2
     echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
     source "$(dirname "${BASH_SOURCE[0]}")/retry_ssh.sh"
-    # on any error, scancel every job recorded in ${local_dir_pre}/remote_job_id.txt
+    # on any error, scancel every job recorded in ${_jobs_file}
     # lines: server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME (non-slurm lines have no numeric job_id, skipped)
     _cancel_recorded_jobs() {
         local _rc=$1 _line=$2
         trap - ERR
         echo "ERROR: command failed at line ${_line} (exit code ${_rc})" >&2
-        local _jobs_file="${local_dir_pre}/remote_job_id.txt"
         if [[ -n "${local_dir_pre}" && -s "${_jobs_file}" ]]; then
             while IFS=, read -r _srv _jid _rest <&3; do
                 [[ "${_jid}" =~ ^[0-9]+$ ]] || continue
@@ -383,6 +382,15 @@ if [[ "$1" == *"local.sh" ]]; then
     _project_name=$(basename "$_project_dir")
     echo "_project_name, $_project_name"
     local_dir_pre="$HOME/project/zzzpkqoutput/${_project_name}"
+    # flags from $3 on: "group<N>" on every batch run, "end" on the group's last run
+    _group=""
+    _group_end=""
+    for _flag in "${@:3}"; do
+        [[ "${_flag}" =~ ^group[0-9]+$ ]] && _group=${_flag}
+        [[ "${_flag}" == "end" ]] && _group_end=1
+    done
+    # jobs of this group, read by select_running_job.sh at the group's end
+    _jobs_file="${local_dir_pre}/remote_job_id${_group}.txt"
 
     export PKQ_SERVER_NAME=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
 
@@ -520,12 +528,15 @@ if [[ "$1" == *"local.sh" ]]; then
 
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
-    [[ -n "${remote_job_id}" ]] && echo "${remote_job_id},${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>${local_dir_pre}/remote_job_id.txt
+    [[ -n "${remote_job_id}" ]] && echo "${remote_job_id},${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>"${_jobs_file}"
 
     echo "Remote job ID: $remote_job_id"
-    if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" ]] && [[ "$3" == "lastrun" || "$4" == "lastrun" ]]; then
-        echo "nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} ${PKQ_RUN_START_TIME}> ~/project/zzzpkqoutput/${_project_name}/select_running_job/${PKQ_RUN_START_TIME} 2>&1 &"
-        nohup bash ~/project/common_tools/select_running_job.sh ${local_dir_pre}/remote_job_id.txt ${PKQ_MODE} ${PKQ_RUN_START_TIME} >~/project/zzzpkqoutput/${_project_name}/select_running_job/${PKQ_RUN_START_TIME} 2>&1 &
+    # the last run of a group (flag "end") selects one running job among the group's jobs
+    if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && -n "${_group_end}" ]]; then
+        # select_running_job.sh writes ${_group}_done when it has picked a job; drop the one from a previous batch
+        rm -f ~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group}_done
+        echo "nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group}> ~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &"
+        nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group} >~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &
 
         # tail -f "$nohup_log" &
         # tail_pid=$!
