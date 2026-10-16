@@ -3007,7 +3007,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	vim.fn.setreg("+", full_cmd)
 
 	local function start_run()
-		vim.notify(string.format("Batch run [%d/%d]: %s", index, #batch_entries, entry.raw), vim.log.levels.INFO)
+		vim.notify(string.format("Batch run [%d/%d]", index, #batch_entries), vim.log.levels.INFO)
 		local bg_mark_dir = vim.fn.fnamemodify(log_file, ":h")
 		local bg_markfile = bg_mark_dir .. "/_bg_cmd_done"
 		local bg_markfile_fail = bg_mark_dir .. "/_bg_cmd_fail"
@@ -3048,7 +3048,6 @@ end tell]],
 		vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
 
 		local bg_timer = vim.loop.new_timer()
-		-- following are inside start_run()
 		-- the schedule is started 2 seconds after timer start, and is run every 2 seconds
 		bg_timer:start(
 			2000,
@@ -3107,7 +3106,7 @@ end tell]],
 							end)
 						)
 					end
-                    --the above timer run in background
+					--the above timer run in background
 					vim.defer_fn(function()
 						run_batch_sequence(
 							template_path,
@@ -3136,9 +3135,7 @@ end tell]],
 	if server_name then
 		seen_servers[server_name] = true
 	end
-	vim.defer_fn(function()
-		start_run()
-	end, 3000)
+	start_run()
 
 	-- if not is_first_server then
 	-- 	start_run()
