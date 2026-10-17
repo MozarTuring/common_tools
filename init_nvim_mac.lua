@@ -888,9 +888,9 @@ local function RefreshFile(buffer_name)
 
 	-- Check if the buffer exists and is loaded
 	if bufnr ~= -1 and vim.fn.buflisted(bufnr) == 1 then
-		-- Execute checktime for the specific buffer
+		-- Execute checktime for the specific buffer (bare checktime would scan every buffer)
 		vim.api.nvim_buf_call(bufnr, function()
-			vim.cmd("checktime")
+			vim.cmd("checktime " .. bufnr)
 			--            local last_line_number = vim.api.nvim_buf_line_count(0)
 			--            vim.api.nvim_win_set_cursor(0, {last_line_number, 0})
 			--            pkq_center()
@@ -1441,7 +1441,8 @@ function ToggleAutoRefresh()
 				local buf = find_buf_for_path(abspath)
 				if buf and vim.api.nvim_buf_is_valid(buf) and vim.fn.buflisted(buf) == 1 then
 					vim.api.nvim_buf_call(buf, function()
-						vim.cmd("checktime")
+						-- only this buffer; bare checktime would scan every buffer
+						vim.cmd("checktime " .. buf)
 						local last_line = vim.api.nvim_buf_line_count(0)
 						local wins = vim.fn.win_findbuf(buf)
 						for _, win in ipairs(wins) do
