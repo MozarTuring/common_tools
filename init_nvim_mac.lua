@@ -2935,7 +2935,38 @@ function pkq_batch_stop()
 	_G.pkq_caffeinate_job = nil
 end
 
-local function run_batch_sequence(template_path, output_path, batch_entries, index, keys_order, seen_servers)
+-- stop the batch and bring the app holding the error to the front:
+-- kitty (nvim) for errors in the lua code, Terminal for a failed meta_script.sh run
+local function pkq_batch_fail(msg, app)
+	pkq_batch_stop()
+	vim.notify(msg, vim.log.levels.ERROR)
+	vim.fn.jobstart({ "open", "-a", app or "kitty" }, { detach = true })
+end
+
+-- wrap a batch timer callback so a lua error stops the timer and the batch instead of repeating every tick
+local function batch_timer_cb(timer, fn)
+	return vim.schedule_wrap(function()
+		local ok, err = pcall(fn)
+		if not ok then
+			if not timer:is_closing() then
+				timer:stop()
+				timer:close()
+			end
+			pkq_batch_fail("Batch error: " .. tostring(err))
+		end
+	end)
+end
+
+local run_batch_step
+
+local function run_batch_sequence(...)
+	local ok, err = pcall(run_batch_step, ...)
+	if not ok then
+		pkq_batch_fail("Batch error: " .. tostring(err))
+	end
+end
+
+run_batch_step = function(template_path, output_path, batch_entries, index, keys_order, seen_servers)
 	seen_servers = seen_servers or {}
 	if index > #batch_entries then
 		vim.notify("Batch run complete (" .. #batch_entries .. " runs finished)", vim.log.levels.INFO)
@@ -2948,8 +2979,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	os.remove(output_path)
 	local f_out = io.open(output_path, "w")
 	if not f_out then
-		vim.notify("Cannot write file: " .. output_path, vim.log.levels.ERROR)
-		pkq_batch_stop()
+		pkq_batch_fail("Cannot write file: " .. output_path)
 		return
 	end
 	for _, key in ipairs(keys_order) do
@@ -2971,8 +3001,7 @@ local function run_batch_sequence(template_path, output_path, batch_entries, ind
 	local rel = output_path:sub(#prefix + 1)
 	local dir_name = rel:match("^([^/]+)")
 	if not dir_name then
-		vim.notify("File is not under " .. prefix, vim.log.levels.WARN)
-		pkq_batch_stop()
+		pkq_batch_fail("File is not under " .. prefix)
 		return
 	end
 	local log_dir = prefix .. "zzzpkqoutput/" .. dir_name
@@ -3070,7 +3099,7 @@ end tell]],
 		bg_timer:start(
 			2000,
 			2000,
-			vim.schedule_wrap(function()
+			batch_timer_cb(bg_timer, function()
 				if vim.fn.filereadable(bg_markfile) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
@@ -3091,7 +3120,7 @@ end tell]],
 						done_timer:start(
 							5000,
 							2000,
-							vim.schedule_wrap(function()
+							batch_timer_cb(done_timer, function()
 								if vim.fn.filereadable(select_done_file) ~= 1 then
 									return
 								end
@@ -3138,10 +3167,9 @@ end tell]],
 				elseif vim.fn.filereadable(bg_markfile_fail) == 1 then
 					bg_timer:stop()
 					bg_timer:close()
-					pkq_batch_stop()
-					vim.notify(
+					pkq_batch_fail(
 						string.format("Batch [%d/%d] failed — stopping batch", index, #batch_entries),
-						vim.log.levels.ERROR
+						"Terminal"
 					)
 				end
 			end)
