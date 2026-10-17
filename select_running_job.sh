@@ -84,4 +84,4 @@ echo "see logs at
 ${local_dir}
 ${PKQ_RUN_START_TIME}"
 
-echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/llm2vec/select_running_job/${whichgroup}_done
+echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/${_project_name}/select_running_job/${whichgroup}_done

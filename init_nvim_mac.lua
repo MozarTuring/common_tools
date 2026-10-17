@@ -2742,8 +2742,26 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
 })
 
 -- reload files modified outside nvim before editing them (autoread reloads unmodified buffers silently)
+-- :checktime with no argument checks every loaded buffer, not just the current one
+vim.o.autoread = true
 vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "InsertEnter" }, {
 	command = "silent! checktime",
+})
+
+-- After a tex buffer is reloaded from disk (external edit), compile it once, same as on save
+vim.api.nvim_create_autocmd("FileChangedShellPost", {
+	pattern = "*.tex",
+	callback = function(args)
+		local buf = args.buf
+		if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].buftype ~= "" then
+			return
+		end
+		vim.api.nvim_buf_call(buf, function()
+			if vim.b.vimtex and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
+				vim.fn["vimtex#compiler#start"]()
+			end
+		end)
+	end,
 })
 
 -- vim.keymap.set("n", "fj", function()
