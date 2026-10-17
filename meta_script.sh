@@ -282,7 +282,6 @@ python --version
 which pip
 EOF
     fi
-    
 
     if [[ ${PKQ_MODE} == "remotedocker" ]]; then
         cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<'EOF'
@@ -326,6 +325,7 @@ EOF
     cat pkq_configs/common.sh >>remotepkq3.sh
     echo "pip list > pkq_configs/packages.txt" >>remotepkq3.sh
     if [[ -n ${PKQ_INTERACTIVE} ]]; then
+        osascript -e 'tell application "Terminal" to activate'
         interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
     fi
 
