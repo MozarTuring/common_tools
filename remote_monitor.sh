@@ -146,7 +146,7 @@ jobsfile=$HOME/project/${_project_name}/pkq_configs/docs/jobs.txt
 _check_count=0
 _final_lines="-1"
 _job_finished=""
-PKQ_NOTEBOOK=$(sed -n 's/^export PKQ_NOTEBOOK=//p' "$HOME/project/${_project_name}/pkq_configs/remote/remote_tmps/remote.sh" | tail -1)
+PKQ_NOTEBOOK=$(sed -n 's/^export PKQ_NOTEBOOK=//p' "$HOME/project/${_project_name}/pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh" | tail -1)
 PKQ_NOTEBOOK_start=""
 
 if [[ ${PKQ_NOTEBOOK} != 1 ]]; then

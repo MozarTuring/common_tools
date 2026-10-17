@@ -161,19 +161,6 @@ _remote_setup() {
     mkdir -p pkq_configs/logs_${PKQ_RUN_START_TIME}
     mkdir -p pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
     sleep 1
-    # echo "" > pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh # init in nvim
-    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<'EOF'
-    #
-    # require_env() {
-    # for var in "$@"; do
-    #     if [ -z "${!var}" ]; then
-    #         echo "Error: $var is not set" >&2
-    #         exit 1
-    #     fi
-    # done
-    # }
-    #
-    # EOF
 
     export PYTHONUNBUFFERED=1
     export RUN_BACKGROUND_PKQ=1
@@ -295,19 +282,7 @@ python --version
 which pip
 EOF
     fi
-    # no '' around EOF, it will expand vars
-    #     cat >>pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<EOF
-    # # change the following based on your running preference
-    # export RUN_DIR_HOME="${RUN_DIR_HOME}"
-    # export RUN_PROJ="${RUN_PROJ}"
-    #
-    # EOF
-
-    # echo "${PKQ_RUN_DIR_REMOTE}, ${PWD}"
-    # if [[ ${PKQ_RUN_DIR_REMOTE} != "${PWD}" ]]; then
-    #     cp -R . ${PKQ_RUN_DIR_REMOTE}/
-    #     cd ${PKQ_RUN_DIR_REMOTE}
-    # fi
+    
 
     if [[ ${PKQ_MODE} == "remotedocker" ]]; then
         cat >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<'EOF'
@@ -353,7 +328,6 @@ EOF
     if [[ -n ${PKQ_INTERACTIVE} ]]; then
         interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
     fi
-    # sed -i '/^# PKQ_SERVER_NAME=/d' pkq_configs/${PKQ_MODE}/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
 
 }
 
