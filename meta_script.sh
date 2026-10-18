@@ -518,6 +518,7 @@ if [[ "$1" == *"local.sh" ]]; then
         echo "nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group}> ~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &"
         nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group} >~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &
 
+        osascript -e 'tell application "kitty" to activate'
         # tail -f "$nohup_log" &
         # tail_pid=$!
         # while kill -0 "$monitor_pid" 2>/dev/null; do
