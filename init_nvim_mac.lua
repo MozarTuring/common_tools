@@ -609,6 +609,49 @@ require("lazy").setup({
 					end,
 				})
 
+				-- When Skim becomes the frontmost app, reload tex buffers changed on disk and compile them.
+				-- nvim gets no event for another app gaining focus, so poll the frontmost app (async, 1s).
+				-- Acts only on the switch to Skim; buffers with unsaved nvim edits are left alone.
+				local skim_was_front = false
+				local function on_skim_focus()
+					for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+						local name = vim.api.nvim_buf_get_name(buf)
+						if
+							vim.api.nvim_buf_is_loaded(buf)
+							and vim.bo[buf].buftype == ""
+							and name:match("%.tex$")
+							and not vim.bo[buf].modified
+							and vim.fn.filereadable(name) == 1
+						then
+							vim.api.nvim_buf_call(buf, function()
+								local tick = vim.b.changedtick
+								vim.cmd("silent! checktime " .. buf)
+								if
+									vim.b.changedtick ~= tick
+									and vim.b.vimtex
+									and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0
+								then
+									vim.fn["vimtex#compiler#start"]()
+								end
+							end)
+						end
+					end
+				end
+				local skim_timer = vim.uv.new_timer()
+				skim_timer:start(1000, 1000, function()
+					vim.system(
+						{ "sh", "-c", "lsappinfo info -only name \"$(lsappinfo front)\"" },
+						{ text = true },
+						function(res)
+							local is_front = (res.stdout or ""):match('"Skim"') ~= nil
+							if is_front and not skim_was_front then
+								vim.schedule(on_skim_focus)
+							end
+							skim_was_front = is_front
+						end
+					)
+				end)
+
 				-- Close Skim when quitting Neovim
 				vim.api.nvim_create_autocmd("VimLeavePre", {
 					callback = function()
