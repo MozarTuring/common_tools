@@ -204,7 +204,9 @@ for _i in "${!_job_lines[@]}"; do
 done
 
 nohup_log="${local_dir}/nohup_monitor.log"
-echo "local dir: ${local_dir}"
+echo "
+
+local dir: ${local_dir}"
 
 monitor_args=(${PKQ_MODE} "${run_server}" "${run_job}" "${run_dir_home}" "${_project_name}" "${_git_branch}" "${local_dir}" "${PKQ_RUN_START_TIME}")
 
@@ -217,7 +219,9 @@ ps -ef |grep $monitor_pid"
 
 echo "see logs at
 ${local_dir}
-${PKQ_RUN_START_TIME}"
+${PKQ_RUN_START_TIME}
+
+"
 
 echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/${_project_name}/select_running_job/${whichgroup}_done
 
