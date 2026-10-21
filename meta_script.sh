@@ -450,8 +450,30 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
     #     _retry_ssh "$PKQ_SERVER_NAME" ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
     # )
     # echo "$remote_ts" >"$HOME/project/${_project_name}/pkq_configs/.last_remote_ts"
-    bash common_tools/sync_and_commit_repo.sh "common_tools"
-    bash common_tools/sync_and_commit_repo.sh "$_project_name"
+    # rsync ~/project/<repo> (and its useful_on_remote) to this run's server, into <repo>_<branch>; the branch is the
+    # one sync_and_commit_repo.sh wrote, run once by the nvim batch (init_nvim_mac.lua) before its first run
+    _rsync_repo() {
+        local repo_path=$1 _branch_file="$HOME/project/zzzpkqoutput/$1/git_branch.txt" _branch _remote_dir _tmppath
+        if [[ ! -s ${_branch_file} ]]; then
+            echo "ERROR: ${_branch_file} not found, sync_and_commit_repo.sh has not run for this batch"
+            return 1
+        fi
+        _branch=$(cat "${_branch_file}")
+        _remote_dir="${run_dir_home}/project_remote_pkq/${repo_path}_${_branch}"
+        echo "remote dir: ${_remote_dir}"
+        (
+            cd "$HOME/project/${repo_path}"
+            rsync -rlt --no-links --delete --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$PKQ_SERVER_NAME":${_remote_dir}/
+            _tmppath="/Users/jinma63/Desktop/baidu/project_nogit/${repo_path}/useful_on_remote"
+            mkdir -p ${_tmppath}
+            if [[ ! -L "./pkq_configs/docs" ]]; then
+                ln -sfn ${_tmppath}/.. ./pkq_configs/docs
+            fi
+            rsync -av --safe-links ${_tmppath}/ "$PKQ_SERVER_NAME":${_remote_dir}/../project_nogit/useful_on_remote/
+        )
+    }
+    _rsync_repo common_tools
+    _rsync_repo "$_project_name"
 
     if [[ -d /Users/jinma63/project/zzzpkqoutput/${_project_name}/backup ]]; then
         tmp_path=${run_dir_home}/project_remote_pkq/remote_data/${_project_name}/backup

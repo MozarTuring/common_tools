@@ -3254,7 +3254,32 @@ end tell]],
 	if server_name then
 		seen_servers[server_name] = true
 	end
-	start_run()
+	if index > 1 then
+		start_run()
+		return
+	end
+
+	-- commit the repos once per batch, before its first run: the runs overlap, and concurrent commits in one repo
+	-- collide on git's index.lock. sync_and_commit_repo.sh writes zzzpkqoutput/<repo>/git_branch.txt, read by every
+	-- meta_script.sh to rsync the repo to its server
+	local sync_script = pkqMacHome .. "/project/common_tools/sync_and_commit_repo.sh"
+	local sync_log = log_dir .. "/sync_and_commit.log"
+	local sync_cmd = {}
+	for _, repo in ipairs({ "common_tools", dir_name }) do
+		sync_cmd[#sync_cmd + 1] = "bash " .. vim.fn.shellescape(sync_script) .. " " .. vim.fn.shellescape(repo)
+	end
+	vim.notify("Batch: committing common_tools and " .. dir_name)
+	vim.fn.jobstart({ "bash", "-c", table.concat(sync_cmd, " && ") .. " >" .. vim.fn.shellescape(sync_log) .. " 2>&1" }, {
+		on_exit = function(_, code)
+			vim.schedule(function()
+				if code ~= 0 then
+					pkq_batch_fail(string.format("sync_and_commit_repo.sh failed (exit %d), see %s", code, sync_log))
+					return
+				end
+				start_run()
+			end)
+		end,
+	})
 
 	-- if not is_first_server then
 	-- 	start_run()

@@ -1,6 +1,13 @@
+# Usage: sync_and_commit_repo.sh <repo>
+# commits ~/project/<repo> (and pushes a pikaq* branch), then writes its branch to
+# ~/project/zzzpkqoutput/<repo>/git_branch.txt, which meta_script.sh reads to rsync the repo to each run's server.
+# Run once per batch (by the nvim batch, before its first run): the batch's runs overlap, and concurrent commits in
+# one repo collide on git's index.lock.
 set -eo pipefail
 cd $HOME/project/
 repo_path="$1"
+branch_file="$HOME/project/zzzpkqoutput/${repo_path}/git_branch.txt"
+mkdir -p "$(dirname "${branch_file}")"
 cd "$repo_path"
 git show-ref --verify --quiet refs/heads/pikaq && echo "Branch pikaq already exists, skipping rename." || (git branch -m pikaq && echo "Branch renamed to pikaq")
 
@@ -20,24 +27,6 @@ git add -A >/dev/null
         fi
     fi
 )
-last_commit=$(git rev-parse HEAD)
-export last_commit
 _git_branch=$(git -C ./ rev-parse --abbrev-ref HEAD 2>/dev/null)
-export _git_branch
-if [[ -n "$PKQ_SERVER_NAME" ]]; then
-    _remote_proj="${repo_path}_${_git_branch}"
-    export run_dir_remote="${run_dir_home}/project_remote_pkq/${_remote_proj}"
-    echo "remote dir: ${run_dir_remote}"
-    rsync -rlt --no-links --delete --exclude-from="$HOME/project/common_tools/rsync_exclude.txt" ./ "$PKQ_SERVER_NAME":${run_dir_remote}/
-    tmppath="/Users/jinma63/Desktop/baidu/project_nogit/${repo_path}/useful_on_remote"
-    if [[ ! -d ${tmppath} ]]; then
-        mkdir -p ${tmppath}
-    fi
-    if [[ ! -L "./pkq_configs/docs" ]]; then
-        ln -sfn ${tmppath}/.. ./pkq_configs/docs
-    fi
-    rsync -av --safe-links ${tmppath}/ "$PKQ_SERVER_NAME":${run_dir_remote}/../project_nogit/useful_on_remote/
-else
-    echo "no server name"
-    exit
-fi
+# written last: its presence tells the batch's other runs that the commit is done
+echo "${_git_branch}" >"${branch_file}"
