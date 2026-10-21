@@ -176,11 +176,11 @@ EOF
             sinfo # show partitions
             sinfo -a -o "%N %G %f %m"
             # Show all QOS policies and their limits
-            sacctmgr show qos format=Name,MaxWall
-            # Show your specific QOS association
-            sacctmgr show assoc where user=$USER format=User,Account,QOS
-            # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
-            sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
+            # sacctmgr show qos format=Name,MaxWall
+            # # Show your specific QOS association
+            # sacctmgr show assoc where user=$USER format=User,Account,QOS
+            # # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
+            # sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
             PKQ_SLURM_NODES=""
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
@@ -532,19 +532,6 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
 
     echo "Remote job ID: $remote_job_id"
     # select_running_job.sh is started by the nvim batch (init_nvim_mac.lua) once every run of the group has finished
-    if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && -n "${_group_end}" ]]; then
-        osascript -e 'tell application "kitty" to activate'
-        # tail -f "$nohup_log" &
-        # tail_pid=$!
-        # while kill -0 "$monitor_pid" 2>/dev/null; do
-        #     sleep 1
-        # done
-        # kill "$tail_pid" 2>/dev/null
-        # wait "$tail_pid" 2>/dev/null || true
-        # echo "remote_monitor (PID $monitor_pid) exited, stopping log tail."
-    elif [ -z "${remote_job_id}" ]; then
-        echo "FAILED: remote setup on $PKQ_SERVER_NAME failed."
-    fi
 elif [[ "$1" == "remote"* ]]; then
     export PKQ_MODE=$1
     shift
