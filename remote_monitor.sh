@@ -214,7 +214,7 @@ while true; do
         # Second sync after a delay — HPC parallel filesystems may not have
         # flushed the final error messages (e.g. OOM) by the first rsync.
         sleep 10
-        sync_remote || true
+        sync_remote
         # back up all files changed since submission to a per-run dir on remote (relative paths preserved)
         # ssh -o ConnectTimeout=10 "$host" "cd '${remote_dir}' && mkdir -p '${remote_dir}_backup/${PKQ_RUN_START_TIME}' &&
         #     find . -newermt '$ts' -type f | rsync -a --files-from=- ./ '${remote_dir}_backup/${PKQ_RUN_START_TIME}/'" 2>&1 ||
