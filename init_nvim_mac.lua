@@ -3139,7 +3139,7 @@ end tell]],
 		)
 		vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
 		-- within a group, launch the next run without waiting for this one;
-		-- only the group's last run starts the bg_timer below, and the next group waits for this group's selection
+		-- only the group's last run starts the group's selection below, and the next group waits for it to finish
 		if not is_group_end then
 			vim.defer_fn(function()
 				run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
@@ -3154,6 +3154,8 @@ end tell]],
 			vim.fn.mkdir(select_dir, "p")
 			-- drop the done file of a previous batch
 			vim.fn.delete(select_log_file .. "_done")
+			-- created before the job so that a failed selection can stop it
+			local done_timer = vim.loop.new_timer()
 			vim.fn.jobstart({
 				"bash",
 				"-c",
@@ -3172,6 +3174,11 @@ end tell]],
 				on_exit = function(_, code)
 					vim.schedule(function()
 						if code ~= 0 then
+							-- no group<g>_done will come: stop waiting for it
+							if not done_timer:is_closing() then
+								done_timer:stop()
+								done_timer:close()
+							end
 							pkq_batch_fail(
 								string.format("select_running_job.sh of group %d failed (exit %d)", g, code)
 							)
@@ -3196,7 +3203,6 @@ end tell]],
 			local select_buf = vim.api.nvim_get_current_buf()
 			ToggleAutoRefresh()
 			local select_done_file = select_log_file .. "_done"
-			local done_timer = vim.loop.new_timer()
 			done_timer:start(
 				5000,
 				2000,
@@ -3231,23 +3237,9 @@ end tell]],
 			)
 		end
 
-		-- this group's timer: start its selection once its jobs file appears
-		local jobs_file = log_dir .. "/remote_job_idgroup" .. group_num .. ".txt"
-		local bg_timer = vim.loop.new_timer()
-		-- the schedule is started 2 seconds after timer start, and is run every 2 seconds
-		bg_timer:start(
-			2000,
-			2000,
-			batch_timer_cb(bg_timer, function()
-				-- start as soon as the group's first job is recorded; select_running_job.sh rereads the file
-				-- and picks up the group's later jobs itself
-				if vim.fn.getfsize(jobs_file) > 0 then
-					bg_timer:stop()
-					bg_timer:close()
-					start_group_selection(group_num, jobs_file)
-				end
-			end)
-		)
+		-- group end: start its selection now; select_running_job.sh waits for the jobs file and rereads it,
+		-- so it picks up the group's jobs as they are recorded
+		start_group_selection(group_num, log_dir .. "/remote_job_idgroup" .. group_num .. ".txt")
 	end
 
 	local server_name = entry.overrides["PKQ_SERVER_NAME"]

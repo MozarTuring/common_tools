@@ -6,10 +6,7 @@ if [[ -z "$1" || -z "$2" ]]; then
     echo "Usage: select_running_job.sh <jobs_file> <pkq_mode> <group>"
     exit 1
 fi
-if [[ ! -s "$1" ]]; then
-    echo "ERROR: jobs_file '$1' does not exist or is empty"
-    exit 1
-fi
+# the jobs file may not exist yet: started at the group's end, its runs record their lines later
 if [[ "$2" != "remoteslurm" ]]; then
     echo "ERROR: unsupported pkq_mode '$2', only remoteslurm is supported"
     exit 1
@@ -25,6 +22,7 @@ source "${_tools_dir}/retry_ssh.sh"
 # reread the jobs file into _job_lines; the group's runs keep appending to it while this script runs
 _read_jobs() {
     _job_lines=()
+    [[ -f "${jobs_file}" ]] || return 0
     while IFS= read -r _line || [[ -n "${_line}" ]]; do
         [[ -n "${_line}" ]] && _job_lines+=("${_line}")
     done <"${jobs_file}"
@@ -46,13 +44,34 @@ _cancel_line() {
     fi
 }
 
+# print "<pid> <args>" of the local meta_script.sh processes of the run with PKQ_RUN_START_TIME $1
+_run_procs() {
+    while read -r _pid _args; do
+        [[ "${_args}" == *"meta_script.sh "* && " ${_args} " == *" $1 "* ]] && echo "${_pid} ${_args}"
+    done < <(ps -Ao pid=,args=)
+    return 0
+}
+
 run_server=""
 run_job=""
+_round=0
 while [[ -z "${run_job}" ]]; do
+    _round=$((_round + 1))
     _read_jobs
+    # whether any run of the group can still give a job: a recorded job id, or a meta_script.sh still running
+    _alive=""
     for _i in "${!_job_lines[@]}"; do
         IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
-        [[ -z "${_jid}" ]] && continue
+        if [[ -z "${_jid}" ]]; then
+            if [[ -n "$(_run_procs "${_stime}")" ]]; then
+                echo "${_stime} in process, but no job id yet"
+                _alive=1
+            else
+                echo "${_stime} not in process"
+            fi
+            continue
+        fi
+        _alive=1
         echo "check ${_srv},${_jid}"
         bash "${_tools_dir}/slurm_job_status.sh" "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
         # 0 running, 1 no longer in queue (finished/failed): monitor this one
@@ -68,7 +87,18 @@ while [[ -z "${run_job}" ]]; do
             break
         fi
     done
-    [[ -z "${run_job}" ]] && sleep 15
+    [[ -n "${run_job}" ]] && break
+    # runs that have not recorded their line yet (before the ssh) only show up as a meta_script.sh with the group flag
+    if [[ -z "${_alive}" ]] && ps -Ao args= | grep -qE "meta_script\.sh .* ${whichgroup}( |$)"; then
+        echo "no job id yet, but a meta_script.sh of ${whichgroup} is still running"
+        _alive=1
+    fi
+    # from the 2nd round on (the group's last run needs a moment to start): stop when nothing can give a job any more
+    if [[ -z "${_alive}" && ${_round} -gt 1 ]]; then
+        echo "ERROR: no run of ${whichgroup} has a job id or is still in process, stopping"
+        exit 1
+    fi
+    sleep 15
 done
 echo "${run_server},${run_job} is ${run_status}, cancelling the others"
 # PKQ_RUN_START_TIMEs of the runs handled so far (selected or cancelled)
@@ -118,7 +148,6 @@ for _i in "${!_job_lines[@]}"; do
     fi
     _found=""
     while read -r _pid _args; do
-        [[ "${_args}" == *"meta_script.sh "* && " ${_args} " == *" ${_stime} "* ]] || continue
         _found=1
         echo "kill stuck run ${_stime} (pid ${_pid}): ${_args}"
         # collect the children, then SIGKILL the script itself first: a child killed while the script lives would fire
@@ -126,7 +155,7 @@ for _i in "${!_job_lines[@]}"; do
         _children=$(pgrep -P "${_pid}" || true)
         kill -9 "${_pid}" 2>/dev/null || true
         [[ -n "${_children}" ]] && kill ${_children} 2>/dev/null || true
-    done < <(ps -Ao pid=,args=)
+    done < <(_run_procs "${_stime}")
     if [[ -z "${_found}" ]]; then
         _unfound+=("${_job_lines[_i]}")
         continue
