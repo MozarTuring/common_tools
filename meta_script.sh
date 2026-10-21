@@ -334,11 +334,12 @@ EOF
     _pkgs_txt=pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/packages.txt
     if [[ ! -f ${_pkgs_txt} ]]; then
         echo "no ${_pkgs_txt} yet, PKQ_INTERACTIVE=1"
-    elif python3 "$(dirname "${BASH_SOURCE[0]}")/check_packages.py" pkq_configs/common.sh "${_pkgs_txt}"; then
+    elif _pkgs_mismatch=$(python3 "$(dirname "${BASH_SOURCE[0]}")/check_packages.py" pkq_configs/common.sh "${_pkgs_txt}" 2>&1); then
         echo "all packages of common.sh found in packages.txt, PKQ_INTERACTIVE=0"
         PKQ_INTERACTIVE=0
     else
-        echo "packages of common.sh not all in packages.txt, PKQ_INTERACTIVE=1"
+        echo "packages of common.sh not all in packages.txt, PKQ_INTERACTIVE=1; mismatches:"
+        echo "${_pkgs_mismatch}" | sed 's/^/    /'
     fi
 
     if [[ ${PKQ_INTERACTIVE} == 1 ]]; then
@@ -349,7 +350,6 @@ EOF
 }
 
 if [[ "$1" == *"/local_${2}.sh" ]]; then
-    osascript -e 'tell application "Terminal" to activate'
     PKQ_RUN_START_TIME=$2
     echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
     source "$(dirname "${BASH_SOURCE[0]}")/retry_ssh.sh"

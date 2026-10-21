@@ -52,13 +52,108 @@ _run_procs() {
     return 0
 }
 
+# kill a local meta_script.sh: collect the children, then SIGKILL the script itself first: a child killed while the
+# script lives would fire its ERR trap (_cancel_recorded_jobs), which scancels every recorded job of the group,
+# the selected one too
+_kill_run() {
+    local _children
+    _children=$(pgrep -P "$1" || true)
+    kill -9 "$1" 2>/dev/null || true
+    [[ -n "${_children}" ]] && kill ${_children} 2>/dev/null || true
+}
+
+# PKQ_RUN_START_TIMEs of the runs handled so far (selected or cancelled); the selected one is never cancelled
+_handled=" "
+local_dir=""
+
+# every run of the group except the selected one (none before a selection), reread from the jobs file:
+#   job id recorded    -> scancel the remote job
+#   no job id yet      -> the run is still in its local meta_script.sh (e.g. the ssh to the remote): kill it,
+#                         found by its PKQ_RUN_START_TIME in the meta_script.sh args
+#   no job id, no proc -> listed at the end (failed or exited before submitting)
+# then runs without a line yet (before the ssh) are killed by the group flag in their args
+_cleanup_rest() {
+    local _unfound=() _killed=" " _found _pid _args
+    _read_jobs
+    for _i in "${!_job_lines[@]}"; do
+        IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
+        [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
+        if [[ -n "${_jid}" ]]; then
+            echo "cancel job ${_stime} of ${whichgroup}"
+            _cancel_line "${_i}"
+            _handled+="${_stime} "
+            continue
+        fi
+        _found=""
+        while read -r _pid _args; do
+            _found=1
+            echo "kill stuck run ${_stime} (pid ${_pid}): ${_args}"
+            _kill_run "${_pid}"
+        done < <(_run_procs "${_stime}")
+        if [[ -z "${_found}" ]]; then
+            _unfound+=("${_job_lines[_i]}")
+            continue
+        fi
+        _killed+="${_stime} "
+        # the killed run's local output dir is no longer needed
+        if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
+            echo "rm -rf ${_ldir}"
+            rm -rf "${_ldir}"
+        fi
+    done
+
+    # runs that have not written their line yet: a meta_script.sh with the group flag, other than the selected run
+    while read -r _pid _args; do
+        [[ "${_args}" == *"meta_script.sh "* && " ${_args} " == *" ${whichgroup} "* ]] || continue
+        [[ -n "${PKQ_RUN_START_TIME}" && " ${_args} " == *" ${PKQ_RUN_START_TIME} "* ]] && continue
+        echo "kill unrecorded run of ${whichgroup} (pid ${_pid}): ${_args}"
+        _kill_run "${_pid}"
+    done < <(ps -Ao pid=,args=)
+
+    # a killed run may have filled in its job id just before the kill: cancel those too
+    _read_jobs
+    for _i in "${!_job_lines[@]}"; do
+        IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
+        [[ -n "${_jid}" && "${_handled}" != *" ${_stime} "* ]] || continue
+        echo "job ${_stime} of ${whichgroup} recorded just before its kill"
+        _cancel_line "${_i}"
+        _handled+="${_stime} "
+    done
+
+    if [[ ${#_unfound[@]} -gt 0 ]]; then
+        echo "runs of ${whichgroup} with no job id and no running meta_script.sh (check them by hand):"
+        printf '  %s\n' "${_unfound[@]}"
+    fi
+}
+
+# stopped by hand (kill <pid>, Ctrl-C, closed terminal): cancel and kill the group's other runs, then exit non-zero
+# so the nvim batch does not start the next group. kill -9 cannot be trapped and skips all of this.
+_on_signal() {
+    trap - TERM INT HUP
+    echo "
+--- $(date '+%Y-%m-%d %H:%M:%S') select_running_job.sh of ${whichgroup} stopped by a signal, cleaning up"
+    _cleanup_rest
+    exit 143
+}
+trap _on_signal TERM INT HUP
+
 run_server=""
 run_job=""
+PKQ_RUN_START_TIME=""
 _round=0
 while [[ -z "${run_job}" ]]; do
     _round=$((_round + 1))
-    echo "--- $(date '+%Y-%m-%d %H:%M:%S') check round ${_round}"
+    echo "
+--- $(date '+%Y-%m-%d %H:%M:%S') check round ${_round}"
     _read_jobs
+    # runs write their line only just before their ssh, so the file stays empty for a while after the group starts:
+    # just wait for the first line
+    if [[ ${#_job_lines[@]} -eq 0 ]]; then
+        echo "no lines in ${jobs_file} yet"
+        sleep 15 &
+        wait $!
+        continue
+    fi
     # whether any run of the group can still give a job: a recorded job id, or a meta_script.sh still running
     _alive=""
     for _i in "${!_job_lines[@]}"; do
@@ -89,21 +184,17 @@ while [[ -z "${run_job}" ]]; do
         fi
     done
     [[ -n "${run_job}" ]] && break
-    # runs that have not recorded their line yet (before the ssh) only show up as a meta_script.sh with the group flag
-    if [[ -z "${_alive}" ]] && ps -Ao args= | grep -qE "meta_script\.sh .* ${whichgroup}( |$)"; then
-        echo "no job id yet, but a meta_script.sh of ${whichgroup} is still running"
-        _alive=1
-    fi
-    # from the 2nd round on (the group's last run needs a moment to start): stop when nothing can give a job any more
-    if [[ -z "${_alive}" && ${_round} -gt 1 ]]; then
+    # stop when no recorded run can give a job any more
+    if [[ -z "${_alive}" ]]; then
         echo "ERROR: no run of ${whichgroup} has a job id or is still in process, stopping"
         exit 1
     fi
-    sleep 15
+    # in the background + wait: a signal is handled at once, not only after the sleep ends
+    sleep 15 &
+    wait $! # so that trap can work once kill is triggered, otherwise need to wait for sleep ends
 done
 echo "${run_server},${run_job} is ${run_status}, cancelling the others"
-# PKQ_RUN_START_TIMEs of the runs handled so far (selected or cancelled)
-_handled=" ${PKQ_RUN_START_TIME} "
+_handled+="${PKQ_RUN_START_TIME} "
 for _i in "${!_job_lines[@]}"; do
     [[ ${_i} -eq ${run_idx} ]] && continue
     IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
@@ -130,58 +221,8 @@ ${PKQ_RUN_START_TIME}"
 
 echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/${_project_name}/select_running_job/${whichgroup}_done
 
-# the group's remaining runs, reread since the selection:
-#   job id recorded    -> scancel the remote job
-#   no job id yet      -> the run is still in its local meta_script.sh (e.g. the ssh to the remote): kill it,
-#                         found by its PKQ_RUN_START_TIME in the meta_script.sh args
-#   no job id, no proc -> listed at the end (failed or exited before submitting)
-_unfound=()
-_killed=" "
-_read_jobs
-for _i in "${!_job_lines[@]}"; do
-    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
-    [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
-    if [[ -n "${_jid}" ]]; then
-        echo "late job ${_stime} of ${whichgroup}"
-        _cancel_line "${_i}"
-        _handled+="${_stime} "
-        continue
-    fi
-    _found=""
-    while read -r _pid _args; do
-        _found=1
-        echo "kill stuck run ${_stime} (pid ${_pid}): ${_args}"
-        # collect the children, then SIGKILL the script itself first: a child killed while the script lives would fire
-        # its ERR trap (_cancel_recorded_jobs), which scancels every recorded job of the group, the selected one too
-        _children=$(pgrep -P "${_pid}" || true)
-        kill -9 "${_pid}" 2>/dev/null || true
-        [[ -n "${_children}" ]] && kill ${_children} 2>/dev/null || true
-    done < <(_run_procs "${_stime}")
-    if [[ -z "${_found}" ]]; then
-        _unfound+=("${_job_lines[_i]}")
-        continue
-    fi
-    _killed+="${_stime} "
-    # the killed run's local output dir is no longer needed
-    if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
-        echo "rm -rf ${_ldir}"
-        rm -rf "${_ldir}"
-    fi
-done
-
-# a killed run may have filled in its job id just before the kill: cancel those too
-_read_jobs
-for _i in "${!_job_lines[@]}"; do
-    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
-    [[ -n "${_jid}" && "${_killed}" == *" ${_stime} "* ]] || continue
-    echo "job ${_stime} of ${whichgroup} recorded just before its kill"
-    _cancel_line "${_i}"
-done
-
-if [[ ${#_unfound[@]} -gt 0 ]]; then
-    echo "runs of ${whichgroup} with no job id and no running meta_script.sh (check them by hand):"
-    printf '  %s\n' "${_unfound[@]}"
-fi
+_cleanup_rest
+trap - TERM INT HUP
 
 # exit 0 tells the nvim batch that this group is cleanly done, so it starts the next group
 exit 0
