@@ -57,6 +57,7 @@ run_job=""
 _round=0
 while [[ -z "${run_job}" ]]; do
     _round=$((_round + 1))
+    echo "--- $(date '+%Y-%m-%d %H:%M:%S') check round ${_round}"
     _read_jobs
     # whether any run of the group can still give a job: a recorded job id, or a meta_script.sh still running
     _alive=""
@@ -64,10 +65,10 @@ while [[ -z "${run_job}" ]]; do
         IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
         if [[ -z "${_jid}" ]]; then
             if [[ -n "$(_run_procs "${_stime}")" ]]; then
-                echo "${_stime} in process, but no job id yet"
+                echo "${_srv} in process, but no job id yet"
                 _alive=1
             else
-                echo "${_stime} not in process"
+                echo "${_srv} not in process"
             fi
             continue
         fi

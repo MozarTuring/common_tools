@@ -323,8 +323,25 @@ EOF
         cat pkq_configs/remote/template.sh >>remotepkq3.sh
     fi
     cat pkq_configs/common.sh >>remotepkq3.sh
-    echo "pip list > pkq_configs/packages.txt" >>remotepkq3.sh
+    echo "pip list > pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/packages.txt" >>remotepkq3.sh
+    # no interactive session needed when the env of the last run (its pip list) already has every package
+    # common.sh installs, at the specified versions
+    # PKQ_INTERACTIVE is decided here, not configured: a value from the config is ignored
     if [[ -n ${PKQ_INTERACTIVE} ]]; then
+        echo "WARNING: PKQ_INTERACTIVE=${PKQ_INTERACTIVE} from the config is ignored, it is decided automatically"
+    fi
+    PKQ_INTERACTIVE=1
+    _pkgs_txt=pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/packages.txt
+    if [[ ! -f ${_pkgs_txt} ]]; then
+        echo "no ${_pkgs_txt} yet, PKQ_INTERACTIVE=1"
+    elif python3 "$(dirname "${BASH_SOURCE[0]}")/check_packages.py" pkq_configs/common.sh "${_pkgs_txt}"; then
+        echo "all packages of common.sh found in packages.txt, PKQ_INTERACTIVE=0"
+        PKQ_INTERACTIVE=0
+    else
+        echo "packages of common.sh not all in packages.txt, PKQ_INTERACTIVE=1"
+    fi
+
+    if [[ ${PKQ_INTERACTIVE} == 1 ]]; then
         echo "${PKQ_SERVER_NAME}"
         interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
     fi
@@ -493,7 +510,11 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
     fi
 
     echo "ssh start"
-    ssh -o ConnectTimeout=10 -t "$PKQ_SERVER_NAME" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name} ${_git_branch} $PKQ_SERVER_NAME ${run_dir_remote} ${PKQ_RUN_START_TIME}" # >>"$nohup_log" 2>&1 &
+    # output goes to the terminal and to ${local_dir}/ssh_output.log; stdin stays the terminal, so -t still gets a tty
+    ssh -o ConnectTimeout=10 -t "$PKQ_SERVER_NAME" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name} ${_git_branch} $PKQ_SERVER_NAME ${run_dir_remote} ${PKQ_RUN_START_TIME}" 2>&1 | tee "${local_dir}/ssh_output.log" # >>"$nohup_log" 2>&1 &
+    # the pipe's status is tee's: re-raise a failed ssh so the ERR trap still fires as before
+    _ssh_rc=${PIPESTATUS[0]}
+    [[ ${_ssh_rc} -eq 0 ]] || (exit ${_ssh_rc})
     # _ssh_pid=$!
     # (sleep "3600" && kill -TERM "$_ssh_pid" 2>/dev/null && echo "ERROR: SSH timed out" >>"$nohup_log") &
     # _timer_pid=$!
