@@ -3042,7 +3042,6 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 	-- 	return
 	-- end
 
-	-- tmpdate recreated whenever run_batch_sequence()
 	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	local prefix = pkqMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
@@ -3075,18 +3074,28 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 		end
 		return table.concat(parts, "\n")
 	end
-	local group_num = 1
-	for i = 2, index do
-		if group_key(i) ~= group_key(i - 1) then
-			group_num = group_num + 1
-		end
+	local group_of = { 1 }
+	for i = 2, #batch_entries do
+		group_of[i] = group_of[i - 1] + (group_key(i) ~= group_key(i - 1) and 1 or 0)
 	end
+	local group_num = group_of[index]
+	local num_groups = group_of[#batch_entries]
 	local is_group_end = index == #batch_entries or group_key(index) ~= group_key(index + 1)
 	-- every run carries its group, so meta_script.sh records its job in remote_job_idgroup<N>.txt
 	if index == 1 then
 		-- drop job lists left over from previous batches
 		for _, old in ipairs(vim.fn.glob(log_dir .. "/remote_job_id*.txt", false, true)) do
 			vim.fn.delete(old)
+		end
+		-- number of finished groups, for the last run's timer
+		_G.pkq_batch_groups = { done = 0 }
+	end
+	local function mark_group_done()
+		local groups = _G.pkq_batch_groups
+		groups.done = groups.done + 1
+		-- the last group to finish is the batch's final step
+		if groups.done == num_groups then
+			pkq_batch_stop()
 		end
 	end
 	run_flags = run_flags .. " group" .. group_num
@@ -3102,18 +3111,7 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 
 	local function start_run()
 		vim.notify(string.format("Batch run [%d/%d]", index, #batch_entries), vim.log.levels.INFO)
-		local bg_mark_dir = vim.fn.fnamemodify(log_file, ":h")
-		local bg_markfile = bg_mark_dir .. "/_bg_cmd_done"
-		local bg_markfile_fail = bg_mark_dir .. "/_bg_cmd_fail"
-		vim.fn.delete(bg_markfile)
-		vim.fn.delete(bg_markfile_fail)
-
-		local terminal_bg_cmd = bg_cmd
-			.. " && touch "
-			.. vim.fn.shellescape(bg_markfile)
-			.. " || touch "
-			.. vim.fn.shellescape(bg_markfile_fail)
-		local bg_as_escaped = terminal_bg_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
+		local bg_as_escaped = bg_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
 		local bg_as_fmt = bg_as_escaped:gsub("%%", "%%%%")
 		local bg_applescript = string.format(
 			[[tell application "Terminal"
@@ -3140,84 +3138,113 @@ end tell]],
 			bg_as_fmt
 		)
 		vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
+		-- within a group, launch the next run without waiting for this one;
+		-- only the group's last run starts the bg_timer below, and the next group waits for this group's selection
+		if not is_group_end then
+			vim.defer_fn(function()
+				run_batch_sequence(template_path, output_path, batch_entries, index + 1, keys_order, seen_servers)
+			end, 2000)
+			return
+		end
 
+		-- select one running job among group g's jobs, wait for it to write group<g>_done, then open its monitor log
+		local function start_group_selection(g, jobs_file)
+			local select_dir = log_dir .. "/select_running_job"
+			local select_log_file = select_dir .. "/group" .. g
+			vim.fn.mkdir(select_dir, "p")
+			-- drop the done file of a previous batch
+			vim.fn.delete(select_log_file .. "_done")
+			vim.fn.jobstart({
+				"bash",
+				"-c",
+				"bash "
+					.. vim.fn.shellescape(pkqMacHome .. "/project/common_tools/select_running_job.sh")
+					.. " "
+					.. vim.fn.shellescape(jobs_file)
+					.. " remoteslurm group"
+					.. g
+					.. " >"
+					.. vim.fn.shellescape(select_log_file)
+					.. " 2>&1",
+			}, {
+				detach = true,
+				-- the next group starts only once this group's select_running_job.sh has exited cleanly
+				on_exit = function(_, code)
+					vim.schedule(function()
+						if code ~= 0 then
+							pkq_batch_fail(
+								string.format("select_running_job.sh of group %d failed (exit %d)", g, code)
+							)
+							return
+						end
+						vim.notify(string.format("select_running_job.sh of group %d finished", g))
+						if index < #batch_entries then
+							run_batch_sequence(
+								template_path,
+								output_path,
+								batch_entries,
+								index + 1,
+								keys_order,
+								seen_servers
+							)
+						end
+					end)
+				end,
+			})
+			vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
+			-- keep the buffer handle so it can be closed once the monitor log opens
+			local select_buf = vim.api.nvim_get_current_buf()
+			ToggleAutoRefresh()
+			local select_done_file = select_log_file .. "_done"
+			local done_timer = vim.loop.new_timer()
+			done_timer:start(
+				5000,
+				2000,
+				batch_timer_cb(done_timer, function()
+					if vim.fn.filereadable(select_done_file) ~= 1 then
+						return
+					end
+					local extract_line = nil
+					for _, l in ipairs(vim.fn.readfile(select_done_file)) do
+						l = vim.trim(l)
+						if l ~= "" then
+							extract_line = l
+							break
+						end
+					end
+					-- file may be created before its content is written, retry next tick
+					if not extract_line then
+						return
+					end
+					done_timer:stop()
+					done_timer:close()
+					local monitor_log = log_dir .. "/" .. extract_line .. "/nohup_monitor.log"
+					vim.cmd("tabnew " .. vim.fn.fnameescape(monitor_log))
+					ToggleAutoRefresh()
+					-- close the select_running_job tab opened at group completion
+					-- deleting the buffer closes its windows (and so its tab), and stops its auto-refresh
+					if vim.api.nvim_buf_is_valid(select_buf) then
+						vim.api.nvim_buf_delete(select_buf, { force = true })
+					end
+					mark_group_done()
+				end)
+			)
+		end
+
+		-- this group's timer: start its selection once its jobs file appears
+		local jobs_file = log_dir .. "/remote_job_idgroup" .. group_num .. ".txt"
 		local bg_timer = vim.loop.new_timer()
 		-- the schedule is started 2 seconds after timer start, and is run every 2 seconds
 		bg_timer:start(
 			2000,
 			2000,
 			batch_timer_cb(bg_timer, function()
-				if vim.fn.filereadable(bg_markfile) == 1 then
+				-- start as soon as the group's first job is recorded; select_running_job.sh rereads the file
+				-- and picks up the group's later jobs itself
+				if vim.fn.getfsize(jobs_file) > 0 then
 					bg_timer:stop()
 					bg_timer:close()
-					vim.notify(string.format("Batch [%d/%d] finished (exit 0)", index, #batch_entries))
-					if is_group_end then
-						-- group end: wait for select_running_job to write group<N>_done, then open its monitor log
-						local select_log_file = prefix
-							.. "zzzpkqoutput/"
-							.. dir_name
-							.. "/select_running_job/group"
-							.. group_num
-						vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
-						-- keep the buffer handle so it can be closed once the monitor log opens
-						local select_buf = vim.api.nvim_get_current_buf()
-						ToggleAutoRefresh()
-						local select_done_file = log_dir .. "/select_running_job/group" .. group_num .. "_done"
-						local done_timer = vim.loop.new_timer()
-						done_timer:start(
-							5000,
-							2000,
-							batch_timer_cb(done_timer, function()
-								if vim.fn.filereadable(select_done_file) ~= 1 then
-									return
-								end
-								local extract_line = nil
-								for _, l in ipairs(vim.fn.readfile(select_done_file)) do
-									l = vim.trim(l)
-									if l ~= "" then
-										extract_line = l
-										break
-									end
-								end
-								-- file may be created before its content is written, retry next tick
-								if not extract_line then
-									return
-								end
-								done_timer:stop()
-								done_timer:close()
-								local monitor_log = log_dir .. "/" .. extract_line .. "/nohup_monitor.log"
-								vim.cmd("tabnew " .. vim.fn.fnameescape(monitor_log))
-								ToggleAutoRefresh()
-								-- close the select_running_job tab opened at lastrun
-								-- deleting the buffer closes its windows (and so its tab), and stops its auto-refresh
-								if vim.api.nvim_buf_is_valid(select_buf) then
-									vim.api.nvim_buf_delete(select_buf, { force = true })
-								end
-								-- the last group's monitor log is the batch's final step
-								if index == #batch_entries then
-									pkq_batch_stop()
-								end
-							end)
-						)
-					end
-					--the above timer run in background
-					vim.defer_fn(function()
-						run_batch_sequence(
-							template_path,
-							output_path,
-							batch_entries,
-							index + 1,
-							keys_order,
-							seen_servers
-						)
-					end, 1000)
-				elseif vim.fn.filereadable(bg_markfile_fail) == 1 then
-					bg_timer:stop()
-					bg_timer:close()
-					pkq_batch_fail(
-						string.format("Batch [%d/%d] failed — stopping batch", index, #batch_entries),
-						"Terminal"
-					)
+					start_group_selection(group_num, jobs_file)
 				end
 			end)
 		)

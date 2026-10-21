@@ -336,18 +336,19 @@ if [[ "$1" == *"local.sh" ]]; then
     echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
     source "$(dirname "${BASH_SOURCE[0]}")/retry_ssh.sh"
     # on any error, scancel every job recorded in ${_jobs_file}
-    # lines: server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME (non-slurm lines have no numeric job_id, skipped)
+    # lines: server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME (slurm jobs only)
     _cancel_recorded_jobs() {
         local _rc=$1 _line=$2
         trap - ERR
         echo "ERROR: command failed at line ${_line} (exit code ${_rc})" >&2
-        if [[ -n "${local_dir_pre}" && -s "${_jobs_file}" ]]; then
-            while IFS=, read -r _srv _jid _rest <&3; do
-                [[ "${_jid}" =~ ^[0-9]+$ ]] || continue
-                echo "scancel ${_srv},${_jid}" >&2
-                _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed" >&2
-            done 3<"${_jobs_file}"
-        fi
+		# bg_markfile_fail=${local_dir}/_bg_cmd_fail
+        # if [[ -n "${local_dir_pre}" && -s "${_jobs_file}" ]]; then
+        #     while IFS=, read -r _srv _jid _rest <&3; do
+        #         [[ "${_jid}" =~ ^[0-9]+$ ]] || continue
+        #         echo "scancel ${_srv},${_jid}" >&2
+        #         _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed" >&2
+        #     done 3<"${_jobs_file}"
+        # fi
         exit "${_rc}"
     }
     echo "abspath, $1"
@@ -366,6 +367,9 @@ if [[ "$1" == *"local.sh" ]]; then
     done
     # jobs of this group, read by select_running_job.sh at the group's end
     _jobs_file="${local_dir_pre}/remote_job_id${_group}.txt"
+    # the group's runs write the jobs file concurrently: append and in-place update under a mkdir lock
+    _jobs_lock() { until mkdir "${_jobs_file}.lock" 2>/dev/null; do sleep 0.2; done; }
+    _jobs_unlock() { rmdir "${_jobs_file}.lock"; }
 
     PKQ_SERVER_NAME=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
     export PKQ_SERVER_NAME
@@ -479,6 +483,14 @@ if [[ "$1" == *"local.sh" ]]; then
 
     _ssh_rc=0
 
+    # record this run before the ssh, with an empty job id filled in once the job is submitted:
+    # select_running_job.sh finds a run still stuck in the ssh by its PKQ_RUN_START_TIME and kills it
+    if [[ "${PKQ_MODE}" == "remoteslurm" ]]; then
+        _jobs_lock
+        echo "${PKQ_SERVER_NAME},,${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>"${_jobs_file}"
+        _jobs_unlock
+    fi
+
     echo "ssh start"
     ssh -o ConnectTimeout=10 -t "$PKQ_SERVER_NAME" "bash --login ${run_dir_home}/project_remote_pkq/common_tools_pikaq/meta_script.sh ${PKQ_MODE} ${run_dir_home} ${last_commit} ${_project_name} ${_git_branch} $PKQ_SERVER_NAME ${run_dir_remote} ${PKQ_RUN_START_TIME}" # >>"$nohup_log" 2>&1 &
     # _ssh_pid=$!
@@ -509,17 +521,18 @@ if [[ "$1" == *"local.sh" ]]; then
 
     remote_job_id=$(cat "${local_dir}/remote_job_id.txt" 2>/dev/null)
 
-    [[ -n "${remote_job_id}" ]] && echo "${remote_job_id},${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>"${_jobs_file}"
+    # only slurm jobs are recorded: a non-slurm job id (e.g. the pid in remotenone) must never reach scancel
+    # fill the job id into this run's line, found by its PKQ_RUN_START_TIME
+    if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" ]]; then
+        _jobs_lock
+        awk -F, -v OFS=, -v t="${PKQ_RUN_START_TIME}" -v j="${remote_job_id}" '$6 == t { $2 = j } 1' "${_jobs_file}" >"${_jobs_file}.tmp"
+        mv "${_jobs_file}.tmp" "${_jobs_file}"
+        _jobs_unlock
+    fi
 
     echo "Remote job ID: $remote_job_id"
-    # the last run of a group (flag "end") selects one running job among the group's jobs
+    # select_running_job.sh is started by the nvim batch (init_nvim_mac.lua) once every run of the group has finished
     if [[ -n "${remote_job_id}" && "${PKQ_MODE}" == "remoteslurm" && -n "${_group_end}" ]]; then
-        # select_running_job.sh writes ${_group}_done when it has picked a job; drop the one from a previous batch
-        mkdir -p ~/project/zzzpkqoutput/${_project_name}/select_running_job
-        rm -f ~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group}_done
-        echo "nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group}> ~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &"
-        nohup bash ~/project/common_tools/select_running_job.sh ${_jobs_file} ${PKQ_MODE} ${_group} >~/project/zzzpkqoutput/${_project_name}/select_running_job/${_group} 2>&1 &
-
         osascript -e 'tell application "kitty" to activate'
         # tail -f "$nohup_log" &
         # tail_pid=$!
@@ -632,7 +645,7 @@ EOF
                     exit 1
                 }
                 PKQ_JOB_ID=$(echo "${SBATCH_OUT}" | awk '{print $NF}')
-                echo "${PKQ_SERVER_NAME},$PKQ_JOB_ID" >"remote_job_id.txt"
+                echo "$PKQ_JOB_ID" >"remote_job_id.txt"
                 break
             fi
             sleep 2

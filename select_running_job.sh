@@ -3,7 +3,7 @@
 set -e
 
 if [[ -z "$1" || -z "$2" ]]; then
-    echo "Usage: select_running_job.sh <jobs_file> <pkq_mode>"
+    echo "Usage: select_running_job.sh <jobs_file> <pkq_mode> <group>"
     exit 1
 fi
 if [[ ! -s "$1" ]]; then
@@ -22,15 +22,34 @@ _project_name=$(basename "$(dirname "${jobs_file}")")
 _tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_tools_dir}/retry_ssh.sh"
 
-# snapshot the jobs file once, so later modifications of it don't affect the selection loop
-_job_lines=()
-while IFS= read -r _line || [[ -n "${_line}" ]]; do
-    _job_lines+=("${_line}")
-done <"${jobs_file}"
+# reread the jobs file into _job_lines; the group's runs keep appending to it while this script runs
+_read_jobs() {
+    _job_lines=()
+    while IFS= read -r _line || [[ -n "${_line}" ]]; do
+        [[ -n "${_line}" ]] && _job_lines+=("${_line}")
+    done <"${jobs_file}"
+}
+
+# scancel the job on line _i of _job_lines and remove its local output dir
+_cancel_line() {
+    IFS=, read -r _srv _jid _rdh _br _ldir _rest <<<"${_job_lines[$1]}"
+    [[ -z "${_jid}" ]] && return 0
+    echo "scancel ${_srv},${_jid}"
+    if _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null; then
+        # the cancelled job's local output dir is no longer needed
+        if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
+            echo "rm -rf ${_ldir}"
+            rm -rf "${_ldir}"
+        fi
+    else
+        echo "WARNING: scancel ${_srv},${_jid} failed, keeping ${_ldir}"
+    fi
+}
 
 run_server=""
 run_job=""
 while [[ -z "${run_job}" ]]; do
+    _read_jobs
     for _i in "${!_job_lines[@]}"; do
         IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
         [[ -z "${_jid}" ]] && continue
@@ -49,23 +68,17 @@ while [[ -z "${run_job}" ]]; do
             break
         fi
     done
-    sleep 15
+    [[ -z "${run_job}" ]] && sleep 15
 done
 echo "${run_server},${run_job} is ${run_status}, cancelling the others"
+# PKQ_RUN_START_TIMEs of the runs handled so far (selected or cancelled)
+_handled=" ${PKQ_RUN_START_TIME} "
 for _i in "${!_job_lines[@]}"; do
     [[ ${_i} -eq ${run_idx} ]] && continue
-    IFS=, read -r _srv _jid _rdh _br _ldir _rest <<<"${_job_lines[_i]}"
+    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
     [[ -z "${_jid}" ]] && continue
-    echo "scancel ${_srv},${_jid}"
-    if _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null; then
-        # the cancelled job's local output dir is no longer needed
-        if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
-            echo "rm -rf ${_ldir}"
-            rm -rf "${_ldir}"
-        fi
-    else
-        echo "WARNING: scancel ${_srv},${_jid} failed, keeping ${_ldir}"
-    fi
+    _cancel_line "${_i}"
+    _handled+="${_stime} "
 done
 
 nohup_log="${local_dir}/nohup_monitor.log"
@@ -85,3 +98,60 @@ ${local_dir}
 ${PKQ_RUN_START_TIME}"
 
 echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/${_project_name}/select_running_job/${whichgroup}_done
+
+# the group's remaining runs, reread since the selection:
+#   job id recorded    -> scancel the remote job
+#   no job id yet      -> the run is still in its local meta_script.sh (e.g. the ssh to the remote): kill it,
+#                         found by its PKQ_RUN_START_TIME in the meta_script.sh args
+#   no job id, no proc -> listed at the end (failed or exited before submitting)
+_unfound=()
+_killed=" "
+_read_jobs
+for _i in "${!_job_lines[@]}"; do
+    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
+    [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
+    if [[ -n "${_jid}" ]]; then
+        echo "late job ${_stime} of ${whichgroup}"
+        _cancel_line "${_i}"
+        _handled+="${_stime} "
+        continue
+    fi
+    _found=""
+    while read -r _pid _args; do
+        [[ "${_args}" == *"meta_script.sh "* && " ${_args} " == *" ${_stime} "* ]] || continue
+        _found=1
+        echo "kill stuck run ${_stime} (pid ${_pid}): ${_args}"
+        # collect the children, then SIGKILL the script itself first: a child killed while the script lives would fire
+        # its ERR trap (_cancel_recorded_jobs), which scancels every recorded job of the group, the selected one too
+        _children=$(pgrep -P "${_pid}" || true)
+        kill -9 "${_pid}" 2>/dev/null || true
+        [[ -n "${_children}" ]] && kill ${_children} 2>/dev/null || true
+    done < <(ps -Ao pid=,args=)
+    if [[ -z "${_found}" ]]; then
+        _unfound+=("${_job_lines[_i]}")
+        continue
+    fi
+    _killed+="${_stime} "
+    # the killed run's local output dir is no longer needed
+    if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
+        echo "rm -rf ${_ldir}"
+        rm -rf "${_ldir}"
+    fi
+done
+
+# a killed run may have filled in its job id just before the kill: cancel those too
+_read_jobs
+for _i in "${!_job_lines[@]}"; do
+    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
+    [[ -n "${_jid}" && "${_killed}" == *" ${_stime} "* ]] || continue
+    echo "job ${_stime} of ${whichgroup} recorded just before its kill"
+    _cancel_line "${_i}"
+done
+
+if [[ ${#_unfound[@]} -gt 0 ]]; then
+    echo "runs of ${whichgroup} with no job id and no running meta_script.sh (check them by hand):"
+    printf '  %s\n' "${_unfound[@]}"
+fi
+
+# exit 0 tells the nvim batch that this group is cleanly done, so it starts the next group
+exit 0
