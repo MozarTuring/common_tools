@@ -330,7 +330,7 @@ EOF
 
 }
 
-if [[ "$1" == *"local.sh" ]]; then
+if [[ "$1" == *"/local_${2}.sh" ]]; then
     osascript -e 'tell application "Terminal" to activate'
     PKQ_RUN_START_TIME=$2
     echo "PKQ_RUN_START_TIME, ${PKQ_RUN_START_TIME}"
@@ -566,7 +566,14 @@ elif [[ "$1" == "remote"* ]]; then
     mkdir -p ${PKQ_DATA_DIR}
     export RUN_PROJ=${RUN_PROJ_NAME}_${GIT_BRANCH}
     cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}
-    source pkq_configs/remote/remote_tmps/local.sh
+    # this run's own config local_<PKQ_RUN_START_TIME>.sh (batch runs overlap); a shared local.sh is not allowed
+    _local_cfg=pkq_configs/remote/remote_tmps/local_${PKQ_RUN_START_TIME}.sh
+    if [[ ! -f ${_local_cfg} ]]; then
+        echo "ERROR: config ${_local_cfg} not found"
+        exit 1
+    fi
+    echo "config: ${_local_cfg}"
+    source ${_local_cfg}
     # the following file is init on local
     mkdir -p pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}
     cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh <<EOF
@@ -578,7 +585,7 @@ export RUN_PROJ=
 
 EOF
     echo 'cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}' >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
-    cat pkq_configs/remote/remote_tmps/local.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
+    cat ${_local_cfg} >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote.sh
     echo "PKQ_PYTHON, ${PKQ_PYTHON}"
     _remote_setup
     if [[ "${PKQ_MODE}" == "remoteslurm" ]]; then

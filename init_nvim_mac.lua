@@ -3021,12 +3021,20 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 	end
 
 	local entry = batch_entries[index]
-	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. output_path .. " "
+	-- tmpdate recreated whenever run_batch_sequence(); it also names this run's config local_<tmpdate>.sh
+	local tmpdate = os.date("%Y%m%d_%H%M%S")
+	local config_path = output_path:format(tmpdate)
+	local cmd_base = "bash ~/project/common_tools/meta_script.sh " .. config_path .. " "
 
-	os.remove(output_path)
-	local f_out = io.open(output_path, "w")
+	if index == 1 then
+		-- drop the per-run configs of previous batches
+		for _, old in ipairs(vim.fn.glob(output_path:format("*"), false, true)) do
+			vim.fn.delete(old)
+		end
+	end
+	local f_out = io.open(config_path, "w")
 	if not f_out then
-		pkq_batch_fail("Cannot write file: " .. output_path)
+		pkq_batch_fail("Cannot write file: " .. config_path)
 		return
 	end
 	for _, key in ipairs(keys_order) do
@@ -3042,7 +3050,6 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 	-- 	return
 	-- end
 
-	local tmpdate = os.date("%Y%m%d_%H%M%S")
 	local prefix = pkqMacHome .. "/project/"
 	local rel = output_path:sub(#prefix + 1)
 	local dir_name = rel:match("^([^/]+)")
@@ -3058,7 +3065,7 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 	local cmd = "bash "
 		.. pkqMacHome
 		.. "/project/common_tools/meta_script.sh "
-		.. vim.fn.shellescape(output_path)
+		.. vim.fn.shellescape(config_path)
 		.. " "
 		.. tmpdate
 	-- here shellescape is to correct interpret path with space
@@ -3394,7 +3401,8 @@ vim.keymap.set("n", "fr", function()
 	end
 
 	template_path = dir .. "/template.sh"
-	output_path = dir .. "/remote_tmps/local.sh"
+	-- one config per run, local_<tmpdate>.sh: runs of a group overlap, so they must not share one file
+	output_path = dir .. "/remote_tmps/local_%s.sh"
 	batch_file = filepath
 
 	vim.fn.mkdir(vim.fn.fnamemodify(output_path, ":h"), "p")
