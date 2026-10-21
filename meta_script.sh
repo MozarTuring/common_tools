@@ -325,6 +325,7 @@ EOF
     cat pkq_configs/common.sh >>remotepkq3.sh
     echo "pip list > pkq_configs/packages.txt" >>remotepkq3.sh
     if [[ -n ${PKQ_INTERACTIVE} ]]; then
+        echo "${PKQ_SERVER_NAME}"
         interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
     fi
 
