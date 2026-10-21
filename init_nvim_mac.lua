@@ -609,7 +609,20 @@ require("lazy").setup({
 					end,
 				})
 
-				-- When Skim becomes the frontmost app, reload tex buffers changed on disk and compile them.
+				-- Compile whenever a tex buffer is reloaded from disk, whatever ran the checktime
+				-- (Skim focus below, LazyVim's FocusGained/TermLeave, :e, ...)
+				vim.api.nvim_create_autocmd("FileChangedShellPost", {
+					pattern = "*.tex",
+					callback = function(ev)
+						vim.api.nvim_buf_call(ev.buf, function()
+							if vim.b.vimtex and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
+								vim.fn["vimtex#compiler#start"]()
+							end
+						end)
+					end,
+				})
+
+				-- When Skim becomes the frontmost app, reload tex buffers changed on disk (the reload compiles them).
 				-- nvim gets no event for another app gaining focus, so poll the frontmost app (async, 1s).
 				-- Acts only on the switch to Skim; buffers with unsaved nvim edits are left alone.
 				local skim_was_front = false
@@ -623,17 +636,7 @@ require("lazy").setup({
 							and not vim.bo[buf].modified
 							and vim.fn.filereadable(name) == 1
 						then
-							vim.api.nvim_buf_call(buf, function()
-								local tick = vim.b.changedtick
-								vim.cmd("silent! checktime " .. buf)
-								if
-									vim.b.changedtick ~= tick
-									and vim.b.vimtex
-									and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0
-								then
-									vim.fn["vimtex#compiler#start"]()
-								end
-							end)
+							vim.cmd("silent! checktime " .. buf)
 						end
 					end
 				end
