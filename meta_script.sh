@@ -468,7 +468,7 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
 
     echo "rsync done"
 
-    read -p "Press [Enter] to continue, or any other key to cancel (auto-continue in 5s)..." -r -s -n 1 -t 5 input || input=""
+    read -p "Press [Enter] to continue, or any other key to cancel (auto-continue in 5s)..." -r -s -n 1 -t 1 input || input=""
 
     echo ""
 
