@@ -183,7 +183,7 @@ EOF
             # sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
             PKQ_SLURM_NODES=""
             if [[ -z ${PKQ_RUN_COMMAND} ]]; then
-                PKQ_GPU_NUM=0
+                PKQ_GPU_NUM=1
             fi
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
