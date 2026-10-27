@@ -182,6 +182,9 @@ EOF
             # # Show detailed QOS info for a specific QOS (replace <qos_name> with yours)
             # sacctmgr show qos normal format=Name,MaxWall,MaxSubmit,MaxTRES,MaxTRESPerUser
             PKQ_SLURM_NODES=""
+            if [[ -z ${PKQ_RUN_COMMAND} ]]; then
+                PKQ_GPU_NUM=0
+            fi
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
                 PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
                 cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
@@ -359,7 +362,7 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
         local _rc=$1 _line=$2
         trap - ERR
         echo "ERROR: command failed at line ${_line} (exit code ${_rc})" >&2
-		# bg_markfile_fail=${local_dir}/_bg_cmd_fail
+        # bg_markfile_fail=${local_dir}/_bg_cmd_fail
         # if [[ -n "${local_dir_pre}" && -s "${_jobs_file}" ]]; then
         #     while IFS=, read -r _srv _jid _rest <&3; do
         #         [[ "${_jid}" =~ ^[0-9]+$ ]] || continue

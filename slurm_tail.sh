@@ -11,11 +11,13 @@ export LD_LIBRARY_PATH=${_nv_libs:+${_nv_libs}:}${LD_LIBRARY_PATH:-}
 echo "LD_LIBRARY_PATH, ${LD_LIBRARY_PATH}"
 echo "PWD, ${PWD}"
 echo "PKQ_RUN_COMMAND, ${PKQ_RUN_COMMAND}"
-srun --ntasks=1 ${PKQ_RUN_COMMAND} &
-
-wait $!
-
-exit_code=$?
+if [[ -z ${PKQ_RUN_COMMAND} ]]; then
+    exit_code=0
+else
+    srun --ntasks=1 ${PKQ_RUN_COMMAND} &
+    wait $!
+    exit_code=$?
+fi
 remote_dir=${PWD}
 echo "slurm remote dir, ${remote_dir}"
 
@@ -26,4 +28,3 @@ if [ $exit_code -eq 0 ]; then
 else
     echo "Command failed with exit code $exit_code."
 fi
-
