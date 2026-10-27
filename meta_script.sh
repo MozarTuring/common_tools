@@ -326,7 +326,7 @@ EOF
         cat pkq_configs/remote/template.sh >>remotepkq3.sh
     fi
     cat pkq_configs/common.sh >>remotepkq3.sh
-    echo "pip list > pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/packages.txt" >>remotepkq3.sh
+    echo "pip list > pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/packages.txt && exit" >>remotepkq3.sh
     # no interactive session needed when the env of the last run (its pip list) already has every package
     # common.sh installs, at the specified versions
     # PKQ_INTERACTIVE is decided here, not configured: a value from the config is ignored
