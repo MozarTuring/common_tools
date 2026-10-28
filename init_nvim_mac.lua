@@ -3094,6 +3094,9 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 		for _, old in ipairs(vim.fn.glob(log_dir .. "/remote_job_id*.txt", false, true)) do
 			vim.fn.delete(old)
 		end
+        for _, old in ipairs(vim.fn.glob(log_dir .. "/select_running_job/*", false, true)) do
+			vim.fn.delete(old)
+		end
 		-- number of finished groups, for the last run's timer
 		_G.pkq_batch_groups = { done = 0 }
 	end
