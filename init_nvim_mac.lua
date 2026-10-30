@@ -3175,10 +3175,11 @@ end tell]],
 			vim.fn.delete(select_log_file .. "_done")
 			-- created before the job so that a failed selection can stop it
 			local done_timer = vim.loop.new_timer()
-			vim.fn.jobstart({
+			local killed_by_user = false
+			local select_job = vim.fn.jobstart({
 				"bash",
 				"-c",
-				"bash "
+				"exec bash "
 					.. vim.fn.shellescape(pkqMacHome .. "/project/common_tools/select_running_job.sh")
 					.. " "
 					.. vim.fn.shellescape(jobs_file)
@@ -3198,9 +3199,13 @@ end tell]],
 								done_timer:stop()
 								done_timer:close()
 							end
-							pkq_batch_fail(
-								string.format("select_running_job.sh of group %d failed (exit %d)", g, code)
-							)
+							if killed_by_user then
+								pkq_batch_fail(string.format("select_running_job.sh of group %d killed by user", g))
+							else
+								pkq_batch_fail(
+									string.format("select_running_job.sh of group %d failed (exit %d)", g, code)
+								)
+							end
 							return
 						end
 						vim.notify(string.format("select_running_job.sh of group %d finished", g))
@@ -3221,6 +3226,19 @@ end tell]],
 			-- keep the buffer handle so it can be closed once the monitor log opens
 			local select_buf = vim.api.nvim_get_current_buf()
 			ToggleAutoRefresh()
+			-- <C-c> in the select_running_job tab kills the job; detach=true made it a process group leader and exec
+			-- left no bash -c wrapper, so signalling -pid hits select_running_job.sh (its trap cleans up) and the
+			-- command it is waiting on, and on_exit fires only once the trap's cleanup has finished
+			vim.keymap.set("n", "<C-c>", function()
+				local ok, pid = pcall(vim.fn.jobpid, select_job)
+				if not ok then
+					vim.notify("select_running_job.sh is not running", vim.log.levels.WARN)
+					return
+				end
+				killed_by_user = true
+				vim.loop.kill(-pid, "sigterm")
+				vim.notify(string.format("Killing select_running_job.sh of group %d", g), vim.log.levels.WARN)
+			end, { buffer = select_buf, desc = "Kill select_running_job.sh" })
 			local select_done_file = select_log_file .. "_done"
 			done_timer:start(
 				5000,
