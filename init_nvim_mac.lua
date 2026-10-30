@@ -3091,11 +3091,20 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 	-- every run carries its group, so meta_script.sh records its job in remote_job_idgroup<N>.txt
 	if index == 1 then
 		-- drop job lists left over from previous batches
-		for _, old in ipairs(vim.fn.glob(log_dir .. "/remote_job_id*.txt", false, true)) do
+		local function delete_and_close(old)
 			vim.fn.delete(old)
+			local full = vim.fn.fnamemodify(old, ":p")
+			for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+				if vim.api.nvim_buf_get_name(buf) == full then
+					pcall(vim.api.nvim_buf_delete, buf, { force = true })
+				end
+			end
 		end
-        for _, old in ipairs(vim.fn.glob(log_dir .. "/select_running_job/*", false, true)) do
-			vim.fn.delete(old)
+		for _, old in ipairs(vim.fn.glob(log_dir .. "/remote_job_id*.txt", false, true)) do
+			delete_and_close(old)
+		end
+		for _, old in ipairs(vim.fn.glob(log_dir .. "/select_running_job/*", false, true)) do
+			delete_and_close(old)
 		end
 		-- number of finished groups, for the last run's timer
 		_G.pkq_batch_groups = { done = 0 }
