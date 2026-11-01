@@ -73,8 +73,9 @@ local_dir=""
 #   no job id, no proc -> listed at the end (failed or exited before submitting)
 # then runs without a line yet (before the ssh) are killed by the group flag in their args
 _cleanup_rest() {
-    local _unfound=() _killed=" " _found _pid _args
+    local _unfound=() _killed=" " _found _pid _args _nkilled=0
     _read_jobs
+    [[ ${#_job_lines[@]} -eq 0 ]] && echo "no lines in ${jobs_file}: no recorded job of ${whichgroup} to cancel"
     for _i in "${!_job_lines[@]}"; do
         IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
         [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
@@ -108,7 +109,9 @@ _cleanup_rest() {
         [[ -n "${PKQ_RUN_START_TIME}" && " ${_args} " == *" ${PKQ_RUN_START_TIME} "* ]] && continue
         echo "kill unrecorded run of ${whichgroup} (pid ${_pid}): ${_args}"
         _kill_run "${_pid}"
+        _nkilled=$((_nkilled + 1))
     done < <(ps -Ao pid=,args=)
+    [[ ${_nkilled} -eq 0 ]] && echo "no running meta_script.sh of ${whichgroup} without a recorded line"
 
     # a killed run may have filled in its job id just before the kill: cancel those too
     _read_jobs
