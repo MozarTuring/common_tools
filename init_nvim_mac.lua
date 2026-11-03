@@ -370,16 +370,36 @@ require("lazy").setup({
 								return
 							end
 							if is_symlink then
-								vim.uv.fs_unlink(path)
+								local ok, err = vim.uv.fs_unlink(path)
+								if not ok then
+									vim.notify("unlink failed: " .. tostring(err), vim.log.levels.ERROR)
+									return
+								end
 							else
 								local shell = os.getenv("SHELL") or "bash"
 								vim.fn.system(
 									shell .. " -lic " .. vim.fn.shellescape("rm " .. vim.fn.shellescape(path))
 								)
+								if vim.v.shell_error ~= 0 then
+									vim.notify("rm failed (exit " .. vim.v.shell_error .. ")", vim.log.levels.ERROR)
+									return
+								end
 							end
-							if vim.v.shell_error ~= 0 then
-								vim.notify("rm failed (exit " .. vim.v.shell_error .. ")", vim.log.levels.ERROR)
-								return
+							local full = vim.fn.fnamemodify(path, ":p")
+							for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+								if vim.api.nvim_buf_get_name(buf) == full then
+									local alt
+									for _, b in ipairs(vim.api.nvim_list_bufs()) do
+										if b ~= buf and vim.bo[b].buflisted then
+											alt = b
+											break
+										end
+									end
+									for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+										vim.api.nvim_win_set_buf(win, alt or vim.api.nvim_create_buf(true, false))
+									end
+									pcall(vim.api.nvim_buf_delete, buf, { force = true })
+								end
 							end
 							local Tree = require("snacks.explorer.tree")
 							local Actions = require("snacks.explorer.actions")
@@ -614,6 +634,9 @@ require("lazy").setup({
 				vim.api.nvim_create_autocmd("FileChangedShellPost", {
 					pattern = "*.tex",
 					callback = function(ev)
+						if vim.fn.filereadable(vim.api.nvim_buf_get_name(ev.buf)) == 0 then
+							return
+						end
 						vim.api.nvim_buf_call(ev.buf, function()
 							if vim.b.vimtex and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
 								vim.fn["vimtex#compiler#start"]()
@@ -2720,71 +2743,55 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 	end,
 })
 
-local _pkq_prompted_deleted = {}
-
-local function prompt_close_deleted_buf()
-	local buf = vim.api.nvim_get_current_buf()
-	if not vim.api.nvim_buf_is_valid(buf) or not vim.bo[buf].buflisted or vim.bo[buf].buftype ~= "" then
-		return
-	end
-	local name = vim.api.nvim_buf_get_name(buf)
-	local ft = vim.bo[buf].filetype or ""
-	if name == "" or ft:match("^Snacks") or ft:match("^Neogit") or name:match("^fugitive://") then
-		return
-	end
-	if vim.fn.filereadable(name) == 1 then
-		_pkq_prompted_deleted[buf] = nil
-		return
-	end
-	if _pkq_prompted_deleted[buf] then
-		return
-	end
-	_pkq_prompted_deleted[buf] = true
-
-	local short = vim.fn.fnamemodify(name, ":.")
-	vim.ui.select({ "Yes", "No" }, { prompt = "File deleted: " .. short .. " — close buffer?" }, function(choice)
-		if choice ~= "Yes" then
-			return
-		end
-		if not vim.api.nvim_buf_is_valid(buf) then
-			return
-		end
-		local wins = {}
-		for _, win in ipairs(vim.api.nvim_list_wins()) do
-			if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == buf then
-				table.insert(wins, win)
-			end
-		end
-		for _, win in ipairs(wins) do
-			if not vim.api.nvim_win_is_valid(win) then
-				goto continue
-			end
-			local alt = vim.fn.bufnr("#")
-			if alt > 0 and alt ~= buf and vim.api.nvim_buf_is_valid(alt) and vim.bo[alt].buflisted then
-				vim.api.nvim_win_set_buf(win, alt)
-			else
-				local found = false
-				for _, b in ipairs(vim.api.nvim_list_bufs()) do
-					if b ~= buf and vim.api.nvim_buf_is_valid(b) and vim.bo[b].buflisted then
-						vim.api.nvim_win_set_buf(win, b)
-						found = true
-						break
-					end
-				end
-				if not found then
-					vim.api.nvim_win_set_buf(win, vim.api.nvim_create_buf(true, false))
+local function close_buf_keep_windows(buf)
+	for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+		local target
+		local alt = vim.api.nvim_win_call(win, function()
+			return vim.fn.bufnr("#")
+		end)
+		if alt > 0 and alt ~= buf and vim.api.nvim_buf_is_valid(alt) and vim.bo[alt].buflisted then
+			target = alt
+		else
+			for _, b in ipairs(vim.api.nvim_list_bufs()) do
+				if b ~= buf and vim.api.nvim_buf_is_valid(b) and vim.bo[b].buflisted then
+					target = b
+					break
 				end
 			end
-			::continue::
 		end
-		pcall(vim.api.nvim_buf_delete, buf, { force = true })
-		_pkq_prompted_deleted[buf] = nil
-	end)
+		vim.api.nvim_win_set_buf(win, target or vim.api.nvim_create_buf(true, false))
+	end
+	pcall(vim.api.nvim_buf_delete, buf, { force = true })
 end
 
-vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
+-- only buffers whose file was read from / written to disk, so new unsaved files are never closed
+local function close_deleted_bufs()
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		if
+			vim.api.nvim_buf_is_valid(buf)
+			and vim.b[buf]._pkq_on_disk
+			and vim.bo[buf].buftype == ""
+			and not vim.bo[buf].modified
+		then
+			local name = vim.api.nvim_buf_get_name(buf)
+			if name ~= "" and vim.fn.filereadable(name) == 0 and vim.fn.isdirectory(name) == 0 then
+				close_buf_keep_windows(buf)
+			end
+		end
+	end
+end
+
+vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost" }, {
+	callback = function(ev)
+		if vim.bo[ev.buf].buftype == "" then
+			vim.b[ev.buf]._pkq_on_disk = true
+		end
+	end,
+})
+
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "FileChangedShellPost", "ShellCmdPost" }, {
 	callback = function()
-		vim.schedule(prompt_close_deleted_buf)
+		vim.schedule(close_deleted_bufs)
 	end,
 })
 

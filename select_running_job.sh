@@ -28,20 +28,25 @@ _read_jobs() {
     done <"${jobs_file}"
 }
 
-# scancel the job on line _i of _job_lines and remove its local output dir
+# scancel the job on line _i of _job_lines in a new Terminal window, so ssh can prompt for authorization there
+# (Ctrl-C in that window declines). Does not wait for the window.
 _cancel_line() {
+    local _cmd
     IFS=, read -r _srv _jid _rdh _br _ldir _rest <<<"${_job_lines[$1]}"
     [[ -z "${_jid}" ]] && return 0
-    echo "scancel ${_srv},${_jid}"
-    if _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null; then
-        # the cancelled job's local output dir is no longer needed
-        if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
-            echo "rm -rf ${_ldir}"
-            rm -rf "${_ldir}"
-        fi
-    else
-        echo "WARNING: scancel ${_srv},${_jid} failed, keeping ${_ldir}"
-    fi
+    _cmd="ssh -o ConnectTimeout=10 ${_srv} 'scancel ${_jid}'"
+    echo "scancel ${_srv},${_jid} in a Terminal window"
+    osascript -e "tell application \"Terminal\" to do script \"${_cmd}\"" >/dev/null ||
+        echo "WARNING: could not open Terminal, run by hand: ${_cmd}"
+}
+
+# append the remote_monitor.sh command of the job on line _i of _job_lines to its nohup_monitor.log
+_record_monitor_cmd() {
+    local _srv _jid _rdh _br _ldir _stime _args
+    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[$1]}"
+    [[ -n "${_jid}" && -n "${_ldir}" && -d "${_ldir}" ]] || return 0
+    _args=(${PKQ_MODE} "${_srv}" "${_jid}" "${_rdh}" "${_project_name}" "${_br}" "${_ldir}" "${_stime}")
+    echo """nohup bash ${_tools_dir}/remote_monitor.sh ${_args[@]} >> ${_ldir}/nohup_monitor.log 2>&1 &""" >>"${_ldir}/nohup_monitor.log"
 }
 
 # print "<pid> <args>" of the local meta_script.sh processes of the run with PKQ_RUN_START_TIME $1
@@ -62,6 +67,15 @@ _kill_run() {
     [[ -n "${_children}" ]] && kill ${_children} 2>/dev/null || true
 }
 
+# one ssh attempt to $1 (with the stale-ControlMaster reset of _wait_for_ssh), never waits: 0 reachable, 1 not
+_ssh_ok() {
+    refresh_ssh_auth_sock
+    ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null && return 0
+    ssh -o ControlPath=none -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null || return 1
+    _clear_stale_control_socket "$1"
+    ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null
+}
+
 # PKQ_RUN_START_TIMEs of the runs handled so far (selected or cancelled); the selected one is never cancelled
 _handled=" "
 local_dir=""
@@ -73,7 +87,7 @@ local_dir=""
 #   no job id, no proc -> listed at the end (failed or exited before submitting)
 # then runs without a line yet (before the ssh) are killed by the group flag in their args
 _cleanup_rest() {
-    local _unfound=() _killed=" " _found _pid _args _nkilled=0
+    local _unfound=() _found _pid _args _nkilled=0
     _read_jobs
     [[ ${#_job_lines[@]} -eq 0 ]] && echo "no lines in ${jobs_file}: no recorded job of ${whichgroup} to cancel"
     for _i in "${!_job_lines[@]}"; do
@@ -81,6 +95,7 @@ _cleanup_rest() {
         [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
         if [[ -n "${_jid}" ]]; then
             echo "cancel job ${_stime} of ${whichgroup}"
+            _record_monitor_cmd "${_i}"
             _cancel_line "${_i}"
             _handled+="${_stime} "
             continue
@@ -94,12 +109,6 @@ _cleanup_rest() {
         if [[ -z "${_found}" ]]; then
             _unfound+=("${_job_lines[_i]}")
             continue
-        fi
-        _killed+="${_stime} "
-        # the killed run's local output dir is no longer needed
-        if [[ -n "${_ldir}" && -d "${_ldir}" && "${_ldir}" != "${local_dir}" ]]; then
-            echo "rm -rf ${_ldir}"
-            rm -rf "${_ldir}"
         fi
     done
 
@@ -119,6 +128,7 @@ _cleanup_rest() {
         IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
         [[ -n "${_jid}" && "${_handled}" != *" ${_stime} "* ]] || continue
         echo "job ${_stime} of ${whichgroup} recorded just before its kill"
+        _record_monitor_cmd "${_i}"
         _cancel_line "${_i}"
         _handled+="${_stime} "
     done
@@ -172,7 +182,12 @@ while [[ -z "${run_job}" ]]; do
         fi
         _alive=1
         echo "check ${_srv},${_jid}"
-        bash "${_tools_dir}/slurm_job_status.sh" "ssh ${_srv}" "${_jid}" once && _st=0 || _st=$?
+        # slurm_job_status.sh waits until ssh works: skip an unreachable server this round instead of blocking on it
+        if ! _ssh_ok "${_srv}"; then
+            echo "ssh to ${_srv} failed, skipping it this round"
+            continue
+        fi
+        bash "${_tools_dir}/slurm_job_status.sh" "ssh -o ConnectTimeout=10 ${_srv}" "${_jid}" once </dev/null && _st=0 || _st=$?
         # 0 running, 1 no longer in queue (finished/failed): monitor this one
         if [[ ${_st} -eq 0 || ${_st} -eq 1 ]]; then
             run_idx=${_i}
