@@ -19,7 +19,8 @@ source ${HOME}/project/common_tools/retry_ssh.sh
 count=0
 slurm_job_status_checked=1
 while true; do
-    _wait_for_ssh "$host"
+    # once: never block on a broken connection, the squeue below then fails with 255 and exits 3
+    [[ -z "$once" ]] && _wait_for_ssh "$host"
     all_states=$($ssh_cmd squeue --job="${job_id}" --noheader -o '%T' 2>/dev/null) && rc=0 || rc=$?
     # 255 = ssh itself failed (connection dropped), not an answer from squeue
     if [[ $rc -eq 255 ]]; then

@@ -3233,10 +3233,10 @@ end tell]],
 			-- keep the buffer handle so it can be closed once the monitor log opens
 			local select_buf = vim.api.nvim_get_current_buf()
 			ToggleAutoRefresh()
-			-- <C-c> in the select_running_job tab kills the job; detach=true made it a process group leader and exec
+			-- <leader>k in the select_running_job tab kills the job; detach=true made it a process group leader and exec
 			-- left no bash -c wrapper, so signalling -pid hits select_running_job.sh (its trap cleans up) and the
 			-- command it is waiting on, and on_exit fires only once the trap's cleanup has finished
-			vim.keymap.set("n", "<C-c>", function()
+			vim.keymap.set("n", "<leader>k", function()
 				local ok, pid = pcall(vim.fn.jobpid, select_job)
 				if not ok then
 					vim.notify("select_running_job.sh is not running", vim.log.levels.WARN)
