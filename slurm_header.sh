@@ -24,6 +24,7 @@ done
 
 eval "$(conda shell.bash hook)"
 conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
+export PATH=${PKQ_CONDAENV}${PKQ_ARCH}/bin:$PATH
 
 which python
 mkdir -p pkq_configs/packages
