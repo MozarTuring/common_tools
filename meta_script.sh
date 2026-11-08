@@ -229,7 +229,7 @@ EOF
             elif [[ ${PKQ_SERVER_NAME} == "arrhenius" ]]; then
                 cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
-export PKQ_MODULES="GPU/Miniforge/26.3.2-2-eb"
+export PKQ_MODULES="GPU/Miniforge/26.9.4-1-eb"
 fi
 export PKQ_LOGIN_MODULES="Miniforge/26.3.2-2-eb"
 export PKQ_ARCH="aarch64"
