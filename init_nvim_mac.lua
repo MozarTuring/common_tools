@@ -3137,33 +3137,11 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 
 	local function start_run()
 		vim.notify(string.format("Batch run [%d/%d]", index, #batch_entries), vim.log.levels.INFO)
-		local bg_as_escaped = bg_cmd:gsub("\\", "\\\\"):gsub('"', '\\"')
-		local bg_as_fmt = bg_as_escaped:gsub("%%", "%%%%")
-		local bg_applescript = string.format(
-			[[tell application "Terminal"
-	set didRun to false
-	if (count of windows) > 0 then
-		repeat with w in windows
-			repeat with t in tabs of w
-				if busy of t is false then
-					do script "%s" in t
-					set selected tab of w to t
-					set index of w to 1
-					set didRun to true
-					exit repeat
-				end if
-			end repeat
-			if didRun then exit repeat
-		end repeat
-	end if
-	if not didRun then
-		do script "%s"
-	end if
-end tell]],
-			bg_as_fmt,
-			bg_as_fmt
-		)
-		vim.fn.jobstart({ "osascript", "-e", bg_applescript }, { detach = true })
+		vim.fn.jobstart({
+			"osascript",
+			pkqMacHome .. "/project/common_tools/run_in_idle_terminal.applescript",
+			bg_cmd,
+		}, { detach = true })
 		-- within a group, launch the next run without waiting for this one;
 		-- only the group's last run starts the group's selection below, and the next group waits for it to finish
 		if not is_group_end then

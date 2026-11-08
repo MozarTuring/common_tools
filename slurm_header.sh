@@ -22,6 +22,7 @@ for _eroot in "$EBROOTCUDA/lib64" "$EBROOTCUDNN/lib" "$EBROOTCUSPARSELT/lib"; do
 done
 
 
+eval "$(conda shell.bash hook)"
 conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
 
 which python

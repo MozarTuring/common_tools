@@ -28,15 +28,13 @@ _read_jobs() {
     done <"${jobs_file}"
 }
 
-# scancel the job on line _i of _job_lines in a new Terminal window, so ssh can prompt for authorization there
-# (Ctrl-C in that window declines). Does not wait for the window.
 _cancel_line() {
     local _cmd
     IFS=, read -r _srv _jid _rdh _br _ldir _rest <<<"${_job_lines[$1]}"
     [[ -z "${_jid}" ]] && return 0
     _cmd="ssh -o ConnectTimeout=10 ${_srv} 'scancel ${_jid}'"
     echo "scancel ${_srv},${_jid} in a Terminal window"
-    osascript -e "tell application \"Terminal\" to do script \"${_cmd}\"" >/dev/null ||
+    osascript "${_tools_dir}/run_in_idle_terminal.applescript" "${_cmd}" >/dev/null ||
         echo "WARNING: could not open Terminal, run by hand: ${_cmd}"
 }
 
