@@ -3180,6 +3180,7 @@ end tell]],
 			vim.fn.mkdir(select_dir, "p")
 			-- drop the done file of a previous batch
 			vim.fn.delete(select_log_file .. "_done")
+			vim.fn.writefile({}, select_log_file)
 			-- created before the job so that a failed selection can stop it
 			local done_timer = vim.loop.new_timer()
 			local killed_by_user = false
