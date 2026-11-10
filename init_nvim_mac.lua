@@ -536,9 +536,38 @@ require("lazy").setup({
 					pattern = "VimtexEventInitPre",
 					callback = function()
 						local out_dir = get_latex_out_dir()
-						-- Drop the stale .bbl before any compile so it must be regenerated from the .bib
-						-- (deleting it after each compile instead makes latexmk -pvc rebuild forever)
-						os.remove(out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".bbl")
+						local out_bbl = out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".bbl"
+						local src_bbl = vim.fn.expand("%:p:r") .. ".bbl"
+						local has_bib = false
+						for _, line in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
+							line = line:gsub("^%%.*", ""):gsub("([^\\])%%.*", "%1")
+							for names in line:gmatch("\\bibliography%s*{([^}]*)}") do
+								for bib_name in names:gmatch("[^,%s]+") do
+									local name = bib_name
+									if not name:match("%.bib$") then
+										name = name .. ".bib"
+									end
+									if name:sub(1, 1) ~= "/" then
+										name = vim.fn.expand("%:p:h") .. "/" .. name
+									end
+									if vim.fn.filereadable(name) == 1 then
+										has_bib = true
+									end
+								end
+							end
+						end
+						local bibtex_use = "'$bibtex_use=2'"
+						if has_bib or vim.fn.filereadable(src_bbl) == 0 then
+							-- Drop the stale .bbl before any compile so it must be regenerated from the .bib
+							-- (deleting it after each compile instead makes latexmk -pvc rebuild forever)
+							os.remove(out_bbl)
+						else
+							-- No .bib: use the shipped .bbl as is; bibtex_use=1 keeps latexmk from running bibtex or deleting it
+							vim.fn.writefile(vim.fn.readfile(src_bbl, "b"), out_bbl, "b")
+							-- bibtex won't run, so an old .blg would stay and its errors would show up in the quickfix list
+							os.remove(out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".blg")
+							bibtex_use = "'$bibtex_use=1'"
+						end
 						-- Drop both PDFs (build folder and the copy next to the tex file), so only a successful compile brings them back
 						os.remove(out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".pdf")
 						os.remove(vim.fn.expand("%:p:r") .. ".pdf")
@@ -546,7 +575,7 @@ require("lazy").setup({
 							aux_dir = out_dir,
 							out_dir = out_dir,
 							continuous = 0,
-							options = { "-synctex=1", "-interaction=nonstopmode", "-cd", "-e", "'$bibtex_use=2'" },
+							options = { "-synctex=1", "-interaction=nonstopmode", "-cd", "-e", bibtex_use },
 						}
 						vim.g.vimtex_compiler_latexmk = cfg
 						vim.b.vimtex_compiler_latexmk = cfg
@@ -555,7 +584,7 @@ require("lazy").setup({
 
 				-- Open Skim and forward-sync after every successful compile
 				vim.api.nvim_create_autocmd("User", {
-					pattern = "VimtexEventCompileSuccess",
+					pattern = "PkqLatexCompileSuccess",
 					callback = function()
 						local cur_out = (vim.b.vimtex_compiler_latexmk and vim.b.vimtex_compiler_latexmk.out_dir)
 							or base_latex_out
@@ -604,13 +633,55 @@ require("lazy").setup({
 					end,
 				})
 
+				-- Run latexmk ourselves and judge success by its exit code: vimtex judges by parsing
+				-- the .log/.blg in the output dir, so a stale file from an earlier run can flip the verdict
+				_G.PkqLatexCompile = function()
+					local buf = vim.api.nvim_get_current_buf()
+					local info = vim.b[buf].vimtex
+					if not info or vim.b[buf].pkq_latex_running then
+						return
+					end
+					local cfg = vim.b[buf].vimtex_compiler_latexmk or vim.g.vimtex_compiler_latexmk
+					local cmd = { "latexmk", "-pdf" }
+					for _, opt in ipairs(cfg.options) do
+						-- options carry shell quotes for vimtex's shell command; vim.system passes no shell
+						table.insert(cmd, (opt:gsub("^'(.*)'$", "%1")))
+					end
+					vim.list_extend(cmd, { "-outdir=" .. cfg.out_dir, info.tex })
+					vim.b[buf].pkq_latex_running = true
+					vim.system(cmd, { cwd = info.root, env = { max_print_line = "2000" }, text = true }, function(res)
+						vim.schedule(function()
+							local out_file = cfg.out_dir .. "/latexmk_output.txt"
+							local f = io.open(out_file, "w")
+							if f then
+								f:write((res.stdout or "") .. (res.stderr or ""))
+								f:close()
+							end
+							if not vim.api.nvim_buf_is_valid(buf) then
+								return
+							end
+							vim.b[buf].pkq_latex_running = false
+							vim.api.nvim_buf_call(buf, function()
+								if res.code == 0 then
+									vim.notify("Compilation completed")
+									vim.api.nvim_exec_autocmds("User", { pattern = "PkqLatexCompileSuccess" })
+								else
+									pcall(vim.fn["vimtex#qf#setqflist"])
+									vim.notify(
+										("Compilation failed (latexmk exit %d), output: %s"):format(res.code, out_file),
+										vim.log.levels.WARN
+									)
+								end
+							end)
+						end)
+					end)
+				end
+
 				-- Compile once on every save from nvim (continuous mode is off)
 				vim.api.nvim_create_autocmd("BufWritePost", {
 					pattern = "*.tex",
 					callback = function()
-						if vim.b.vimtex and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
-							vim.fn["vimtex#compiler#start"]()
-						end
+						_G.PkqLatexCompile()
 					end,
 				})
 
@@ -621,11 +692,9 @@ require("lazy").setup({
 						if vim.bo.buftype ~= "" or vim.fn.filereadable(vim.fn.expand("%:p")) == 0 then
 							return
 						end
-						-- start (not toggle), and skip if this project's compiler is already running
-						-- is_running() returns v:false (Lua false), so compare in Vimscript
-						if vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
-							vim.fn["vimtex#compiler#start"]()
-						end
+						-- \ll would go through vimtex's compiler and its log-based verdict
+						vim.keymap.set("n", "<localleader>ll", _G.PkqLatexCompile, { buffer = true, desc = "latexmk compile" })
+						_G.PkqLatexCompile()
 					end,
 				})
 
@@ -637,11 +706,7 @@ require("lazy").setup({
 						if vim.fn.filereadable(vim.api.nvim_buf_get_name(ev.buf)) == 0 then
 							return
 						end
-						vim.api.nvim_buf_call(ev.buf, function()
-							if vim.b.vimtex and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
-								vim.fn["vimtex#compiler#start"]()
-							end
-						end)
+						vim.api.nvim_buf_call(ev.buf, _G.PkqLatexCompile)
 					end,
 				})
 
@@ -2810,11 +2875,9 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 		if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].buftype ~= "" then
 			return
 		end
-		vim.api.nvim_buf_call(buf, function()
-			if vim.b.vimtex and vim.fn.eval("b:vimtex.compiler.is_running() ? 1 : 0") == 0 then
-				vim.fn["vimtex#compiler#start"]()
-			end
-		end)
+		if _G.PkqLatexCompile then
+			vim.api.nvim_buf_call(buf, _G.PkqLatexCompile)
+		end
 	end,
 })
 
