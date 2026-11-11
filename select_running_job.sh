@@ -162,7 +162,7 @@ while [[ -z "${run_job}" ]]; do
     if [[ ${#_job_lines[@]} -eq 0 ]]; then
         echo "no lines in ${jobs_file} yet"
         sleep 15 &
-        wait $!
+        wait $! || true
         continue
     fi
     # whether any run of the group can still give a job: a recorded job id, or a meta_script.sh still running
@@ -205,9 +205,11 @@ while [[ -z "${run_job}" ]]; do
         echo "ERROR: no run of ${whichgroup} has a job id or is still in process, stopping"
         exit 1
     fi
-    # in the background + wait: a signal is handled at once, not only after the sleep ends
+    # in the background + wait: a signal is handled at once, not only after the sleep ends.
+    # the kill hits the whole process group, so sleep dies too and wait returns 143: without "|| true", set -e
+    # (bash 3.2) exits on that status before the pending TERM trap runs, and _on_signal never fires
     sleep 15 &
-    wait $! # so that trap can work once kill is triggered, otherwise need to wait for sleep ends
+    wait $! || true
 done
 echo "${run_server},${run_job} is ${run_status}, cancelling the others"
 _handled+="${PKQ_RUN_START_TIME} "

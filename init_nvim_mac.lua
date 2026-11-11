@@ -694,6 +694,9 @@ require("lazy").setup({
 						end
 						-- \ll would go through vimtex's compiler and its log-based verdict
 						vim.keymap.set("n", "<localleader>ll", _G.PkqLatexCompile, { buffer = true, desc = "latexmk compile" })
+						if _G.pkq_skim_inverse then
+							return
+						end
 						_G.PkqLatexCompile()
 					end,
 				})
@@ -1266,9 +1269,59 @@ function is_in_inp_dir(current_file, inp_dir)
 end
 
 function CopyFilePathToClipboard()
-	local file_path = vim.fn.expand("%:p") -- Gets the full path of the current file
-	vim.fn.setreg("+", file_path) -- Copies the path to the clipboard register (+)
-	vim.notify("Copied: " .. file_path) -- snacks notifier popup
+	local file_path = vim.fn.expand("%:p")
+	vim.fn.setreg("+", file_path)
+	vim.notify("Copied: " .. file_path)
+end
+
+-- SyncTeX gives real paths, map them back to the symlinked dirs the open .tex buffers use.
+-- bufname(), not nvim_buf_get_name(): the latter is the full name, whose directory nvim has realpath'd
+function PkqSymlinkPath(file)
+	file = vim.fs.normalize(file)
+	local best_real, best_link
+	for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+		local name = vim.fn.fnamemodify(vim.fn.bufname(buf), ":p")
+		if name:match("%.tex$") then
+			local dir = vim.fn.fnamemodify(name, ":h")
+			while dir ~= "/" and dir ~= "" do
+				local st = vim.loop.fs_lstat(dir)
+				if st and st.type == "link" then
+					local real = vim.loop.fs_realpath(dir)
+					if real and file:find(real .. "/", 1, true) == 1 and (not best_real or #real > #best_real) then
+						best_real, best_link = real, dir
+					end
+				end
+				dir = vim.fn.fnamemodify(dir, ":h")
+			end
+		end
+	end
+	if best_real then
+		return best_link .. file:sub(#best_real + 1)
+	end
+	return file
+end
+
+-- called by skim_inverse.sh (Skim Cmd+Shift+click). pkq_skim_inverse stops VimtexEventInitPost from compiling a
+-- newly opened file: the compile's VimtexView would bring Skim back to the front
+function PkqSkimInverse(line, file)
+	file = PkqSymlinkPath(file)
+	line = tonumber(line) or 1
+	local buf = vim.fn.bufnr(file)
+	local win = buf > 0 and vim.fn.win_findbuf(buf)[1] or nil
+	if win then
+		vim.api.nvim_set_current_win(win)
+	else
+		_G.pkq_skim_inverse = true
+		local ok, err = pcall(vim.cmd, "edit " .. vim.fn.fnameescape(file))
+		_G.pkq_skim_inverse = false
+		if not ok then
+			vim.notify(tostring(err), vim.log.levels.ERROR)
+			return ""
+		end
+	end
+	pcall(vim.api.nvim_win_set_cursor, 0, { line, 0 })
+	vim.cmd("normal! zz")
+	return file
 end
 
 function CopyRelativePathToClipboard()
