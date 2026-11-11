@@ -8,6 +8,20 @@ _clear_stale_control_socket() {
     fi
 }
 
+# _with_timeout <secs> <cmd...>: run cmd, SIGKILL it after <secs> (rc 137). ConnectTimeout does not bound an ssh that
+# goes through a live ControlMaster whose remote end stopped answering session requests: it then waits forever
+_with_timeout() {
+    local _secs=$1 _pid _wd _rc
+    shift
+    "$@" &
+    _pid=$!
+    (sleep "${_secs}" && kill -9 "${_pid}" 2>/dev/null) &
+    _wd=$!
+    wait "${_pid}" && _rc=0 || _rc=$?
+    kill "${_wd}" 2>/dev/null || true
+    return ${_rc}
+}
+
 refresh_ssh_auth_sock() {
     local sock
     for sock in /var/run/com.apple.launchd.*/Listeners /private/tmp/com.apple.launchd.*/Listeners; do

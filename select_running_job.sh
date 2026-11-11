@@ -68,10 +68,10 @@ _kill_run() {
 # one ssh attempt to $1 (with the stale-ControlMaster reset of _wait_for_ssh), never waits: 0 reachable, 1 not
 _ssh_ok() {
     refresh_ssh_auth_sock
-    ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null && return 0
-    ssh -o ControlPath=none -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null || return 1
+    _with_timeout 30 ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null && return 0
+    _with_timeout 30 ssh -o ControlPath=none -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null || return 1
     _clear_stale_control_socket "$1"
-    ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null
+    _with_timeout 30 ssh -o ConnectTimeout=10 -o BatchMode=yes "$1" true </dev/null 2>/dev/null
 }
 
 # PKQ_RUN_START_TIMEs of the runs handled so far (selected or cancelled); the selected one is never cancelled
@@ -185,7 +185,7 @@ while [[ -z "${run_job}" ]]; do
             echo "ssh to ${_srv} failed, skipping it this round"
             continue
         fi
-        bash "${_tools_dir}/slurm_job_status.sh" "ssh -o ConnectTimeout=10 ${_srv}" "${_jid}" once </dev/null && _st=0 || _st=$?
+        _with_timeout 60 bash "${_tools_dir}/slurm_job_status.sh" "ssh -o ConnectTimeout=10 ${_srv}" "${_jid}" once </dev/null && _st=0 || _st=$?
         # 0 running, 1 no longer in queue (finished/failed): monitor this one
         if [[ ${_st} -eq 0 || ${_st} -eq 1 ]]; then
             run_idx=${_i}
