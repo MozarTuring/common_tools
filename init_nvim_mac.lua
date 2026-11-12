@@ -501,8 +501,21 @@ require("lazy").setup({
 		{
 			"lervag/vimtex",
 			init = function()
-				-- pcall: a second nvim fails here (socket taken) and would skip all hooks below
-				pcall(vim.fn.serverstart, "/tmp/nvim_vimtex")
+				-- Each nvim keeps its own socket (v:servername). After a compile it records that socket under
+				-- the document's real root path; skim_inverse.sh (Skim Cmd+Shift+click) looks up the clicked
+				-- file's nearest recorded ancestor directory, or falls back to the last nvim that compiled.
+				local skim_server_dir = "/tmp/nvim_vimtex_servers"
+				local function register_skim_server()
+					local vt = vim.b.vimtex
+					if not (vt and vt.root) or vim.v.servername == "" then
+						return
+					end
+					vim.fn.mkdir(skim_server_dir, "p")
+					local root = vim.uv.fs_realpath(vt.root) or vt.root
+					local key = root:gsub("/", "_")
+					vim.fn.writefile({ vim.v.servername }, skim_server_dir .. "/" .. key)
+					vim.fn.writefile({ vim.v.servername }, skim_server_dir .. "/last")
+				end
 				vim.g.vimtex_quickfix_mode = 0
 				vim.g.vimtex_view_method = "skim"
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
@@ -586,6 +599,7 @@ require("lazy").setup({
 				vim.api.nvim_create_autocmd("User", {
 					pattern = "PkqLatexCompileSuccess",
 					callback = function()
+						register_skim_server()
 						local cur_out = (vim.b.vimtex_compiler_latexmk and vim.b.vimtex_compiler_latexmk.out_dir)
 							or base_latex_out
 						vim.fn.system({
@@ -595,17 +609,18 @@ require("lazy").setup({
 						})
 						vim.cmd("VimtexView")
 
-						vim.fn.system({
+						vim.fn.jobstart({
 							"osascript",
 							"-e",
 							table.concat({
 								'tell application "Skim"',
+								"  if not (zoomed of window 1) then set zoomed of window 1 to true",
 								"  tell front document",
-								"    set view settings to {scale factor:2.0, auto scales:false}",
+								"    set view settings to {scale factor:5.0, auto scales:false}",
 								"  end tell",
 								"end tell",
 							}, "\n"),
-						})
+						}, { detach = true })
 
 						-- Copy the built PDF to the same directory as the tex file
 						local vimtex_info = vim.b.vimtex
@@ -633,6 +648,28 @@ require("lazy").setup({
 					end,
 				})
 
+				-- Cross-process lock per output dir: when several nvims have the same file open, a change on
+				-- disk makes all of them compile at once, and their pdflatex runs clobber each other's
+				-- .synctex(busy), leaving no .synctex.gz (Skim inverse search then does nothing).
+				-- The lock is stale when the nvim that took it no longer runs.
+				local function take_compile_lock(out_dir)
+					vim.fn.mkdir(out_dir, "p")
+					local lock = out_dir .. "/.pkq_compile.lock"
+					if not vim.uv.fs_mkdir(lock, 448) then
+						local ok, lines = pcall(vim.fn.readfile, lock .. "/pid")
+						local pid = ok and tonumber(lines[1] or "") or nil
+						if pid and vim.uv.kill(pid, 0) == 0 then
+							return nil
+						end
+						vim.fn.delete(lock, "rf")
+						if not vim.uv.fs_mkdir(lock, 448) then
+							return nil
+						end
+					end
+					vim.fn.writefile({ tostring(vim.fn.getpid()) }, lock .. "/pid")
+					return lock
+				end
+
 				-- Run latexmk ourselves and judge success by its exit code: vimtex judges by parsing
 				-- the .log/.blg in the output dir, so a stale file from an earlier run can flip the verdict
 				_G.PkqLatexCompile = function()
@@ -648,9 +685,14 @@ require("lazy").setup({
 						table.insert(cmd, (opt:gsub("^'(.*)'$", "%1")))
 					end
 					vim.list_extend(cmd, { "-outdir=" .. cfg.out_dir, info.tex })
+					local lock = take_compile_lock(cfg.out_dir)
+					if not lock then
+						return
+					end
 					vim.b[buf].pkq_latex_running = true
 					vim.system(cmd, { cwd = info.root, env = { max_print_line = "2000" }, text = true }, function(res)
 						vim.schedule(function()
+							vim.fn.delete(lock, "rf")
 							local out_file = cfg.out_dir .. "/latexmk_output.txt"
 							local f = io.open(out_file, "w")
 							if f then
@@ -2633,10 +2675,11 @@ vim.defer_fn(function()
 		end
 	end, { noremap = true, silent = true, desc = "Close current buffer" })
 	vim.keymap.set("n", ";a", function()
-		-- batch timers live in this nvim: quitting would stop the remaining runs and the log tabs
+		-- batch timers live in this nvim: quitting would stop the remaining runs and the log tabs,
+		-- but once a select_running_job.sh is started (detached, it outlives nvim) quitting is allowed
 		if _G.pkq_batch_running then
 			vim.notify(
-				"Batch still running or waiting for select_running_job, not quitting (use :qa to force)",
+				"Batch still running and select_running_job not started yet, not quitting (use :qa to force)",
 				vim.log.levels.WARN
 			)
 			return
@@ -3324,6 +3367,9 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 					end)
 				end,
 			})
+			if select_job > 0 then
+				_G.pkq_batch_running = false
+			end
 			vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
 			-- keep the buffer handle so it can be closed once the monitor log opens
 			local select_buf = vim.api.nvim_get_current_buf()
@@ -3541,6 +3587,48 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 	-- 		end)
 	-- 	)
 end
+
+-- on startup, reopen the output of every select_running_job.sh left running by a previous nvim (it was started
+-- detached, so it is the leader of its own process group) and map <leader>k there to kill that group
+local function reattach_select_running_jobs()
+	local ps = vim.fn.systemlist({ "ps", "-axo", "pid=,pgid=,command=" })
+	if vim.v.shell_error ~= 0 then
+		return
+	end
+	for _, line in ipairs(ps) do
+		local pid, pgid, jobs_file, group =
+			line:match("^%s*(%d+)%s+(%d+)%s+bash%s+%S*/select_running_job%.sh%s+(%S+)%s+%S+%s+(group%d+)%s*$")
+		-- subshells of the script show the same command line; only the group leader is the script itself
+		if pid and pid == pgid then
+			pid = tonumber(pid)
+			local select_log_file = vim.fn.fnamemodify(jobs_file, ":h") .. "/select_running_job/" .. group
+			local cur = vim.api.nvim_get_current_buf()
+			if vim.api.nvim_buf_get_name(cur) == "" and not vim.bo[cur].modified and vim.fn.line("$") == 1 then
+				vim.cmd("edit " .. vim.fn.fnameescape(select_log_file))
+			else
+				vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
+			end
+			local select_buf = vim.api.nvim_get_current_buf()
+			ToggleAutoRefresh()
+			vim.keymap.set("n", "<leader>k", function()
+				if not vim.loop.kill(pid, 0) then
+					vim.notify("select_running_job.sh is not running", vim.log.levels.WARN)
+					return
+				end
+				vim.loop.kill(-pid, "sigterm")
+				vim.notify("Killing select_running_job.sh of " .. group, vim.log.levels.WARN)
+			end, { buffer = select_buf, desc = "Kill select_running_job.sh" })
+			vim.notify("Reattached to running select_running_job.sh of " .. group .. " (" .. jobs_file .. ")")
+		end
+	end
+end
+
+vim.api.nvim_create_autocmd("VimEnter", {
+	once = true,
+	callback = function()
+		vim.schedule(reattach_select_running_jobs)
+	end,
+})
 
 vim.keymap.set("n", "fr", function()
 	local filepath = vim.fn.expand("%:p")
