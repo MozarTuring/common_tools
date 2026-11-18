@@ -19,6 +19,8 @@ _with_timeout() {
     _wd=$!
     wait "${_pid}" && _rc=0 || _rc=$?
     kill "${_wd}" 2>/dev/null || true
+    # reap the watchdog here, with stderr dropped: otherwise bash later prints "Terminated: 15 ( sleep ... )" for it
+    wait "${_wd}" 2>/dev/null || true
     return ${_rc}
 }
 
