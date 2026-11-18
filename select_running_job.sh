@@ -137,16 +137,16 @@ _cleanup_rest() {
     fi
 }
 
-# stopped by hand (kill <pid>, Ctrl-C, closed terminal): cancel and kill the group's other runs, then exit non-zero
-# so the nvim batch does not start the next group. kill -9 cannot be trapped and skips all of this.
+# killed by <leader>k in nvim (it sends SIGUSR1): cancel and kill the group's other runs, then exit non-zero
+# so the nvim batch does not start the next group. kill <pid>, Ctrl-C, closed terminal just exit, with no cleanup.
 _on_signal() {
-    trap - TERM INT HUP
+    trap - USR1
     echo "
---- $(date '+%Y-%m-%d %H:%M:%S') select_running_job.sh of ${whichgroup} stopped by a signal, cleaning up"
+--- $(date '+%Y-%m-%d %H:%M:%S') select_running_job.sh of ${whichgroup} stopped by <leader>k, cleaning up"
     _cleanup_rest
-    exit 143
+    exit 1
 }
-trap _on_signal TERM INT HUP
+trap _on_signal USR1
 
 run_server=""
 run_job=""
@@ -206,8 +206,8 @@ while [[ -z "${run_job}" ]]; do
         exit 1
     fi
     # in the background + wait: a signal is handled at once, not only after the sleep ends.
-    # the kill hits the whole process group, so sleep dies too and wait returns 143: without "|| true", set -e
-    # (bash 3.2) exits on that status before the pending TERM trap runs, and _on_signal never fires
+    # the kill hits the whole process group, so sleep dies too and wait returns non-zero: without "|| true", set -e
+    # (bash 3.2) exits on that status before the pending USR1 trap runs, and _on_signal never fires
     sleep 15 &
     wait $! || true
 done
@@ -243,8 +243,7 @@ ${PKQ_RUN_START_TIME}
 
 echo "${PKQ_RUN_START_TIME}" > /Users/jinma63/project/zzzpkqoutput/${_project_name}/select_running_job/${whichgroup}_done
 
-_cleanup_rest
-trap - TERM INT HUP
+trap - USR1
 
 # exit 0 tells the nvim batch that this group is cleanly done, so it starts the next group
 exit 0

@@ -3317,22 +3317,20 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 			vim.fn.mkdir(select_dir, "p")
 			-- drop the done file of a previous batch
 			vim.fn.delete(select_log_file .. "_done")
-			vim.fn.writefile({}, select_log_file)
+			local select_cmd = "bash "
+				.. vim.fn.shellescape(pkqMacHome .. "/project/common_tools/select_running_job.sh")
+				.. " "
+				.. vim.fn.shellescape(jobs_file)
+				.. " remoteslurm group"
+				.. g
+			vim.fn.writefile({ select_cmd, "" }, select_log_file)
 			-- created before the job so that a failed selection can stop it
 			local done_timer = vim.loop.new_timer()
 			local killed_by_user = false
 			local select_job = vim.fn.jobstart({
 				"bash",
 				"-c",
-				"exec bash "
-					.. vim.fn.shellescape(pkqMacHome .. "/project/common_tools/select_running_job.sh")
-					.. " "
-					.. vim.fn.shellescape(jobs_file)
-					.. " remoteslurm group"
-					.. g
-					.. " >"
-					.. vim.fn.shellescape(select_log_file)
-					.. " 2>&1",
+				"exec " .. select_cmd .. " >>" .. vim.fn.shellescape(select_log_file) .. " 2>&1",
 			}, {
 				detach = true,
 				-- the next group starts only once this group's select_running_job.sh has exited cleanly
@@ -3384,7 +3382,7 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 					return
 				end
 				killed_by_user = true
-				vim.loop.kill(-pid, "sigterm")
+				vim.loop.kill(-pid, "sigusr1")
 				vim.notify(string.format("Killing select_running_job.sh of group %d", g), vim.log.levels.WARN)
 			end, { buffer = select_buf, desc = "Kill select_running_job.sh" })
 			local select_done_file = select_log_file .. "_done"
