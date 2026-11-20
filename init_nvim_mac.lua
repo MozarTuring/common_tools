@@ -2046,9 +2046,19 @@ vim.keymap.set("n", ",f", function()
 		pickers[1]:close()
 	end
 	local file = vim.fn.expand("%:p")
+	-- getcwd() is the OS's realpath'd cwd; keep the symlink spelling the shell started nvim in ($PWD)
+	local root = vim.fn.getcwd()
+	local pwd = vim.env.PWD
+	if pwd and pwd ~= root and vim.uv.fs_realpath(pwd) == root then
+		if file:find(root .. "/", 1, true) == 1 then
+			file = pwd .. file:sub(#root + 1)
+		end
+		root = pwd
+	end
 	local Tree = require("snacks.explorer.tree")
 	local Actions = require("snacks.explorer.actions")
 	Snacks.explorer({
+		cwd = root,
 		on_show = function(picker)
 			if file ~= "" then
 				Tree:open(file)
@@ -3613,7 +3623,7 @@ local function reattach_select_running_jobs()
 					vim.notify("select_running_job.sh is not running", vim.log.levels.WARN)
 					return
 				end
-				vim.loop.kill(-pid, "sigterm")
+				vim.loop.kill(-pid, "sigusr1")
 				vim.notify("Killing select_running_job.sh of " .. group, vim.log.levels.WARN)
 			end, { buffer = select_buf, desc = "Kill select_running_job.sh" })
 			vim.notify("Reattached to running select_running_job.sh of " .. group .. " (" .. jobs_file .. ")")
