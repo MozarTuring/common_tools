@@ -2068,8 +2068,37 @@ vim.keymap.set("n", ",f", function()
 	})
 end, { noremap = true, desc = "Open file explorer" })
 
+local function citation_dir(key)
+	for _, l in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
+		local folder = l:match("\\bibitem{" .. vim.pesc(key) .. "}%s*\\path{([^}]+)}")
+		if folder then
+			for _, base in ipairs({ pkqMacHome .. "/project/paper_reading/pkq_citations", pkqMacHome .. "/project/paper_reading" }) do
+				if directory_exists(base .. "/" .. folder) then
+					return base .. "/" .. folder
+				end
+			end
+			return nil, folder
+		end
+	end
+end
+
 vim.keymap.set("n", ",t", function()
 	local line = vim.api.nvim_get_current_line():match("^%s*(.-)%s*$")
+
+	if vim.bo.filetype == "tex" then
+		local dir, folder = citation_dir(vim.fn.expand("<cword>"))
+		if dir then
+			local pickers = Snacks.picker.get({ source = "explorer" })
+			if #pickers > 0 then
+				pickers[1]:close()
+			end
+			Snacks.explorer({ cwd = dir })
+			return
+		elseif folder then
+			vim.notify("Citation folder not found: " .. folder, vim.log.levels.WARN)
+			return
+		end
+	end
 
 	local curfile = vim.fn.expand("%:p")
 	local project_name = curfile:match(pkqMacHome .. "/project/([^/]+)/pkq_configs")
@@ -3603,21 +3632,26 @@ local function reattach_select_running_jobs()
 	if vim.v.shell_error ~= 0 then
 		return
 	end
+	local found_select = false
+	local function open_in_tab(path)
+		local cur = vim.api.nvim_get_current_buf()
+		if vim.api.nvim_buf_get_name(cur) == "" and not vim.bo[cur].modified and vim.fn.line("$") == 1 then
+			vim.cmd("edit " .. vim.fn.fnameescape(path))
+		else
+			vim.cmd("tabnew " .. vim.fn.fnameescape(path))
+		end
+		ToggleAutoRefresh()
+	end
 	for _, line in ipairs(ps) do
 		local pid, pgid, jobs_file, group =
 			line:match("^%s*(%d+)%s+(%d+)%s+bash%s+%S*/select_running_job%.sh%s+(%S+)%s+%S+%s+(group%d+)%s*$")
 		-- subshells of the script show the same command line; only the group leader is the script itself
 		if pid and pid == pgid then
+			found_select = true
 			pid = tonumber(pid)
 			local select_log_file = vim.fn.fnamemodify(jobs_file, ":h") .. "/select_running_job/" .. group
-			local cur = vim.api.nvim_get_current_buf()
-			if vim.api.nvim_buf_get_name(cur) == "" and not vim.bo[cur].modified and vim.fn.line("$") == 1 then
-				vim.cmd("edit " .. vim.fn.fnameescape(select_log_file))
-			else
-				vim.cmd("tabnew " .. vim.fn.fnameescape(select_log_file))
-			end
+			open_in_tab(select_log_file)
 			local select_buf = vim.api.nvim_get_current_buf()
-			ToggleAutoRefresh()
 			vim.keymap.set("n", "<leader>k", function()
 				if not vim.loop.kill(pid, 0) then
 					vim.notify("select_running_job.sh is not running", vim.log.levels.WARN)
@@ -3627,6 +3661,26 @@ local function reattach_select_running_jobs()
 				vim.notify("Killing select_running_job.sh of " .. group, vim.log.levels.WARN)
 			end, { buffer = select_buf, desc = "Kill select_running_job.sh" })
 			vim.notify("Reattached to running select_running_job.sh of " .. group .. " (" .. jobs_file .. ")")
+		end
+	end
+	if found_select then
+		return
+	end
+	-- no select_running_job.sh left: reopen nohup_monitor.log of every running remote_monitor.sh, whose
+	-- second-to-last argument is the run's local log dir
+	local monitor_prefix = "bash " .. pkqMacHome .. "/project/common_tools/remote_monitor.sh "
+	local opened = {}
+	for _, line in ipairs(ps) do
+		local command = line:match("^%s*%d+%s+%d+%s+(.*)$")
+		if command and vim.startswith(command, monitor_prefix) then
+			local args = vim.split(vim.trim(command), "%s+")
+			local log_dir = args[#args - 1]
+			-- subshells of the script show the same command line
+			if log_dir and not opened[log_dir] then
+				opened[log_dir] = true
+				open_in_tab(log_dir .. "/nohup_monitor.log")
+				vim.notify("Reattached to running remote_monitor.sh (" .. log_dir .. ")")
+			end
 		end
 	end
 end
