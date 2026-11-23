@@ -165,20 +165,21 @@ while [[ -z "${run_job}" ]]; do
         wait $! || true
         continue
     fi
-    # whether any run of the group can still give a job: a recorded job id, or a meta_script.sh still running
-    _alive=""
     for _i in "${!_job_lines[@]}"; do
         IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
         if [[ -z "${_jid}" ]]; then
             if [[ -n "$(_run_procs "${_stime}")" ]]; then
                 echo "${_srv} in process, but no job id yet"
-                _alive=1
-            else
-                echo "${_srv} not in process"
+                continue
             fi
-            continue
+            # the run may have filled in its job id and exited after _read_jobs: reread its line
+            _job_lines[_i]=$(awk -F, -v t="${_stime}" '$6 == t' "${jobs_file}")
+            IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
+            if [[ -z "${_jid}" ]]; then
+                echo "${_srv} not in process"
+                continue
+            fi
         fi
-        _alive=1
         echo "check ${_srv},${_jid}"
         # slurm_job_status.sh waits until ssh works: skip an unreachable server this round instead of blocking on it
         if ! _ssh_ok "${_srv}"; then
@@ -200,11 +201,6 @@ while [[ -z "${run_job}" ]]; do
         fi
     done
     [[ -n "${run_job}" ]] && break
-    # stop when no recorded run can give a job any more
-    if [[ -z "${_alive}" ]]; then
-        echo "ERROR: no run of ${whichgroup} has a job id or is still in process, stopping"
-        exit 1
-    fi
     # in the background + wait: a signal is handled at once, not only after the sleep ends.
     # the kill hits the whole process group, so sleep dies too and wait returns non-zero: without "|| true", set -e
     # (bash 3.2) exits on that status before the pending USR1 trap runs, and _on_signal never fires
