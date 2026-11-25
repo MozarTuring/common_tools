@@ -263,9 +263,11 @@ if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
+cd ${PKQ_DATA_DIR}
 EOF
             #PKQ_CONDAENV is used in slurm_header.sh
             cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
+            echo "cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}" >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
 
             cat >remotepkq3.sh <<'EOF'
 module --force purge
@@ -326,7 +328,7 @@ EOF
         cat pkq_configs/remote/template.sh >>remotepkq3.sh
     fi
     cat pkq_configs/common.sh >>remotepkq3.sh
-    echo "pip list > pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/packages.txt && exit" >>remotepkq3.sh
+    echo "pip list > ${PKQ_CONDAENV}/pkq_packages.txt && exit" >>remotepkq3.sh
     # no interactive session needed when the env of the last run (its pip list) already has every package
     # common.sh installs, at the specified versions
     # PKQ_INTERACTIVE is decided here, not configured: a value from the config is ignored
@@ -334,7 +336,7 @@ EOF
         echo "WARNING: PKQ_INTERACTIVE=${PKQ_INTERACTIVE} from the config is ignored, it is decided automatically"
     fi
     PKQ_INTERACTIVE=1
-    _pkgs_txt=pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/packages.txt
+    _pkgs_txt=${PKQ_CONDAENV}/pkq_packages.txt
     if [[ ! -f ${_pkgs_txt} ]]; then
         echo "no ${_pkgs_txt} yet, PKQ_INTERACTIVE=1"
     elif _pkgs_mismatch=$(python3 "$(dirname "${BASH_SOURCE[0]}")/check_packages.py" pkq_configs/common.sh "${_pkgs_txt}" 2>&1); then
@@ -353,6 +355,7 @@ EOF
             interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
         fi
     fi
+    cp ${PKQ_CONDAENV}/pkq_packages.txt pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/pkq_packages.txt
 
 }
 
@@ -638,7 +641,7 @@ EOF
         fi
         mkdir -p ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
         echo "596, PWD, ${PWD}"
-        rsync -a ./ ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}/
+        rsync -a ./ ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}/ # have to do this after packages are installed, because sometimes may need to install packages from dirs
         cd ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
         cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh
         sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out --error=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
