@@ -263,10 +263,14 @@ if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
+# /proj (and ~/.cache, a link into it) is NFS, where apptainer pull fails with "stale file handle"; /tmp is too small
+export APPTAINER_TMPDIR=/dev/shm/${USER}_apptainer_tmp
+mkdir -p ${APPTAINER_TMPDIR}
 cd ${PKQ_DATA_DIR}
 EOF
             #PKQ_CONDAENV is used in slurm_header.sh
             cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
+            echo 'rm -rf ${APPTAINER_TMPDIR}' >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
             echo "cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}" >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
 
             cat >remotepkq3.sh <<'EOF'
