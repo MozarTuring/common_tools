@@ -3366,9 +3366,9 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 		for _, old in ipairs(vim.fn.glob(log_dir .. "/remote_job_id*.txt", false, true)) do
 			delete_and_close(old)
 		end
-		for _, old in ipairs(vim.fn.glob(log_dir .. "/select_running_job/*", false, true)) do
-			delete_and_close(old)
-		end
+		-- for _, old in ipairs(vim.fn.glob(log_dir .. "/select_running_job/*", false, true)) do
+		-- 	delete_and_close(old)
+		-- end
 		-- number of finished groups, for the last run's timer
 		_G.pkq_batch_groups = { done = 0 }
 	end
@@ -3421,13 +3421,20 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 				.. " remoteslurm group"
 				.. g
 			vim.fn.writefile({ select_cmd, "" }, select_log_file)
+			local select_argv = "bash "
+				.. pkqMacHome
+				.. "/project/common_tools/select_running_job.sh "
+				.. jobs_file
+				.. " remoteslurm group"
+				.. g
+			vim.fn.system({ "pkill", "-f", "-x", (select_argv:gsub("[%^%$%.%*%+%?%(%)%[%]%{%}%|\\]", "\\%0")) })
 			-- created before the job so that a failed selection can stop it
 			local done_timer = vim.loop.new_timer()
 			local killed_by_user = false
 			local select_job = vim.fn.jobstart({
 				"bash",
 				"-c",
-				"exec " .. select_cmd .. " >>" .. vim.fn.shellescape(select_log_file) .. " 2>&1",
+				"exec " .. select_cmd .. " >" .. vim.fn.shellescape(select_log_file) .. " 2>&1",
 			}, {
 				detach = true,
 				-- the next group starts only once this group's select_running_job.sh has exited cleanly
