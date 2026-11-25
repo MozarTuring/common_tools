@@ -346,8 +346,12 @@ EOF
     fi
 
     if [[ ${PKQ_INTERACTIVE} == 1 ]]; then
-        echo "${PKQ_SERVER_NAME}"
-        interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
+        echo "${PKQ_SERVER_NAME}, ${PKQ_PARTITION}"
+        if (("${PKQ_GPU_NUM}" == "0")); then
+            interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION}
+        else
+            interactive -A ${PKQ_SLURM_PROJ} --partition ${PKQ_PARTITION} --gpus 1
+        fi
     fi
 
 }
