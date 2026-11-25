@@ -257,7 +257,7 @@ conda activate ${PKQTMP}
 which python
 python --version
 which pip
-pip install -q huggingface_hub
+pip install huggingface_hub
 if [ -z ${PKQ_CONDAENV} ]; then
     export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
     export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
