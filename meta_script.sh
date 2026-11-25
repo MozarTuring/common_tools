@@ -270,7 +270,7 @@ cd ${PKQ_DATA_DIR}
 EOF
             #PKQ_CONDAENV is used in slurm_header.sh
             cat pkq_configs/download.sh >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
-            echo 'rm -rf ${APPTAINER_TMPDIR}' >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
+            echo 'rm -rf ${APPTAINER_TMPDIR}; unset APPTAINER_TMPDIR' >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
             echo "cd ${RUN_DIR_HOME}/project_remote_pkq/${RUN_PROJ}" >>pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh
 
             cat >remotepkq3.sh <<'EOF'
