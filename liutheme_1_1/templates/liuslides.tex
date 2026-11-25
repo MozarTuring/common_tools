@@ -11,6 +11,11 @@
 \usepackage[T1]{fontenc}
 \usepackage{babel}
 
+\newcommand{\liuthemedir}{/Users/jinma63/project/common_tools/liutheme_1_1/tex}
+\makeatletter
+\def\input@path{{\liuthemedir/latex/liu/liuslides/}}
+\makeatother
+
 \usetheme[
 %% Standard colors {blue, green, turquoise} for title, outline and end pages
 titlecolor=blue,%
@@ -43,8 +48,16 @@ nooutline, %
 %outlinecolumns,
 ]{LiU}
 
+\makeatletter
+\def\liulogo{\liuthemedir/generic/images/logo/liu_eng/LiU_primary}
+\pgfdeclareimage[height=\LiU@logo@large@height]{large_logo_white}{\liulogo_white}
+\pgfdeclareimage[height=\LiU@logo@large@height]{large_logo_black}{\liulogo_black}
+\pgfdeclareimage[height=\LiU@logo@small@height]{small_logo_white}{\liulogo_white}
+\pgfdeclareimage[height=\LiU@logo@small@height]{small_logo_black}{\liulogo_black}
+\makeatother
+
 %% Add a text on end page, leave blank to add author
-\finaltext{Final text}
+\finaltext{Thank you}
 
 %% Presentation information
 \title[Short title]{Long title}

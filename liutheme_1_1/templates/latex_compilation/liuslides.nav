@@ -1,0 +1,18 @@
+\headcommand {\slideentry {0}{0}{1}{1/1}{}{0}}
+\headcommand {\beamer@framepages {1}{1}}
+\headcommand {\slideentry {0}{0}{2}{2/2}{}{0}}
+\headcommand {\beamer@framepages {2}{2}}
+\headcommand {\beamer@sectionpages {1}{2}}
+\headcommand {\beamer@subsectionpages {1}{2}}
+\headcommand {\sectionentry {1}{Section title}{3}{Section title}{0}}
+\headcommand {\beamer@subsectionpages {3}{2}}
+\headcommand {\beamer@subsectionentry {0}{1}{1}{3}{Sub section title}}
+\headcommand {\slideentry {1}{1}{1}{3/3}{Sub section title}{0}}
+\headcommand {\beamer@framepages {3}{3}}
+\headcommand {\beamer@partpages {1}{3}}
+\headcommand {\beamer@subsectionpages {3}{3}}
+\headcommand {\beamer@sectionpages {3}{3}}
+\headcommand {\beamer@documentpages {3}}
+\headcommand {\gdef \inserttotalframenumber {2}}
+\headcommand {\slideentry {1}{1}{2}{4/4}{Sub section title}{0}}
+\headcommand {\beamer@framepages {4}{4}}

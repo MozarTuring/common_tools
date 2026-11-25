@@ -521,20 +521,15 @@ require("lazy").setup({
 				vim.g.vimtex_view_skim_sync = 1 -- forward sync (tex -> pdf)
 				vim.g.vimtex_view_skim_activate = 1 -- bring Skim to the front on VimtexView
 				vim.g.vimtex_compiler_method = "latexmk"
-				local base_latex_out = pkqMacHome .. "/project/zzzpkqoutput/latex_compilation"
-				vim.fn.mkdir(base_latex_out, "p")
-
 				local function get_latex_out_dir()
-					local tex_dir = vim.fn.expand("%:p:h")
-					local sanitized = tex_dir:gsub("/", "_"):gsub("^_", "")
-					local out_dir = base_latex_out .. "/" .. sanitized
+					local out_dir = vim.fn.expand("%:p:h") .. "/latex_compilation"
 					vim.fn.mkdir(out_dir, "p")
 					return out_dir
 				end
 
 				vim.g.vimtex_compiler_latexmk = {
-					aux_dir = base_latex_out,
-					out_dir = base_latex_out,
+					aux_dir = "latex_compilation",
+					out_dir = "latex_compilation",
 					continuous = 0, -- no file watching: edits outside nvim don't trigger a compile
 					options = {
 						"-synctex=1",
@@ -549,7 +544,6 @@ require("lazy").setup({
 					pattern = "VimtexEventInitPre",
 					callback = function()
 						local out_dir = get_latex_out_dir()
-						local out_bbl = out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".bbl"
 						local src_bbl = vim.fn.expand("%:p:r") .. ".bbl"
 						local has_bib = false
 						for _, line in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
@@ -570,19 +564,14 @@ require("lazy").setup({
 							end
 						end
 						local bibtex_use = "'$bibtex_use=2'"
-						if has_bib or vim.fn.filereadable(src_bbl) == 0 then
-							-- Drop the stale .bbl before any compile so it must be regenerated from the .bib
-							-- (deleting it after each compile instead makes latexmk -pvc rebuild forever)
-							os.remove(out_bbl)
-						else
-							-- No .bib: use the shipped .bbl as is; bibtex_use=1 keeps latexmk from running bibtex or deleting it
-							vim.fn.writefile(vim.fn.readfile(src_bbl, "b"), out_bbl, "b")
-							-- bibtex won't run, so an old .blg would stay and its errors would show up in the quickfix list
-							os.remove(out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".blg")
+						vim.b.pkq_shipped_bbl = nil
+						if not has_bib and vim.fn.filereadable(src_bbl) == 1 then
+							-- No .bib: each compile copies the shipped .bbl into the cleared build folder;
+							-- bibtex_use=1 keeps latexmk from running bibtex or deleting it
+							vim.b.pkq_shipped_bbl = src_bbl
 							bibtex_use = "'$bibtex_use=1'"
 						end
-						-- Drop both PDFs (build folder and the copy next to the tex file), so only a successful compile brings them back
-						os.remove(out_dir .. "/" .. vim.fn.expand("%:t:r") .. ".pdf")
+						-- Drop the PDF copy next to the tex file, so only a successful compile brings it back
 						os.remove(vim.fn.expand("%:p:r") .. ".pdf")
 						local cfg = {
 							aux_dir = out_dir,
@@ -601,7 +590,7 @@ require("lazy").setup({
 					callback = function()
 						register_skim_server()
 						local cur_out = (vim.b.vimtex_compiler_latexmk and vim.b.vimtex_compiler_latexmk.out_dir)
-							or base_latex_out
+							or (vim.fn.expand("%:p:h") .. "/latex_compilation")
 						vim.fn.system({
 							"osascript",
 							"-e",
@@ -675,25 +664,61 @@ require("lazy").setup({
 				_G.PkqLatexCompile = function()
 					local buf = vim.api.nvim_get_current_buf()
 					local info = vim.b[buf].vimtex
-					if not info or vim.b[buf].pkq_latex_running then
+					-- a .cls/.sty opened on its own is its own vimtex main file: nothing to compile
+					if not info or vim.b[buf].pkq_latex_running or not (info.tex or ""):match("%.tex$") then
 						return
 					end
 					local cfg = vim.b[buf].vimtex_compiler_latexmk or vim.g.vimtex_compiler_latexmk
-					local cmd = { "latexmk", "-pdf" }
+					local cmd = { "latexmk", "-norc", "-pdf" }
 					for _, opt in ipairs(cfg.options) do
 						-- options carry shell quotes for vimtex's shell command; vim.system passes no shell
 						table.insert(cmd, (opt:gsub("^'(.*)'$", "%1")))
 					end
-					vim.list_extend(cmd, { "-outdir=" .. cfg.out_dir, info.tex })
-					local lock = take_compile_lock(cfg.out_dir)
+					local abs_out = cfg.out_dir:sub(1, 1) == "/" and cfg.out_dir
+						or (vim.fn.fnamemodify(info.tex, ":h") .. "/" .. cfg.out_dir)
+					-- an arXiv source whose 00README.json names this file as toplevel is compiled from that json's dir
+					-- (its \input, \documentclass and \bibliography paths are relative to it), not from the tex dir
+					local cwd = info.root
+					local tex_real = vim.uv.fs_realpath(info.tex) or info.tex
+					local dir = vim.fn.fnamemodify(tex_real, ":h")
+					while dir ~= "/" do
+						local readme = dir .. "/00README.json"
+						if vim.fn.filereadable(readme) == 1 then
+							local ok, meta = pcall(vim.json.decode, table.concat(vim.fn.readfile(readme), "\n"))
+							for _, src in ipairs(ok and type(meta) == "table" and meta.sources or {}) do
+								if src.usage == "toplevel" and dir .. "/" .. src.filename == tex_real then
+									cwd = dir
+									cmd = vim.tbl_filter(function(a)
+										return a ~= "-cd"
+									end, cmd)
+								end
+							end
+							break
+						end
+						dir = vim.fn.fnamemodify(dir, ":h")
+					end
+					vim.list_extend(cmd, { "-outdir=" .. abs_out, info.tex })
+					local lock = take_compile_lock(abs_out)
 					if not lock then
 						return
 					end
+					-- Start every compile from an empty build folder: files left by an earlier (killed or
+					-- differently configured) run, e.g. a truncated .aux/.out or a stale .bbl, break the next one
+					for name in vim.fs.dir(abs_out) do
+						if name ~= ".pkq_compile.lock" then
+							vim.fn.delete(abs_out .. "/" .. name, "rf")
+						end
+					end
+					local shipped_bbl = vim.b[buf].pkq_shipped_bbl
+					if shipped_bbl then
+						local out_bbl = abs_out .. "/" .. vim.fn.fnamemodify(info.tex, ":t:r") .. ".bbl"
+						vim.fn.writefile(vim.fn.readfile(shipped_bbl, "b"), out_bbl, "b")
+					end
 					vim.b[buf].pkq_latex_running = true
-					vim.system(cmd, { cwd = info.root, env = { max_print_line = "2000" }, text = true }, function(res)
+					vim.system(cmd, { cwd = cwd, env = { max_print_line = "2000" }, text = true }, function(res)
 						vim.schedule(function()
 							vim.fn.delete(lock, "rf")
-							local out_file = cfg.out_dir .. "/latexmk_output.txt"
+							local out_file = abs_out .. "/latexmk_output.txt"
 							local f = io.open(out_file, "w")
 							if f then
 								f:write((res.stdout or "") .. (res.stderr or ""))
@@ -2088,11 +2113,43 @@ vim.keymap.set("n", ",t", function()
 	if vim.bo.filetype == "tex" then
 		local dir, folder = citation_dir(vim.fn.expand("<cword>"))
 		if dir then
-			local pickers = Snacks.picker.get({ source = "explorer" })
-			if #pickers > 0 then
-				pickers[1]:close()
+			local function open_dir()
+				local pickers = Snacks.picker.get({ source = "explorer" })
+				if #pickers > 0 then
+					pickers[1]:close()
+				end
+				Snacks.explorer({ cwd = dir })
 			end
-			Snacks.explorer({ cwd = dir })
+			local downloaded = false
+			for name in vim.fs.dir(dir) do
+				if name:sub(1, 1) ~= "." and name ~= "arxiv_id.txt" then
+					downloaded = true
+					break
+				end
+			end
+			if downloaded then
+				open_dir()
+				return
+			end
+			if vim.fn.filereadable(dir .. "/arxiv_id.txt") == 0 then
+				vim.notify("arxiv_id.txt not found in " .. dir, vim.log.levels.WARN)
+				return
+			end
+			vim.notify("Downloading arXiv source into " .. dir .. " ...")
+			vim.system(
+				{ "python3", "-I", pkqMacHome .. "/project/common_tools/arxiv_fetch.py", dir },
+				{ text = true },
+				function(res)
+					vim.schedule(function()
+						if res.code == 0 then
+							vim.notify("Downloaded: " .. vim.trim(res.stdout or ""))
+							open_dir()
+						else
+							vim.notify("arxiv_fetch.py failed: " .. vim.trim((res.stderr or "") .. (res.stdout or "")), vim.log.levels.ERROR)
+						end
+					end)
+				end
+			)
 			return
 		elseif folder then
 			vim.notify("Citation folder not found: " .. folder, vim.log.levels.WARN)
@@ -2781,7 +2838,8 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 			'try\ntell application "Skim" to get bounds of window 1\non error\nreturn ""\nend try',
 		})
 		saved_bounds = vim.trim(saved_bounds)
-		vim.fn.system({ "open", "-g", "-a", "Skim", pdf_path })
+		vim.fn.system({ "open", "-a", "Skim", pdf_path })
+		vim.fn.system({ "osascript", "-e", 'tell application "Skim" to activate' })
 		if saved_bounds ~= "" then
 			vim.defer_fn(function()
 				vim.fn.system({
