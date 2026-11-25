@@ -470,6 +470,10 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
             _tmppath="/Users/jinma63/Desktop/baidu/project_nogit/${repo_path}/useful_on_remote"
             mkdir -p ${_tmppath}
             if [[ ! -L "./pkq_configs/docs" ]]; then
+                if [[ -d "./pkq_configs/docs" ]]; then
+                    cp -R ./pkq_configs/docs/. "${_tmppath}/../"
+                    rm ./pkq_configs/docs
+                fi
                 ln -sfn ${_tmppath}/.. ./pkq_configs/docs
             fi
             rsync -av --safe-links ${_tmppath}/ "$PKQ_SERVER_NAME":${_remote_dir}/../project_nogit/useful_on_remote/
