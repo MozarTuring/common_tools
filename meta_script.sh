@@ -472,7 +472,7 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
             if [[ ! -L "./pkq_configs/docs" ]]; then
                 if [[ -d "./pkq_configs/docs" ]]; then
                     cp -R ./pkq_configs/docs/. "${_tmppath}/../"
-                    rm ./pkq_configs/docs
+                    rm -rf ./pkq_configs/docs # my alias of rm not work when this script is run by bash meta_script.sh which starts nonlogin and noninteractive session
                 fi
                 ln -sfn ${_tmppath}/.. ./pkq_configs/docs
             fi
