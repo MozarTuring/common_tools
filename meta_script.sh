@@ -186,7 +186,7 @@ EOF
                 PKQ_GPU_NUM=1
             fi
             if [[ ${PKQ_SERVER_NAME} == "berzeliusampere" ]]; then
-                PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]"
+                # PKQ_SLURM_NODES="--nodelist=node[061-064,065,066-093]" # uncomment for big gpus
                 cat >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/remote2.sh <<'EOF'
 if [[ -z ${PKQ_MODULES} ]]; then
 export PKQ_MODULES="Miniforge3 buildenv-gcccuda/12.4.1-gcc13.3.0"
