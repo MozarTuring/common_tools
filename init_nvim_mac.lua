@@ -597,19 +597,7 @@ require("lazy").setup({
 							'tell application "Skim" to tell every document to revert',
 						})
 						vim.cmd("VimtexView")
-
-						vim.fn.jobstart({
-							"osascript",
-							"-e",
-							table.concat({
-								'tell application "Skim"',
-								"  if not (zoomed of window 1) then set zoomed of window 1 to true",
-								"  tell front document",
-								"    set view settings to {scale factor:5.0, auto scales:false}",
-								"  end tell",
-								"end tell",
-							}, "\n"),
-						}, { detach = true })
+						PkqSkimZoom()
 
 						-- Copy the built PDF to the same directory as the tex file
 						local vimtex_info = vim.b.vimtex
@@ -1370,8 +1358,13 @@ end
 
 -- called by skim_inverse.sh (Skim Cmd+Shift+click). pkq_skim_inverse stops VimtexEventInitPost from compiling a
 -- newly opened file: the compile's VimtexView would bring Skim back to the front
+-- A .pdf file comes from the .pdfsync written by PkqWritePdfsync: reveal the PDF in the explorer
 function PkqSkimInverse(line, file)
 	file = PkqSymlinkPath(file)
+	if file:lower():match("%.pdf$") then
+		PkqRevealInExplorer(file)
+		return file
+	end
 	line = tonumber(line) or 1
 	local buf = vim.fn.bufnr(file)
 	local win = buf > 0 and vim.fn.win_findbuf(buf)[1] or nil
@@ -2065,12 +2058,12 @@ vim.defer_fn(function()
 	end
 end, 100)
 
-vim.keymap.set("n", ",f", function()
+-- a file outside the cwd is shown in an explorer rooted at its own directory
+function PkqRevealInExplorer(file)
 	local pickers = Snacks.picker.get({ source = "explorer" })
 	if #pickers > 0 then
 		pickers[1]:close()
 	end
-	local file = vim.fn.expand("%:p")
 	-- getcwd() is the OS's realpath'd cwd; keep the symlink spelling the shell started nvim in ($PWD)
 	local root = vim.fn.getcwd()
 	local pwd = vim.env.PWD
@@ -2079,6 +2072,9 @@ vim.keymap.set("n", ",f", function()
 			file = pwd .. file:sub(#root + 1)
 		end
 		root = pwd
+	end
+	if file ~= "" and file:find(root .. "/", 1, true) ~= 1 then
+		root = vim.fn.fnamemodify(file, ":h")
 	end
 	local Tree = require("snacks.explorer.tree")
 	local Actions = require("snacks.explorer.actions")
@@ -2091,6 +2087,10 @@ vim.keymap.set("n", ",f", function()
 			end
 		end,
 	})
+end
+
+vim.keymap.set("n", ",f", function()
+	PkqRevealInExplorer(vim.fn.expand("%:p"))
 end, { noremap = true, desc = "Open file explorer" })
 
 local function citation_dir(key)
@@ -2827,28 +2827,59 @@ vim.defer_fn(function()
 end, 500)
 vim.o.clipboard = "unnamedplus"
 
--- Open PDF in Skim, reusing the last window's position/size
+-- Skim runs skim_inverse.sh on Cmd+Shift+click only when a sync file sits next to the PDF. For a PDF with no
+-- sync file and no .tex of the same name, write a <name>.pdfsync whose every page maps to the PDF itself, and
+-- register this nvim's socket for the PDF's directory so skim_inverse.sh reaches it.
+-- Skim needs a record on the clicked page, hence one per page.
+function PkqWritePdfsync(pdf_path)
+	pdf_path = vim.uv.fs_realpath(pdf_path) or pdf_path
+	local base = pdf_path:gsub("%.[pP][dD][fF]$", "")
+	for _, ext in ipairs({ ".synctex.gz", ".synctex", ".tex" }) do
+		if vim.uv.fs_stat(base .. ext) then
+			return
+		end
+	end
+	if not vim.uv.fs_stat(base .. ".pdfsync") then
+		local pages = tonumber(vim.trim(vim.fn.system({ "mdls", "-raw", "-name", "kMDItemNumberOfPages", pdf_path })))
+			or 2000
+		local lines = { vim.fn.fnamemodify(pdf_path, ":t"), "version 1" }
+		for p = 1, pages do
+			vim.list_extend(lines, { "s " .. p, "l " .. p .. " 1", "p " .. p .. " 0 0" })
+		end
+		vim.fn.writefile(lines, base .. ".pdfsync")
+	end
+	if vim.v.servername ~= "" then
+		local server_dir = "/tmp/nvim_vimtex_servers"
+		vim.fn.mkdir(server_dir, "p")
+		local key = vim.fn.fnamemodify(pdf_path, ":h"):gsub("/", "_")
+		vim.fn.writefile({ vim.v.servername }, server_dir .. "/" .. key)
+	end
+end
+
+function PkqSkimZoom()
+	vim.fn.jobstart({
+		"osascript",
+		"-e",
+		table.concat({
+			'tell application "Skim"',
+			"  if not (zoomed of window 1) then set zoomed of window 1 to true",
+			"  tell front document",
+			"    set view settings to {scale factor:5.0, auto scales:false}",
+			"  end tell",
+			"end tell",
+		}, "\n"),
+	}, { detach = true })
+end
+
+-- Open PDF in Skim, zoomed like the view after a tex compile
 vim.api.nvim_create_autocmd("BufReadCmd", {
 	pattern = "*.pdf",
 	callback = function(ev)
 		local pdf_path = vim.api.nvim_buf_get_name(ev.buf)
-		local saved_bounds = vim.fn.system({
-			"osascript",
-			"-e",
-			'try\ntell application "Skim" to get bounds of window 1\non error\nreturn ""\nend try',
-		})
-		saved_bounds = vim.trim(saved_bounds)
+		pcall(PkqWritePdfsync, pdf_path)
 		vim.fn.system({ "open", "-a", "Skim", pdf_path })
 		vim.fn.system({ "osascript", "-e", 'tell application "Skim" to activate' })
-		if saved_bounds ~= "" then
-			vim.defer_fn(function()
-				vim.fn.system({
-					"osascript",
-					"-e",
-					'tell application "Skim" to set bounds of window 1 to {' .. saved_bounds .. "}",
-				})
-			end, 500)
-		end
+		vim.defer_fn(PkqSkimZoom, 500)
 		vim.defer_fn(function()
 			if vim.api.nvim_buf_is_valid(ev.buf) then
 				vim.cmd("bd! " .. ev.buf)

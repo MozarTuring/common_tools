@@ -18,6 +18,9 @@ done
 if [[ -z "$server" || ! -S "$server" ]]; then
 	server=$(cat "$map/last" 2>/dev/null)
 fi
+if [[ -z "$server" || ! -S "$server" ]]; then
+	server=$(ls -t "${TMPDIR:-/tmp/}"nvim.$USER/*/nvim.*.0 2>/dev/null | head -n 1)
+fi
 
 opened=$("$nvr" --servername "$server" --remote-expr "luaeval('PkqSkimInverse(_A[1], _A[2])', ['$line', '$file'])" 2>/dev/null)
 [[ "$opened" == /* ]] || "$nvr" --servername "$server" +"$line" "$file"
