@@ -647,6 +647,9 @@ EOF
         echo "596, PWD, ${PWD}"
         rsync -a ./ ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}/ # have to do this after packages are installed, because sometimes may need to install packages from dirs
         cd ${RUN_DIR_HOME}/project_remote_runs/${PKQ_RUN_START_TIME}
+        if [[ -z ${PKQ_SLURM_FILE} ]]; then
+            PKQ_SLURM_FILE=
+        fi
         cat ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_header.sh ${PKQ_SLURM_FILE} ${RUN_DIR_HOME}/project_remote_pkq/common_tools_pikaq/slurm_tail.sh >pkq_configs/remote/remote_tmps/${PKQ_SERVER_NAME}/slurm.sh
         sbatch_args="--signal=B:USR1@120 --time=${PKQ_RUN_TIME} --nodes=${PKQ_NODES_NUM} --output=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out --error=pkq_configs/logs_${PKQ_RUN_START_TIME}/job-%j.out ${PKQ_SLURM_NODES}"
         # EOF has to be at the start of a line, without anything before it, not even white characters
