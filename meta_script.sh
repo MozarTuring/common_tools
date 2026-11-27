@@ -574,10 +574,10 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
         source "$_project_name/pkq_configs/local_after.sh"
     fi
 
-    # init_nvim_mac.lua waits on this tmux channel (named by the pane) to know the run has ended
+    # init_nvim_mac.lua waits on this tmux channel (named by the run's tmpdate) to know the run has ended
     _signal_run_end() {
         if [[ -n "${TMUX_PANE}" ]] && command -v tmux >/dev/null; then
-            tmux wait-for -S "pkq_run_end_${PKQ_RUN_START_TIME}_${TMUX_PANE}"
+            tmux wait-for -S "pkq_run_end_${PKQ_RUN_START_TIME}"
         fi
     }
 

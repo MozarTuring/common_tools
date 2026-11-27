@@ -3462,19 +3462,24 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 		end
 		vim.fn.system({ tmux, "send-keys", "-t", pane, "-l", bg_cmd })
 		vim.fn.system({ tmux, "send-keys", "-t", pane, "Enter" })
-		-- meta_script.sh signals this channel when the run ends; a signal sent before this wait starts is not lost
-		vim.fn.jobstart({ tmux, "wait-for", "pkq_run_end_" .. tmpdate .. "_" .. pane }, {
-			on_exit = function(_, code)
-				if code ~= 0 then
-					return
-				end
-				vim.schedule(function()
-					vim.fn.system({ tmux, "kill-pane", "-t", pane })
-					vim.fn.system({ tmux, "select-layout", "-t", session, "even-horizontal" })
-				end)
-			end,
-		})
+		groups.group_runs = groups.group_runs or {}
+		groups.group_runs[group_num] = groups.group_runs[group_num] or {}
+		table.insert(groups.group_runs[group_num], { tmpdate = tmpdate, pane = pane })
 		if is_group_end then
+			-- meta_script.sh signals each channel when its run ends; a signal sent before this wait starts is not lost
+			for _, run in ipairs(groups.group_runs[group_num]) do
+				vim.fn.jobstart({ tmux, "wait-for", "pkq_run_end_" .. run.tmpdate }, {
+					on_exit = function(_, code)
+						if code ~= 0 then
+							return
+						end
+						vim.schedule(function()
+							vim.fn.system({ tmux, "kill-pane", "-t", run.pane })
+							vim.fn.system({ tmux, "select-layout", "-t", session, "even-horizontal" })
+						end)
+					end,
+				})
+			end
 			vim.fn.jobstart({
 				"osascript",
 				pkqMacHome .. "/project/common_tools/run_in_idle_terminal.applescript",
