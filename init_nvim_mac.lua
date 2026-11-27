@@ -3483,15 +3483,9 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 			vim.fn.jobstart({
 				"osascript",
 				pkqMacHome .. "/project/common_tools/run_in_idle_terminal.applescript",
-				string.format(
-					'if [ -n "$TMUX" ]; then %s detach-client -E "%s attach -t %s"; else %s attach -t %s; fi',
-					tmux,
-					tmux,
-					session,
-					tmux,
-					session
-				),
-			}, { detach = true })
+				-- relies on the Terminal profile counting a tab running tmux as busy, so the chosen tab is never in tmux
+				tmux .. " attach -t " .. session,
+			}, { detach = true }) -- in terminal setting profile, set tmux would be count as busy
 		end
 		-- within a group, launch the next run without waiting for this one;
 		-- only the group's last run starts the group's selection below, and the next group waits for it to finish
