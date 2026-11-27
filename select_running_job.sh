@@ -29,13 +29,29 @@ _read_jobs() {
 }
 
 _cancel_line() {
-    local _cmd
+    local _cmd _done _waited=0
     IFS=, read -r _srv _jid _rdh _br _ldir _rest <<<"${_job_lines[$1]}"
     [[ -z "${_jid}" ]] && return 0
-    _cmd="ssh -o ConnectTimeout=10 ${_srv} 'scancel ${_jid}'"
+    # the Terminal window creates this file when scancel is done
+    _done=$(mktemp -u "${TMPDIR:-/tmp}/pkq_scancel_${_jid}.XXXXXX")
+    _cmd="ssh -o ConnectTimeout=10 ${_srv} 'scancel ${_jid}'; touch ${_done}"
     echo "scancel ${_srv},${_jid} in a Terminal window"
-    osascript "${_tools_dir}/run_in_idle_terminal.applescript" "${_cmd}" >/dev/null ||
-        echo "WARNING: could not open Terminal, run by hand: ${_cmd}"
+    if ! osascript "${_tools_dir}/run_in_idle_terminal.applescript" "${_cmd}" >/dev/null; then
+        echo "WARNING: could not open Terminal, run by hand: ssh -o ConnectTimeout=10 ${_srv} 'scancel ${_jid}'"
+        return 0
+    fi
+    while [[ ! -e "${_done}" ]]; do
+        if ((_waited >= 300)); then
+            echo "WARNING: scancel ${_srv},${_jid} not done after 300 s, continuing without it"
+            return 0
+        fi
+        # in the background + wait, as in the main loop: a USR1 is handled at once
+        sleep 1 &
+        wait $! || true
+        _waited=$((_waited + 1))
+    done
+    rm -f "${_done}"
+    echo "scancel ${_srv},${_jid} done"
 }
 
 # append the remote_monitor.sh command of the job on line _i of _job_lines to its nohup_monitor.log
