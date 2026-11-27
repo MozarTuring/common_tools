@@ -3462,7 +3462,7 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 		end
 		vim.fn.system({ tmux, "send-keys", "-t", pane, "-l", bg_cmd })
 		vim.fn.system({ tmux, "send-keys", "-t", pane, "Enter" })
-		if is_group_start then
+		if is_group_end then
 			vim.fn.jobstart({
 				"osascript",
 				pkqMacHome .. "/project/common_tools/run_in_idle_terminal.applescript",
