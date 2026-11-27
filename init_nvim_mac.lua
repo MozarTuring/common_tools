@@ -2058,21 +2058,32 @@ vim.defer_fn(function()
 	end
 end, 100)
 
--- a file outside the cwd is shown in an explorer rooted at its own directory
+-- Spell a real path through the deepest symlink directly inside root that leads to it, e.g.
+-- ~/Desktop/baidu/TA_work/x.pdf -> ~/project/TA_work/x.pdf; nil when no such symlink exists
+function PkqPathUnderRoot(file, root)
+	if file:find(root .. "/", 1, true) == 1 then
+		return file
+	end
+	local best_real, best_link
+	for name, type in vim.fs.dir(root) do
+		if type == "link" then
+			local real = vim.uv.fs_realpath(root .. "/" .. name)
+			if real and file:find(real .. "/", 1, true) == 1 and (not best_real or #real > #best_real) then
+				best_real, best_link = real, root .. "/" .. name
+			end
+		end
+	end
+	return best_link and best_link .. file:sub(#best_real + 1) or nil
+end
+
+-- Explorer rooted at ~/project; a file not reachable from there gets an explorer rooted at its own directory
 function PkqRevealInExplorer(file)
 	local pickers = Snacks.picker.get({ source = "explorer" })
 	if #pickers > 0 then
 		pickers[1]:close()
 	end
-	-- getcwd() is the OS's realpath'd cwd; keep the symlink spelling the shell started nvim in ($PWD)
-	local root = vim.fn.getcwd()
-	local pwd = vim.env.PWD
-	if pwd and pwd ~= root and vim.uv.fs_realpath(pwd) == root then
-		if file:find(root .. "/", 1, true) == 1 then
-			file = pwd .. file:sub(#root + 1)
-		end
-		root = pwd
-	end
+	local root = pkqMacHome .. "/project"
+	file = PkqPathUnderRoot(file, root) or file
 	if file ~= "" and file:find(root .. "/", 1, true) ~= 1 then
 		root = vim.fn.fnamemodify(file, ":h")
 	end
@@ -3419,16 +3430,45 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 	vim.fn.writefile({ cmd }, log_file)
 
 	local bg_cmd = cmd --.. " >> " .. vim.fn.shellescape(log_file) .. " 2>&1"
-	local full_cmd = cmd_base .. tmpdate .. run_flags
-	vim.fn.setreg("+", full_cmd)
+	-- local full_cmd = cmd_base .. tmpdate .. run_flags
+	-- vim.fn.setreg("+", full_cmd)
 
 	local function start_run()
 		vim.notify(string.format("Batch run [%d/%d]", index, #batch_entries), vim.log.levels.INFO)
-		vim.fn.jobstart({
-			"osascript",
-			pkqMacHome .. "/project/common_tools/run_in_idle_terminal.applescript",
-			bg_cmd,
-		}, { detach = true })
+		local tmux = vim.fn.exepath("tmux")
+		if tmux == "" then
+			tmux = vim.fn.filereadable("/opt/homebrew/bin/tmux") == 1 and "/opt/homebrew/bin/tmux"
+				or "/usr/local/bin/tmux"
+		end
+		local groups = _G.pkq_batch_groups
+		groups.tmux_prefix = groups.tmux_prefix or ("pkqbatch" .. os.date("%Y%m%d_%H%M%S"))
+		local session = groups.tmux_prefix .. "_group" .. group_num
+		local is_group_start = index == 1 or group_key(index) ~= group_key(index - 1)
+		local pane
+		if is_group_start then
+			-- created detached from nvim so that later runs of the group can split it before Terminal attaches
+			pane = vim.trim(vim.fn.system({
+				tmux, "new-session", "-d", "-s", session, "-x", "240", "-y", "60", "-P", "-F", "#{pane_id}",
+			}))
+		else
+			pane = vim.trim(vim.fn.system({
+				tmux, "split-window", "-h", "-t", session, "-P", "-F", "#{pane_id}",
+			}))
+			vim.fn.system({ tmux, "select-layout", "-t", session, "even-horizontal" })
+		end
+		if vim.v.shell_error ~= 0 or pane == "" or not pane:match("^%%") then
+			pkq_batch_fail(string.format("tmux failed for run %d (session %s): %s", index, session, pane))
+			return
+		end
+		vim.fn.system({ tmux, "send-keys", "-t", pane, "-l", bg_cmd })
+		vim.fn.system({ tmux, "send-keys", "-t", pane, "Enter" })
+		if is_group_start then
+			vim.fn.jobstart({
+				"osascript",
+				pkqMacHome .. "/project/common_tools/run_in_idle_terminal.applescript",
+				tmux .. " attach -t " .. session,
+			}, { detach = true })
+		end
 		-- within a group, launch the next run without waiting for this one;
 		-- only the group's last run starts the group's selection below, and the next group waits for it to finish
 		if not is_group_end then
