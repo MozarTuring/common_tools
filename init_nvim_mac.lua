@@ -3466,7 +3466,14 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 			vim.fn.jobstart({
 				"osascript",
 				pkqMacHome .. "/project/common_tools/run_in_idle_terminal.applescript",
-				tmux .. " attach -t " .. session,
+				string.format(
+					'if [ -n "$TMUX" ]; then %s detach-client -E "%s attach -t %s"; else %s attach -t %s; fi',
+					tmux,
+					tmux,
+					session,
+					tmux,
+					session
+				),
 			}, { detach = true })
 		end
 		-- within a group, launch the next run without waiting for this one;
