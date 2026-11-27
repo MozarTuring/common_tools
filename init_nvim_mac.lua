@@ -3460,8 +3460,19 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 			pkq_batch_fail(string.format("tmux failed for run %d (session %s): %s", index, session, pane))
 			return
 		end
-		vim.fn.system({ tmux, "send-keys", "-t", pane, "-l", bg_cmd })
-		vim.fn.system({ tmux, "send-keys", "-t", pane, "Enter" })
+		-- keys typed while the pane's bash still loads its profile are echoed by the tty and then again after the prompt
+		local function send_when_prompt(tries)
+			local screen = vim.fn.system({ tmux, "capture-pane", "-p", "-t", pane })
+			if screen:match("%$%s*$") or tries >= 100 then
+				vim.fn.system({ tmux, "send-keys", "-t", pane, "-l", bg_cmd })
+				vim.fn.system({ tmux, "send-keys", "-t", pane, "Enter" })
+			else
+				vim.defer_fn(function()
+					send_when_prompt(tries + 1)
+				end, 100)
+			end
+		end
+		send_when_prompt(0)
 		groups.group_runs = groups.group_runs or {}
 		groups.group_runs[group_num] = groups.group_runs[group_num] or {}
 		table.insert(groups.group_runs[group_num], { tmpdate = tmpdate, pane = pane })
