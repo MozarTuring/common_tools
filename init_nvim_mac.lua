@@ -3484,10 +3484,10 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 						if code ~= 0 then
 							return
 						end
-						vim.schedule(function()
+						vim.defer_fn(function()
 							vim.fn.system({ tmux, "kill-pane", "-t", run.pane })
 							vim.fn.system({ tmux, "select-layout", "-t", session, "even-horizontal" })
-						end)
+						end, 3000)
 					end,
 				})
 			end
