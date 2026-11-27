@@ -4,7 +4,12 @@ on run argv
 		set didRun to false
 		if (count of windows) > 0 then
 			repeat with w in windows
-				repeat with t in tabs of w
+				-- some windows (e.g. Settings) have no tabs and make "tabs of w" raise an error
+				set wTabs to {}
+				try
+					set wTabs to tabs of w
+				end try
+				repeat with t in wTabs
 					if busy of t is false then
 						do script cmd in t
 						set selected tab of w to t

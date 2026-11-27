@@ -3441,7 +3441,7 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 				or "/usr/local/bin/tmux"
 		end
 		local groups = _G.pkq_batch_groups
-		groups.tmux_prefix = groups.tmux_prefix or ("pkqbatch" .. os.date("%Y%m%d_%H%M%S"))
+		groups.tmux_prefix = groups.tmux_prefix or ("pkqbatch" .. tmpdate)
 		local session = groups.tmux_prefix .. "_group" .. group_num
 		local is_group_start = index == 1 or group_key(index) ~= group_key(index - 1)
 		local pane
@@ -3462,6 +3462,18 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 		end
 		vim.fn.system({ tmux, "send-keys", "-t", pane, "-l", bg_cmd })
 		vim.fn.system({ tmux, "send-keys", "-t", pane, "Enter" })
+		-- meta_script.sh signals this channel when the run ends; a signal sent before this wait starts is not lost
+		vim.fn.jobstart({ tmux, "wait-for", "pkq_run_end_" .. tmpdate .. "_" .. pane }, {
+			on_exit = function(_, code)
+				if code ~= 0 then
+					return
+				end
+				vim.schedule(function()
+					vim.fn.system({ tmux, "kill-pane", "-t", pane })
+					vim.fn.system({ tmux, "select-layout", "-t", session, "even-horizontal" })
+				end)
+			end,
+		})
 		if is_group_end then
 			vim.fn.jobstart({
 				"osascript",
