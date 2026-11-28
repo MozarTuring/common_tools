@@ -2400,6 +2400,82 @@ local function open_in_grip()
 	start_grip_file_watcher(file)
 end
 
+local _mkdp_watchers = {}
+
+local function stop_mkdp_watcher(buf)
+	local w = _mkdp_watchers[buf]
+	if not w then
+		return
+	end
+	_mkdp_watchers[buf] = nil
+	pcall(function()
+		w.timer:stop()
+		w.timer:close()
+	end)
+	pcall(function()
+		w.fs:stop()
+		w.fs:close()
+	end)
+end
+
+local function start_mkdp_watcher(buf)
+	local path = vim.api.nvim_buf_get_name(buf)
+	stop_mkdp_watcher(buf)
+	if path == "" or vim.fn.filereadable(path) == 0 then
+		return
+	end
+	local fs = vim.uv.new_fs_event()
+	local timer = vim.uv.new_timer()
+	if not fs or not timer then
+		return
+	end
+	local w = { fs = fs, timer = timer, renamed = false }
+	_mkdp_watchers[buf] = w
+	fs:start(
+		path,
+		{},
+		vim.schedule_wrap(function(err, _, events)
+			if _mkdp_watchers[buf] ~= w then
+				return
+			end
+			if err or not vim.api.nvim_buf_is_valid(buf) then
+				stop_mkdp_watcher(buf)
+				return
+			end
+			if events and events.rename then
+				w.renamed = true
+			end
+			timer:stop()
+			timer:start(
+				200,
+				0,
+				vim.schedule_wrap(function()
+					if _mkdp_watchers[buf] ~= w or not vim.api.nvim_buf_is_valid(buf) then
+						return
+					end
+					-- an atomic save (write temp file + rename) leaves the watcher on the old inode
+					if w.renamed then
+						start_mkdp_watcher(buf)
+					end
+					-- checktime on a modified buffer would raise the "file changed" prompt
+					if not vim.bo[buf].modified then
+						vim.api.nvim_buf_call(buf, function()
+							vim.cmd("silent! checktime " .. buf)
+						end)
+					end
+				end)
+			)
+		end)
+	)
+end
+
+vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+	pattern = "*.md",
+	callback = function(args)
+		stop_mkdp_watcher(args.buf)
+	end,
+})
+
 vim.api.nvim_create_autocmd("FileType", {
 	pattern = "markdown",
 	callback = function()
@@ -2407,6 +2483,7 @@ vim.api.nvim_create_autocmd("FileType", {
 		vim.keymap.set("n", "m", function()
 			vim.b._pkq_mkdp_started = true
 			vim.cmd("MarkdownPreview")
+			start_mkdp_watcher(vim.api.nvim_get_current_buf())
 		end, { buffer = true, desc = "Markdown Preview" })
 	end,
 })
@@ -2419,7 +2496,8 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", {
 				vim.b._pkq_mkdp_started = true
 				vim.cmd("MarkdownPreview")
 			else
-				vim.cmd("silent! doautocmd TextChanged")
+				-- mkdp refreshes only on CursorHold/CursorMoved, not on TextChanged
+				vim.fn["mkdp#rpc#preview_refresh"]()
 			end
 		end
 	end,

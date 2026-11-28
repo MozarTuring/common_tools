@@ -55,24 +55,6 @@ _cancel_line() {
     echo "scancel ${_srv},${_jid} done"
 }
 
-# print "<pid> <args>" of the local meta_script.sh processes of the run with PKQ_RUN_START_TIME $1
-_run_procs() {
-    while read -r _pid _args; do
-        [[ "${_args}" == *"meta_script.sh "* && " ${_args} " == *" $1 "* ]] && echo "${_pid} ${_args}"
-    done < <(ps -Ao pid=,args=)
-    return 0
-}
-
-# kill a local meta_script.sh: collect the children, then SIGKILL the script itself first: a child killed while the
-# script lives would fire its ERR trap (_cancel_recorded_jobs), which scancels every recorded job of the group,
-# the selected one too
-_kill_run() {
-    local _children
-    _children=$(pgrep -P "$1" || true)
-    kill -9 "$1" 2>/dev/null || true
-    [[ -n "${_children}" ]] && kill ${_children} 2>/dev/null || true
-}
-
 # one ssh attempt to $1 (with the stale-ControlMaster reset of _wait_for_ssh), never waits: 0 reachable, 1 not
 _ssh_ok() {
     refresh_ssh_auth_sock
@@ -86,36 +68,33 @@ _ssh_ok() {
 _handled=" "
 local_dir=""
 
-# every run of the group except the selected one (none before a selection), reread from the jobs file:
-#   job id recorded    -> scancel the remote job
-#   no job id yet      -> the run is still in its local meta_script.sh (e.g. the ssh to the remote): kill it,
-#                         found by its PKQ_RUN_START_TIME in the meta_script.sh args
-#   no job id, no proc -> listed at the end (failed or exited before submitting)
-# the local output dirs of cancelled/killed runs are removed at the end; a run whose scancel was not confirmed keeps it
+# every run of the group except the selected one (none before a selection), reread from the jobs file until each
+# line is handled:
+#   job id recorded -> scancel the remote job
+#   no job id yet   -> wait: meta_script.sh fills in the job id (then scancel it) or removes its line on an error or
+#                      Ctrl-C (nothing to cancel)
+# killing a run in its ssh instead could orphan a job already submitted on the remote
+# the local output dirs of cancelled runs are removed at the end; a run whose scancel was not confirmed keeps it
 _cleanup_rest() {
-    local _unfound=() _found _pid _args _drop=() _t _ts_re='^[0-9]{8}_[0-9]{6}$'
-    _read_jobs
-    [[ ${#_job_lines[@]} -eq 0 ]] && echo "no lines in ${jobs_file}: no recorded job of ${whichgroup} to cancel"
-    for _i in "${!_job_lines[@]}"; do
-        IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
-        [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
-        if [[ -n "${_jid}" ]]; then
-            echo "cancel job ${_stime} of ${whichgroup}"
-            _cancel_line "${_i}" && _drop+=("${_stime}")
-            _handled+="${_stime} "
-            continue
-        fi
-        _found=""
-        while read -r _pid _args; do
-            _found=1
-            echo "kill stuck run ${_stime} (pid ${_pid}): ${_args}"
-            _kill_run "${_pid}"
-        done < <(_run_procs "${_stime}")
-        if [[ -z "${_found}" ]]; then
-            _unfound+=("${_job_lines[_i]}")
-            continue
-        fi
-        _drop+=("${_stime}")
+    local _drop=() _t _ts_re='^[0-9]{8}_[0-9]{6}$' _pending
+    while :; do
+        _read_jobs
+        _pending=()
+        for _i in "${!_job_lines[@]}"; do
+            IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
+            [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
+            if [[ -n "${_jid}" ]]; then
+                echo "cancel job ${_stime} of ${whichgroup}"
+                _cancel_line "${_i}" && _drop+=("${_stime}")
+                _handled+="${_stime} "
+                continue
+            fi
+            _pending+=("${_srv},${_stime}")
+        done
+        [[ ${#_pending[@]} -eq 0 ]] && break
+        echo "$(date '+%H:%M:%S') waiting for a job id or removal of: ${_pending[*]}"
+        sleep 5 &
+        wait $! || true
     done
 
     for _t in "${_drop[@]}"; do
@@ -124,14 +103,9 @@ _cleanup_rest() {
         echo "remove ${_out_dir}/${_t}"
         rm -rf "${_out_dir:?}/${_t}"
     done
-
-    if [[ ${#_unfound[@]} -gt 0 ]]; then
-        echo "runs of ${whichgroup} with no job id and no running meta_script.sh (check them by hand):"
-        printf '  %s\n' "${_unfound[@]}"
-    fi
 }
 
-# killed by <leader>k in nvim (it sends SIGUSR1): cancel and kill the group's other runs, then exit non-zero
+# killed by <leader>k in nvim (it sends SIGUSR1): cancel the group's other runs, then exit non-zero
 # so the nvim batch does not start the next group. kill <pid>, Ctrl-C, closed terminal just exit, with no cleanup.
 _on_signal() {
     trap - USR1
