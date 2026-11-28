@@ -3534,7 +3534,7 @@ run_batch_step = function(template_path, output_path, batch_entries, index, keys
 			local select_job = vim.fn.jobstart({
 				"bash",
 				"-c",
-				"exec " .. select_cmd .. " >" .. vim.fn.shellescape(select_log_file) .. " 2>&1",
+				"exec " .. select_cmd .. " >>" .. vim.fn.shellescape(select_log_file) .. " 2>&1",
 			}, {
 				detach = true,
 				-- the next group starts only once this group's select_running_job.sh has exited cleanly

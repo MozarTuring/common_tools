@@ -15,7 +15,8 @@ fi
 jobs_file="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
 PKQ_MODE="$2"
 whichgroup=$3
-_project_name=$(basename "$(dirname "${jobs_file}")")
+_out_dir="$(dirname "${jobs_file}")"
+_project_name=$(basename "${_out_dir}")
 _tools_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${_tools_dir}/retry_ssh.sh"
 
@@ -38,12 +39,12 @@ _cancel_line() {
     echo "scancel ${_srv},${_jid} in a Terminal window"
     if ! osascript "${_tools_dir}/run_in_idle_terminal.applescript" "${_cmd}" >/dev/null; then
         echo "WARNING: could not open Terminal, run by hand: ssh -o ConnectTimeout=10 ${_srv} 'scancel ${_jid}'"
-        return 0
+        return 1
     fi
     while [[ ! -e "${_done}" ]]; do
         if ((_waited >= 300)); then
             echo "WARNING: scancel ${_srv},${_jid} not done after 300 s, continuing without it"
-            return 0
+            return 1
         fi
         # in the background + wait, as in the main loop: a USR1 is handled at once
         sleep 1 &
@@ -52,15 +53,6 @@ _cancel_line() {
     done
     rm -f "${_done}"
     echo "scancel ${_srv},${_jid} done"
-}
-
-# append the remote_monitor.sh command of the job on line _i of _job_lines to its nohup_monitor.log
-_record_monitor_cmd() {
-    local _srv _jid _rdh _br _ldir _stime _args
-    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[$1]}"
-    [[ -n "${_jid}" && -n "${_ldir}" && -d "${_ldir}" ]] || return 0
-    _args=(${PKQ_MODE} "${_srv}" "${_jid}" "${_rdh}" "${_project_name}" "${_br}" "${_ldir}" "${_stime}")
-    echo """nohup bash ${_tools_dir}/remote_monitor.sh ${_args[@]} >> ${_ldir}/nohup_monitor.log 2>&1 &""" >>"${_ldir}/nohup_monitor.log"
 }
 
 # print "<pid> <args>" of the local meta_script.sh processes of the run with PKQ_RUN_START_TIME $1
@@ -99,9 +91,9 @@ local_dir=""
 #   no job id yet      -> the run is still in its local meta_script.sh (e.g. the ssh to the remote): kill it,
 #                         found by its PKQ_RUN_START_TIME in the meta_script.sh args
 #   no job id, no proc -> listed at the end (failed or exited before submitting)
-# then runs without a line yet (before the ssh) are killed by the group flag in their args
+# the local output dirs of cancelled/killed runs are removed at the end; a run whose scancel was not confirmed keeps it
 _cleanup_rest() {
-    local _unfound=() _found _pid _args _nkilled=0
+    local _unfound=() _found _pid _args _drop=() _t _ts_re='^[0-9]{8}_[0-9]{6}$'
     _read_jobs
     [[ ${#_job_lines[@]} -eq 0 ]] && echo "no lines in ${jobs_file}: no recorded job of ${whichgroup} to cancel"
     for _i in "${!_job_lines[@]}"; do
@@ -109,8 +101,7 @@ _cleanup_rest() {
         [[ -z "${_stime}" || "${_handled}" == *" ${_stime} "* ]] && continue
         if [[ -n "${_jid}" ]]; then
             echo "cancel job ${_stime} of ${whichgroup}"
-            _record_monitor_cmd "${_i}"
-            _cancel_line "${_i}"
+            _cancel_line "${_i}" && _drop+=("${_stime}")
             _handled+="${_stime} "
             continue
         fi
@@ -124,27 +115,14 @@ _cleanup_rest() {
             _unfound+=("${_job_lines[_i]}")
             continue
         fi
+        _drop+=("${_stime}")
     done
 
-    # runs that have not written their line yet: a meta_script.sh with the group flag, other than the selected run
-    while read -r _pid _args; do
-        [[ "${_args}" == *"meta_script.sh "* && " ${_args} " == *" ${whichgroup} "* ]] || continue
-        [[ -n "${PKQ_RUN_START_TIME}" && " ${_args} " == *" ${PKQ_RUN_START_TIME} "* ]] && continue
-        echo "kill unrecorded run of ${whichgroup} (pid ${_pid}): ${_args}"
-        _kill_run "${_pid}"
-        _nkilled=$((_nkilled + 1))
-    done < <(ps -Ao pid=,args=)
-    [[ ${_nkilled} -eq 0 ]] && echo "no running meta_script.sh of ${whichgroup} without a recorded line"
-
-    # a killed run may have filled in its job id just before the kill: cancel those too
-    _read_jobs
-    for _i in "${!_job_lines[@]}"; do
-        IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
-        [[ -n "${_jid}" && "${_handled}" != *" ${_stime} "* ]] || continue
-        echo "job ${_stime} of ${whichgroup} recorded just before its kill"
-        _record_monitor_cmd "${_i}"
-        _cancel_line "${_i}"
-        _handled+="${_stime} "
+    for _t in "${_drop[@]}"; do
+        [[ "${_t}" =~ ${_ts_re} && "${_t}" != "${PKQ_RUN_START_TIME}" ]] || continue
+        [[ -d "${_out_dir}/${_t}" ]] || continue
+        echo "remove ${_out_dir}/${_t}"
+        rm -rf "${_out_dir:?}/${_t}"
     done
 
     if [[ ${#_unfound[@]} -gt 0 ]]; then
@@ -183,18 +161,10 @@ while [[ -z "${run_job}" ]]; do
     fi
     for _i in "${!_job_lines[@]}"; do
         IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
+        # meta_script.sh fills in the job id, or removes its line on an error or Ctrl-C: reread next round
         if [[ -z "${_jid}" ]]; then
-            if [[ -n "$(_run_procs "${_stime}")" ]]; then
-                echo "${_srv} in process, but no job id yet"
-                continue
-            fi
-            # the run may have filled in its job id and exited after _read_jobs: reread its line
-            _job_lines[_i]=$(awk -F, -v t="${_stime}" '$6 == t' "${jobs_file}")
-            IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
-            if [[ -z "${_jid}" ]]; then
-                echo "${_srv} not in process"
-                continue
-            fi
+            echo "${_srv} ${_stime}: no job id yet"
+            continue
         fi
         echo "check ${_srv},${_jid}"
         # slurm_job_status.sh waits until ssh works: skip an unreachable server this round instead of blocking on it
@@ -225,13 +195,7 @@ while [[ -z "${run_job}" ]]; do
 done
 echo "${run_server},${run_job} is ${run_status}, cancelling the others"
 _handled+="${PKQ_RUN_START_TIME} "
-for _i in "${!_job_lines[@]}"; do
-    [[ ${_i} -eq ${run_idx} ]] && continue
-    IFS=, read -r _srv _jid _rdh _br _ldir _stime <<<"${_job_lines[_i]}"
-    [[ -z "${_jid}" ]] && continue
-    _cancel_line "${_i}"
-    _handled+="${_stime} "
-done
+_cleanup_rest
 
 nohup_log="${local_dir}/nohup_monitor.log"
 echo "

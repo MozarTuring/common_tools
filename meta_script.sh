@@ -259,8 +259,8 @@ python --version
 which pip
 pip install huggingface_hub
 if [ -z ${PKQ_CONDAENV} ]; then
-    export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}
-    export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}
+    export PKQ_CONDAENV=${RUN_DIR_HOME}/pkqcondaenv/${RUN_PROJ}${PKQ_ARCH}
+    export PKQ_WHEELS=${RUN_DIR_HOME}/pkqwheels/${RUN_PROJ}${PKQ_ARCH}
 fi
 echo "condaenv path ${PKQ_CONDAENV}"
 # /proj (and ~/.cache, a link into it) is NFS, where apptainer pull fails with "stale file handle"; /tmp is too small
@@ -282,10 +282,10 @@ EOF
         fi
 
         cat >>remotepkq3.sh <<'EOF'
-if [[ ! -d ${PKQ_CONDAENV}${PKQ_ARCH} ]]; then
-    conda create -p ${PKQ_CONDAENV}${PKQ_ARCH} python=${PKQ_PYTHON} pip -y
+if [[ ! -d ${PKQ_CONDAENV} ]]; then
+    conda create -p ${PKQ_CONDAENV} python=${PKQ_PYTHON} pip -y
 fi
-conda activate ${PKQ_CONDAENV}${PKQ_ARCH}
+conda activate ${PKQ_CONDAENV}
 which python
 python --version
 which pip
@@ -381,6 +381,7 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
         #         _retry_ssh "${_srv}" ssh -o ConnectTimeout=10 -o BatchMode=yes "${_srv}" "scancel ${_jid}" </dev/null || echo "WARNING: scancel ${_srv},${_jid} failed" >&2
         #     done 3<"${_jobs_file}"
         # fi
+        _unrecord_run
         exit "${_rc}"
     }
     echo "abspath, $1"
@@ -400,8 +401,34 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
     # jobs of this group, read by select_running_job.sh at the group's end
     _jobs_file="${local_dir_pre}/remote_job_id${_group}.txt"
     # the group's runs write the jobs file concurrently: append and in-place update under a mkdir lock
-    _jobs_lock() { until mkdir "${_jobs_file}.lock" 2>/dev/null; do sleep 0.2; done; }
-    _jobs_unlock() { rmdir "${_jobs_file}.lock"; }
+    # _have_lock: a trap firing while this run holds the lock must not wait on it (it would wait forever)
+    _have_lock=""
+    _jobs_lock() {
+        until mkdir "${_jobs_file}.lock" 2>/dev/null; do sleep 0.2; done
+        _have_lock=1
+    }
+    _jobs_unlock() {
+        rmdir "${_jobs_file}.lock"
+        _have_lock=""
+    }
+    # set while this run's line is in the jobs file without a job id
+    _recorded=""
+    # remove this run's line: select_running_job.sh waits on a line without a job id until it gets one or is gone
+    _unrecord_run() {
+        [[ -n "${_recorded}" && -f "${_jobs_file}" ]] || return 0
+        [[ -n "${_have_lock}" ]] || _jobs_lock
+        awk -F, -v t="${PKQ_RUN_START_TIME}" '$6 != t' "${_jobs_file}" >"${_jobs_file}.tmp" &&
+            mv "${_jobs_file}.tmp" "${_jobs_file}"
+        _jobs_unlock
+        _recorded=""
+        echo "removed ${PKQ_RUN_START_TIME} from ${_jobs_file}" >&2
+    }
+    _on_interrupt() {
+        trap - ERR INT TERM HUP
+        echo "ERROR: interrupted" >&2
+        _unrecord_run
+        exit 130
+    }
 
     PKQ_SERVER_NAME=$(sed -n 's/^export PKQ_SERVER_NAME=//p' "$1" | tail -1)
     export PKQ_SERVER_NAME
@@ -459,6 +486,7 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
     cd $HOME/project
     # server,job_id,run_dir_home,git_branch,local_dir,PKQ_RUN_START_TIME
     trap '_cancel_recorded_jobs $? $LINENO' ERR
+    trap _on_interrupt INT TERM HUP
     # if [[ "$3" == "fileupload" ]]; then
     # remote_ts=$(
     #     _retry_ssh "$PKQ_SERVER_NAME" ssh -o ConnectTimeout=10 -o BatchMode=yes "$PKQ_SERVER_NAME" "mkdir -p '${run_dir_home}/project_remote_pkq/last_remote_ts' && date +'%Y-%m-%d %H:%M:%S' | tee '${run_dir_home}/project_remote_pkq/last_remote_ts/${PKQ_RUN_START_TIME}.txt'"
@@ -546,6 +574,7 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
     if [[ "${PKQ_MODE}" == "remoteslurm" ]]; then
         _jobs_lock
         echo "${PKQ_SERVER_NAME},,${run_dir_home},${_git_branch},${local_dir},${PKQ_RUN_START_TIME}" >>"${_jobs_file}"
+        _recorded=1
         _jobs_unlock
     fi
 
@@ -597,7 +626,11 @@ if [[ "$1" == *"/local_${2}.sh" ]]; then
         _jobs_lock
         awk -F, -v OFS=, -v t="${PKQ_RUN_START_TIME}" -v j="${remote_job_id}" '$6 == t { $2 = j } 1' "${_jobs_file}" >"${_jobs_file}.tmp"
         mv "${_jobs_file}.tmp" "${_jobs_file}"
+        _recorded=""
         _jobs_unlock
+    else
+        # no job was submitted: drop the line, or select_running_job.sh would wait on it forever
+        _unrecord_run
     fi
 
     echo "Remote job ID: $remote_job_id"
